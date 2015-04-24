@@ -3,9 +3,11 @@
 import codecs
 import itertools
 import json
+import os
 import sys
 
-import utils
+sys.path.append(os.path.abspath(os.path.join('..', 'src')))
+import wizard
 
 
 def main(args):
@@ -19,7 +21,7 @@ def main(args):
         en = en.replace(u'│', u' / ')
         ru = ru.replace(u'│', u' / ')
         for cardname in (en, ru):
-            key = utils.getCardCompletionKey(cardname)
+            key = wizard.getCardCompletionKey(cardname)
             if key:
                 values = cards.setdefault(key, [])
                 if not en in values:
