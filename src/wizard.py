@@ -7,6 +7,7 @@ import multiprocessing
 import os
 import Queue
 import threading
+import webbrowser
 import wx
 import wx.grid
 
@@ -29,6 +30,7 @@ EVT_PRICE_OBTAINED = wx.NewId()
 def escapeNone(value):
     return value if value is not None else ''
 
+
 SEARCH_RESULTS_TABLE_ROW_COUNT = 30
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {'id': 'id', 'label': '#', 'horz_alignment': wx.ALIGN_RIGHT, 'formatter': lambda x: str(x).zfill(3) if x else ''},
@@ -39,7 +41,7 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {'id': 'foilness', 'label': 'Foil', 'horz_alignment': wx.ALIGN_CENTER, 'formatter': lambda x: 'Foil' if x else ''},
     {'id': 'count', 'label': 'Count', 'horz_alignment': wx.ALIGN_RIGHT},
     {'id': 'price', 'label': 'Price', 'horz_alignment': wx.ALIGN_RIGHT, 'formatter': lambda x: u'{}₽'.format(int(x)) if x else ''},
-    {'id': 'source', 'label': 'Source', 'horz_alignment': wx.ALIGN_LEFT},
+    {'id': 'source', 'label': 'Source', 'horz_alignment': wx.ALIGN_LEFT, 'on_click': webbrowser.open_new_tab},
 ]
 
 _LETTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LETTERS_RUSSIAN

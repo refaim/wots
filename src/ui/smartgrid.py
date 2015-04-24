@@ -15,11 +15,14 @@ class SmartGrid(wx.grid.Grid):
         self.columnHorzAlignment = []
         self.columnVertAlignment = []
         self.columnValueFormatters = []
+        self.columnOnClickCallbacks = []
 
         self.SetRowLabelSize(0)
+        self.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self.OnGridCellLeftClick)
         self.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self.OnGridLabelLeftClick)
         self.Bind(wx.grid.EVT_GRID_LABEL_LEFT_DCLICK, self.OnGridLabelLeftDoubleClick)
         self.GetGridColLabelWindow().Bind(wx.EVT_PAINT, self.OnGridColLabelWindowPaint)
+        self.GetGridWindow().Bind(wx.EVT_MOTION, self.OnGridMouseMotion)
 
     def CreateGrid(self, selMode, numRows, numCols=0, columnsSetup=None):
         if columnsSetup:
@@ -33,6 +36,7 @@ class SmartGrid(wx.grid.Grid):
                 self.columnHorzAlignment.append(setup.get('horz_alignment', wx.ALIGN_LEFT))
                 self.columnVertAlignment.append(setup.get('vert_alignment', wx.ALIGN_CENTER_VERTICAL))
                 self.columnValueFormatters.append(setup.get('formatter', lambda x: x))
+                self.columnOnClickCallbacks.append(setup.get('on_click', None))
 
         self.columnsSortDirections = [SORT_NONE] * numCols
         self.columnsSortOrder = []
@@ -40,6 +44,38 @@ class SmartGrid(wx.grid.Grid):
     def ClearGrid(self):
         super(SmartGrid, self).ClearGrid()
         self.data = []
+
+    def OnGridMouseMotion(self, event):
+        x, y = self.CalcUnscrolledPosition(event.GetPosition())
+        cursor = wx.StockCursor(wx.CURSOR_ARROW)
+        if len(self.data) > 0 and self.isClickable(self.YToRow(y), self.XToCol(x)):
+            cursor = wx.StockCursor(wx.CURSOR_HAND)
+        self.SetCursor(cursor)
+        event.Skip()
+
+    def OnGridCellLeftClick(self, event):
+        eRowIndex, eColIndex = event.GetRow(), event.GetCol()
+        if self.isClickable(eRowIndex, eColIndex):
+            value = self.data[eRowIndex][eColIndex]
+            for rowIndex in xrange(self.GetNumberRows()):
+                if self.data[rowIndex][eColIndex] == value:
+                    self.setHyperlinkCellAttr(rowIndex, eColIndex, (102, 51, 102))
+            self.columnOnClickCallbacks[eColIndex](value)
+        else:
+            event.Skip()
+
+    def isClickable(self, row, col):
+        return (len(self.data) > row and len(self.data[row]) > col and
+                len(self.columnOnClickCallbacks) > col and self.columnOnClickCallbacks[col] is not None)
+
+    def setHyperlinkCellAttr(self, rowIndex, columnIndex, color):
+        font = self.GetDefaultCellFont()
+        font.SetUnderlined(True)
+        attr = self.GetOrCreateCellAttr(rowIndex, columnIndex)
+        attr.SetTextColour(color)
+        attr.SetFont(font)
+        self.SetAttr(rowIndex, columnIndex, attr)
+        self.RefreshAttr(rowIndex, columnIndex)
 
     def OnGridLabelLeftClick(self, event):
         self.updateSorting(event.GetCol(), not event.ShiftDown())
@@ -88,6 +124,8 @@ class SmartGrid(wx.grid.Grid):
             cellValue = self.columnValueFormatters[columnIndex](values[columnIndex])
             self.SetCellValue(rowIndex, columnIndex, unicode(cellValue))
             self.SetCellAlignment(rowIndex, columnIndex, horiz=self.columnHorzAlignment[columnIndex], vert=self.columnVertAlignment[columnIndex])
+            if self.columnOnClickCallbacks[columnIndex] is not None:
+                self.setHyperlinkCellAttr(rowIndex, columnIndex, (6, 69, 173))
 
     def OnGridColLabelWindowPaint(self, event):
         dc = wx.PaintDC(self.GetGridColLabelWindow())
