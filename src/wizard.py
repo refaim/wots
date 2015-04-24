@@ -189,6 +189,9 @@ class MainWindow(wx.Frame):
 
     def OnCardFound(self, event):
         cardInfo = event.cardInfo
+        if cardInfo['count'] <= 0:
+            return
+
         cardInfo['name'] = card.utils.escape(card.utils.clean(cardInfo['name']))
 
         cardPrice = cardInfo.get('price', None)
