@@ -174,7 +174,7 @@ class MainWindow(wx.Frame):
                     if completionKey in key and value not in cards:
                         cards[value] = key
         result = sorted(cards.iterkeys(), cmp=functools.partial(self.sortCardCompletions, completionKey, cards))
-        return result, result
+        return (result, result) if query not in result else ([], [])
 
     def sortCardCompletions(self, completionKey, cardsByValue, a, b):
         av, bv = cardsByValue[a], cardsByValue[b]
