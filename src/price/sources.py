@@ -21,7 +21,8 @@ class TcgPlayer(object):
         return 'tcgplayer.com'
 
     def queryPrice(self, cardName, setId, language, foilness):
-        print(cardName, setId, language, foilness)
+        return
+        #print(cardName, setId, language, foilness)
         # TODO foilness
         # TODO cache
         setAbbrv = card.sets.getAbbreviation(setId)
