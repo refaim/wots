@@ -66,6 +66,12 @@ class CardSource(object):
         queryText = queryText.replace(u'`', "'").replace(u'’', "'")
         return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.quote(queryText))).decode(self.encoding))
 
+    def packSource(self, caption, cardUrl=None):
+        result = {'caption': caption}
+        if cardUrl is not None:
+            result['url'] = cardUrl
+        return result
+
 
 class AngryBottleGnome(CardSource):
     def __init__(self):
@@ -111,8 +117,7 @@ class AngryBottleGnome(CardSource):
                     'count': int(rawInfo['count']),
                     'price': decimal.Decimal(rawInfo['price']),
                     'currency': core.currency.RUR,
-                    'source': self.getTitle(),
-                    'url': cardUrl
+                    'source': self.packSource(self.getTitle(), cardUrl),
                 }
 
 
@@ -147,8 +152,7 @@ class MtgRuShop(CardSource):
                 'count': int(re.match(r'(\d+)', dataCells[5].text).group(0)),
                 'price': decimal.Decimal(re.match(r'(\d+)', dataCells[6].text.replace('`', '')).group(0)),
                 'currency': core.currency.RUR,
-                'source': self.getTitle(),
-                'url': None,  # в магазинах на движке mtg.ru у карт нет отдельных страниц
+                'source': self.packSource(self.getTitle())
             }
 
 
@@ -191,8 +195,7 @@ class MtgSale(CardSource):
                 'count': int(re.match(r'(\d+)', resultsEntry.cssselect('.tablestock')[0].text).group(0)),
                 'price': decimal.Decimal(re.match(r'(\d+)', resultsEntry.cssselect('.tableprice')[0].text.strip()).group(0)),
                 'currency': core.currency.RUR,
-                'source': self.getTitle(),
-                'url': None  # у карт в этом магазине нет отдельных страниц
+                'source': self.packSource(self.getTitle()),
             }
 
 
@@ -254,8 +257,7 @@ class CardPlace(CardSource):
                 'price': decimal.Decimal(re.match(r'([\d\.]+)', dataCells[6].text.strip()).group(0)),
                 'currency': core.currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
-                'source': self.getTitle(),
-                'url': cardNameAnchor.attrib['href'],
+                'source': self.packSource(self.getTitle(), cardNameAnchor.attrib['href']),
             }
 
 
@@ -323,8 +325,7 @@ class MtgRu(CardSource):
                         'price': price,
                         'currency': core.currency.RUR,
                         'count': int(cardInfo.cssselect('td.txt15 b')[0].text.split()[0]),
-                        'source': cardSource,
-                        'url': urlparse.urljoin(self.url, exchangeUrl),
+                        'source': self.packSource(cardSource, urlparse.urljoin(self.url, exchangeUrl)),
                     }
 
 
@@ -387,8 +388,7 @@ class Untap(CardSource):
                 'price': price,
                 'currency': priceCurrency,
                 'count': count,
-                'source': self.getTitle(),
-                'url': detailsUrl,
+                'source': self.packSource(self.getTitle(), detailsUrl),
             }
 
 
@@ -436,8 +436,7 @@ class CenterOfHobby(CardSource):
                 'price': cardPrice,
                 'currency': core.currency.RUR,
                 'count': cardCount,
-                'source': self.getTitle(),
-                'url': cardUrl,
+                'source': self.packSource(self.getTitle(), cardUrl),
             }
             prevResult = result.copy()
             if cardCount > 0:
@@ -527,8 +526,7 @@ class TtTopdeck(CardSource):
                     'currency': priceCurrency,
                     'count': countValue,
                     'condition': cardCondition,
-                    'source': 'topdeck.ru/' + sellerNickname.lower().replace(' ', '_'),
-                    'url': sellerAnchor.attrib['href'],
+                    'source': self.packSource('topdeck.ru/' + sellerNickname.lower().replace(' ', '_'), sellerAnchor.attrib['href']),
                 }
                 yield result
 

@@ -15,6 +15,7 @@ class SmartGrid(wx.grid.Grid):
         self.columnHorzAlignment = []
         self.columnVertAlignment = []
         self.columnValueFormatters = []
+        self.columnSortKeys = []
         self.columnOnClickCallbacks = []
 
         self.SetRowLabelSize(0)
@@ -36,6 +37,7 @@ class SmartGrid(wx.grid.Grid):
                 self.columnHorzAlignment.append(setup.get('horz_alignment', wx.ALIGN_LEFT))
                 self.columnVertAlignment.append(setup.get('vert_alignment', wx.ALIGN_CENTER_VERTICAL))
                 self.columnValueFormatters.append(setup.get('formatter', lambda x: x))
+                self.columnSortKeys.append(setup.get('sort_key', lambda x: x))
                 self.columnOnClickCallbacks.append(setup.get('on_click', None))
 
         self.columnsSortDirections = [SORT_NONE] * numCols
@@ -85,13 +87,15 @@ class SmartGrid(wx.grid.Grid):
 
     def getCmpFunction(self):
         def compare(x, y):
-            for i in self.columnsSortOrder:
-                direction = self.columnsSortDirections[i]
-                if x[i] != y[i]:
+            for col in self.columnsSortOrder:
+                direction = self.columnsSortDirections[col]
+                xData = self.columnSortKeys[col](x[col])
+                yData = self.columnSortKeys[col](y[col])
+                if xData != yData:
                     if direction == SORT_ASC:
-                        return 1 if x[i] > y[i] else -1  # TODO azaza custom comparator ftw
+                        return 1 if xData > yData else -1  # TODO azaza custom comparator ftw
                     elif direction == SORT_DESC:
-                        return 1 if x[i] < y[i] else -1
+                        return 1 if xData < yData else -1
                     else:
                         return 0
             return 0

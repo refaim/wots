@@ -33,15 +33,61 @@ def escapeNone(value):
 
 SEARCH_RESULTS_TABLE_ROW_COUNT = 30
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
-    {'id': 'id', 'label': '#', 'horz_alignment': wx.ALIGN_RIGHT, 'formatter': lambda x: str(x).zfill(3) if x else ''},
-    {'id': 'set', 'label': 'Set', 'horz_alignment': wx.ALIGN_CENTER, 'formatter': escapeNone},
-    {'id': 'language', 'label': 'LNG', 'horz_alignment': wx.ALIGN_CENTER, 'formatter': escapeNone},
-    {'id': 'name', 'label': 'Name', 'horz_alignment': wx.ALIGN_LEFT, 'formatter': card.utils.unescape},
-    {'id': 'condition', 'label': 'CND', 'horz_alignment': wx.ALIGN_CENTER, 'formatter': escapeNone},
-    {'id': 'foilness', 'label': 'Foil', 'horz_alignment': wx.ALIGN_CENTER, 'formatter': lambda x: 'Foil' if x else ''},
-    {'id': 'count', 'label': 'Count', 'horz_alignment': wx.ALIGN_RIGHT},
-    {'id': 'price', 'label': 'Price', 'horz_alignment': wx.ALIGN_RIGHT, 'formatter': lambda x: u'{}₽'.format(int(x)) if x else ''},
-    {'id': 'source', 'label': 'Source', 'horz_alignment': wx.ALIGN_LEFT, 'on_click': webbrowser.open_new_tab},
+    {
+        'id': 'id',
+        'label': '#',
+        'horz_alignment': wx.ALIGN_RIGHT,
+        'formatter': lambda x: str(x).zfill(3) if x else ''
+    },
+    {
+        'id': 'set',
+        'label': 'Set',
+        'horz_alignment': wx.ALIGN_CENTER,
+        'formatter': escapeNone
+    },
+    {
+        'id': 'language',
+        'label': 'LNG',
+        'horz_alignment': wx.ALIGN_CENTER,
+        'formatter': escapeNone
+    },
+    {
+        'id': 'name',
+        'label': 'Name',
+        'horz_alignment': wx.ALIGN_LEFT,
+        'formatter': card.utils.unescape
+    },
+    {
+        'id': 'condition',
+        'label': 'CND',
+        'horz_alignment': wx.ALIGN_CENTER,
+        'formatter': escapeNone
+    },
+    {
+        'id': 'foilness',
+        'label': 'Foil',
+        'horz_alignment': wx.ALIGN_CENTER,
+        'formatter': lambda x: 'Foil' if x else ''
+    },
+    {
+        'id': 'count',
+        'label': 'Count',
+        'horz_alignment': wx.ALIGN_RIGHT
+    },
+    {
+        'id': 'price',
+        'label': 'Price',
+        'horz_alignment': wx.ALIGN_RIGHT,
+        'formatter': lambda x: u'{}₽'.format(int(x)) if x else ''
+    },
+    {
+        'id': 'source',
+        'label': 'Source',
+        'horz_alignment': wx.ALIGN_LEFT,
+        'formatter': lambda x: x['caption'],
+        'sort_key': lambda x: x['caption'],
+        'on_click': lambda x: webbrowser.open_new_tab(x['url']),
+    },
 ]
 
 _LETTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LETTERS_RUSSIAN
