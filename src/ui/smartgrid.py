@@ -75,7 +75,7 @@ class SmartGrid(wx.grid.Grid):
         attr.SetTextColour(color)
         attr.SetFont(font)
         self.SetAttr(rowIndex, columnIndex, attr)
-        self.RefreshAttr(rowIndex, columnIndex)
+        self.Refresh()
 
     def OnGridLabelLeftClick(self, event):
         self.updateSorting(event.GetCol(), not event.ShiftDown())
