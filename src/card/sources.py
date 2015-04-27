@@ -445,12 +445,16 @@ class CenterOfHobby(CardSource):
 
 class TtTopdeck(CardSource):
     def __init__(self):
+        super(TtTopdeck, self).__init__('http://tt.topdeck.ru', '/?req={}&mode=sell&group=card', 'utf-8', {})
         self.excludedSellers = [
             'angrybottlegnome',
             'mtgsale',
             'shuma0963',  # shame on you!
         ]
-        super(TtTopdeck, self).__init__('http://tt.topdeck.ru', '/?req={}&mode=sell&group=card', 'utf-8', {})
+        self.possiblePriceRegexps = [
+            [re.compile(r'.*?(\d+)\s*\$.*'), core.currency.USD, 1],
+            [re.compile(r'.*?(\d+)\s*[kк][^t]', re.U | re.I), core.currency.RUR, 1000],
+        ]
 
     def query(self, queryText):
         searchResults = self.makeRequest(queryText)
@@ -480,12 +484,16 @@ class TtTopdeck(CardSource):
 
                 detailsString = cells[6].text
                 if detailsString:
-                    detailsString = detailsString
+                    detailsString = detailsString.lower()
 
-                    dollarPriceMatch = re.match(r'.*(\d+)\s*\$.*', detailsString)
-                    if dollarPriceMatch:
-                        priceValue = decimal.Decimal(dollarPriceMatch.group(1))
-                        priceCurrency = core.currency.USD
+                    for regexp, currency, valueMultiplier in self.possiblePriceRegexps:
+                        # я не смог написать нормальную регулярку, чтобы ловила 15k, но не ловила 15 ktk, поэтому так
+                        whitespaced = detailsString + ' '
+                        match = regexp.match(whitespaced)
+                        if match:
+                            priceValue = decimal.Decimal(match.group(1)) * valueMultiplier
+                            priceCurrency = currency
+                            break
 
                     foil = any(foilString in detailsString for foilString in ['foil', u'фойл', u'фоил'])
 
