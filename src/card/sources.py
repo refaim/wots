@@ -97,7 +97,8 @@ class AngryBottleGnome(CardSource):
             cardName = dataCells[0].cssselect('a')[0].text
             cardSet = dataCells[1].cssselect('a')[0].text
             cardRelativeUrl = dataCells[0].cssselect('a')[0].attrib['href']
-            cardVersions = lxml.html.document_fromstring(core.network.getUrl(urlparse.urljoin(self.url, cardRelativeUrl)))
+            cardUrl = urlparse.urljoin(self.url, cardRelativeUrl)
+            cardVersions = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
             for cardVersion in cardVersions.cssselect('.abg-card-version-instock'):
                 rawInfo = self.cardInfoRegexp.match(cardVersion.text).groupdict()
                 #print(rawInfo['language'].encode('cp866'))
@@ -111,6 +112,7 @@ class AngryBottleGnome(CardSource):
                     'price': decimal.Decimal(rawInfo['price']),
                     'currency': core.currency.RUR,
                     'source': self.getTitle(),
+                    'url': cardUrl
                 }
 
 
@@ -146,6 +148,7 @@ class MtgRuShop(CardSource):
                 'price': decimal.Decimal(re.match(r'(\d+)', dataCells[6].text.replace('`', '')).group(0)),
                 'currency': core.currency.RUR,
                 'source': self.getTitle(),
+                'url': None,  # в магазинах на движке mtg.ru у карт нет отдельных страниц
             }
 
 
@@ -189,6 +192,7 @@ class MtgSale(CardSource):
                 'price': decimal.Decimal(re.match(r'(\d+)', resultsEntry.cssselect('.tableprice')[0].text.strip()).group(0)),
                 'currency': core.currency.RUR,
                 'source': self.getTitle(),
+                'url': None  # у карт в этом магазине нет отдельных страниц
             }
 
 
@@ -226,7 +230,8 @@ class CardPlace(CardSource):
             dataCells = resultsEntry.cssselect('td')
             language = core.language.getAbbreviation(os.path.basename(urlparse.urlparse(self.url + dataCells[3].cssselect('img')[0].attrib['src']).path))
             cardId = None
-            cardName = dataCells[2].cssselect('a')[0].text
+            cardNameAnchor = dataCells[2].cssselect('a')[0]
+            cardName = cardNameAnchor.text
             isSpecialPromo = any(string in cardName for string in ['APAC', 'EURO', 'MPS'])
             if not isSpecialPromo:
                 if not language or language != 'EN':
@@ -250,6 +255,7 @@ class CardPlace(CardSource):
                 'currency': core.currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
                 'source': self.getTitle(),
+                'url': cardNameAnchor.attrib['href'],
             }
 
 
@@ -264,6 +270,7 @@ class MtgRu(CardSource):
             'mckru.mtg.ru',
             'mtgsale.ru',
             'shuma0963',  # shame on you!
+            'radhawarlord',  # да она поехавшая с такими ценами
         ]
         self.knownShopSourceSubstrings = [
             'shop.mymagic.ru',
@@ -276,8 +283,7 @@ class MtgRu(CardSource):
             userInfo = userEntry.cssselect('tr table')[0]
             nickname = userInfo.cssselect('tr th')[0].text
             exchangeUrl = userInfo.cssselect('tr td')[-1].cssselect('a')[0].attrib['href']
-            if not any(source in exchangeUrl for source in self.sourceSubstringsToExclude):
-
+            if not any(source in exchangeUrl.lower() for source in self.sourceSubstringsToExclude):
                 cardSource = self.getTitle() + '/' + nickname.lower().replace(' ', '_')
                 if any(substring in exchangeUrl for substring in self.knownShopSourceSubstrings):
                     cardSource = urlparse.urlparse(exchangeUrl).netloc
