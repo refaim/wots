@@ -12,14 +12,19 @@ import core.currency
 import core.language
 import core.network
 import tools.dict
+import tools.string
 
 _CONDITIONS_SOURCE = {
-    'NM': ('M/NM', 'Mint', 'Near Mint', 'Excellent',),
-    'SP': ('Slightly Played',),
+    'NM': ('M/NM', 'Mint', 'Near Mint', 'Excellent', u'НМ'),
+    'SP': ('Slightly Played', u'СП'),
     'HP': ('Heavily Played', 'Hardly Played',),
-    'MP': ('Played', 'Moderately Played',)
+    'MP': ('Played', 'Moderately Played', u'МП')
 }
+_CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
 _CONDITIONS = tools.dict.expandMapping(_CONDITIONS_SOURCE)
+_CONDITIONS_CASE_INSENSITIVE = {}
+for k, v in _CONDITIONS.iteritems():
+    _CONDITIONS_CASE_INSENSITIVE[k.lower()] = v
 
 MTG_RU_SPECIFIC_SETS = {
     'LE': 'Legions',
@@ -31,6 +36,16 @@ MTG_RU_SPECIFIC_SETS = {
     'P3': 'Portal: Three Kingdoms',
     'ST': 'Starter 1999',
 }
+
+
+def guessCardLanguage(cardName):
+    language = None
+    nameLetters = re.sub(r'\W', '', cardName.lower())
+    for abbrv, letters in core.language.LANGUAGES_TO_LOWERCASE_LETTERS.iteritems():
+        if all(c in letters for c in nameLetters):
+            language = abbrv
+            break
+    return language
 
 
 class CardSource(object):
@@ -402,9 +417,7 @@ class CenterOfHobby(CardSource):
 
             # Эвристика для обхода бага на сайте.
             if cardLanguage == '$card_lang':
-                cardLanguage = None
-                if any(c in core.language.LOWERCASE_LETTERS_RUSSIAN for c in cardName):
-                    cardLanguage = 'ru'
+                cardLanguage = guessCardLanguage(cardName)
             if cardLanguage is not None:
                 cardLanguage = core.language.getAbbreviation(cardLanguage)
 
@@ -425,6 +438,95 @@ class CenterOfHobby(CardSource):
                 yield result
 
 
+class TtTopdeck(CardSource):
+    def __init__(self):
+        self.excludedSellers = [
+            'angrybottlegnome',
+            'mtgsale',
+            'shuma0963',  # shame on you!
+        ]
+        super(TtTopdeck, self).__init__('http://tt.topdeck.ru', '/?req={}&mode=sell&group=card', 'utf-8', {})
+
+    def query(self, queryText):
+        searchResults = self.makeRequest(queryText)
+        for entry in searchResults.cssselect('table table tr')[1:]:
+            cells = entry.cssselect('td')
+            cardName = cells[3].text
+            sellerAnchor = cells[5].cssselect('a')[0]
+            sellerNickname = sellerAnchor.text
+            if cardName and sellerNickname not in self.excludedSellers:
+
+                priceValue = None
+                priceCurrency = None
+                priceString = cells[1].text
+                if priceString.isdigit():
+                    priceValue = decimal.Decimal(priceString)
+                    priceCurrency = core.currency.RUR
+
+                countValue = None
+                countString = cells[2].text
+                if countString.isdigit():
+                    countValue = int(countString)
+
+                foil = False
+                cardSet = None
+                cardLanguage = None
+                cardCondition = None
+
+                detailsString = cells[6].text
+                if detailsString:
+                    detailsString = detailsString
+
+                    dollarPriceMatch = re.match(r'.*(\d+)\s*\$.*', detailsString)
+                    if dollarPriceMatch:
+                        priceValue = decimal.Decimal(dollarPriceMatch.group(1))
+                        priceCurrency = core.currency.USD
+
+                    foil = any(foilString in detailsString for foilString in ['foil', u'фойл', u'фоил'])
+
+                    letterClusters = tools.string.splitByNonLetters(detailsString)
+
+                    for cluster in letterClusters:
+                        cardSet = card.sets.tryGetAbbreviationCaseInsensitive(cluster)
+                        if cardSet is not None:
+                            break
+
+                    foundLangsCount = 0
+                    for cluster in letterClusters:
+                        langAbbrv = core.language.tryGetAbbreviation(cluster)
+                        if langAbbrv is not None:
+                            cardLanguage = langAbbrv
+                            foundLangsCount += 1
+                    if foundLangsCount > 1:
+                        cardLanguage = None
+
+                    foundConditions = set()
+                    for cluster in letterClusters:
+                        lc = cluster.lower()
+                        if lc in _CONDITIONS_CASE_INSENSITIVE:
+                            foundConditions.add(_CONDITIONS_CASE_INSENSITIVE[lc])
+                    if len(foundConditions) > 0:
+                        cardCondition = sorted(foundConditions, key=_CONDITIONS_ORDER.index)[0]
+
+                # Если цена и количество перепутаны местами
+                if countValue > 50 and priceValue < 50:
+                    countValue, priceValue = int(priceValue), decimal.Decimal(countValue)
+
+                result = {
+                    'name': cells[3].text,
+                    'foilness': foil,
+                    'set': cardSet,
+                    'language': core.language.getAbbreviation(cardLanguage) if cardLanguage else None,
+                    'price': priceValue,
+                    'currency': priceCurrency,
+                    'count': countValue,
+                    'condition': cardCondition,
+                    'source': 'topdeck.ru/' + sellerNickname.lower().replace(' ', '_'),
+                    'url': sellerAnchor.attrib['href'],
+                }
+                yield result
+
+
 def getCardSourceClasses():
     return [
         Amberson,
@@ -436,4 +538,5 @@ def getCardSourceClasses():
         MtgRu,
         Untap,
         CenterOfHobby,
+        TtTopdeck
     ]

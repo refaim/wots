@@ -151,6 +151,17 @@ _SET_ABBREVIATIONS_SOURCE = {
 }
 
 _SETS = tools.dict.expandMapping(_SET_ABBREVIATIONS_SOURCE)
+_CASE_INSENSITIVE_SET_STRINGS = {}
+for key in _SETS:
+    _CASE_INSENSITIVE_SET_STRINGS[key.lower()] = key
+
+
+def tryGetAbbreviationCaseInsensitive(setNameString):
+    setAbbreviation = None
+    caseSensitiveSetString = _CASE_INSENSITIVE_SET_STRINGS.get(setNameString.lower())
+    if caseSensitiveSetString is not None:
+        setAbbreviation = getAbbreviation(caseSensitiveSetString)
+    return setAbbreviation
 
 
 def getAbbreviation(setNameString):

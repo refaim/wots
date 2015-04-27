@@ -24,7 +24,22 @@ _LANGUAGES = tools.dict.expandMapping(_LANGUAGES_SOURCE)
 LOWERCASE_LETTERS_RUSSIAN = set(u'абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
 LOWERCASE_LETTERS_ENGLISH = set(string.lowercase)
 
+LANGUAGES_TO_LOWERCASE_LETTERS = {
+    'ru': LOWERCASE_LETTERS_RUSSIAN,
+    'en': LOWERCASE_LETTERS_ENGLISH,
+}
+
+
+def _cleanLangStr(langStr):
+    return re.sub(r'^([^\.]+)(\.[^\.]+)?$', r'\1', langStr.lower(), flags=re.U)
+
+
+def tryGetAbbreviation(langStr):
+    result = _LANGUAGES.get(_cleanLangStr(langStr))
+    if result is not None:
+        result = result.upper()
+    return result
+
 
 def getAbbreviation(langStr):
-    cleaned = re.sub(r'^([^\.]+)(\.[^\.]+)?$', r'\1', langStr.lower())
-    return _LANGUAGES[cleaned].upper()
+    return _LANGUAGES[_cleanLangStr(langStr)].upper()
