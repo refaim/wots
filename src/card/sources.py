@@ -66,6 +66,12 @@ class CardSource(object):
         queryText = queryText.replace(u'`', "'").replace(u'’', "'")
         return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.quote(queryText))).decode(self.encoding))
 
+    def packName(self, caption, description=None):
+        result = {'caption': card.utils.escape(card.utils.clean(caption))}
+        if description is not None:
+            result['description'] = description
+        return result
+
     def packSource(self, caption, cardUrl=None):
         result = {'caption': caption}
         if cardUrl is not None:
@@ -109,7 +115,7 @@ class AngryBottleGnome(CardSource):
                 rawInfo = self.cardInfoRegexp.match(cardVersion.text).groupdict()
                 #print(rawInfo['language'].encode('cp866'))
                 yield {
-                    'name': cardName,
+                    'name': self.packName(cardName),
                     'set': self.getSetAbbrv(cardSet),
                     'language': core.language.getAbbreviation(rawInfo['language']),
                     'condition': _CONDITIONS[rawInfo['condition']],
@@ -145,7 +151,7 @@ class MtgRuShop(CardSource):
             language = core.language.getAbbreviation(os.path.basename(urlparse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
             yield {
-                'name': dataCells[2].cssselect(nameSelector)[0].text,
+                'name': self.packName(dataCells[2].cssselect(nameSelector)[0].text),
                 'set': self.getSetAbbrv(dataCells[0].cssselect('img')[0].attrib['alt']),
                 'language': language,
                 'foilness': bool(dataCells[3].text),
@@ -187,7 +193,7 @@ class MtgSale(CardSource):
             language = core.language.getAbbreviation(resultsEntry.cssselect('.tablelanguage img')[0].attrib['title'])
             nameSelector = '.tablename a' if language == 'EN' else '.tablename .tabletranslation'
             yield {
-                'name': resultsEntry.cssselect(nameSelector)[0].text,
+                'name': self.packName(resultsEntry.cssselect(nameSelector)[0].text),
                 'set': self.getSetAbbrv(resultsEntry.cssselect('.tableset')[0].text),
                 'language': language,
                 'condition': _CONDITIONS[resultsEntry.cssselect('.tablecondition')[0].text],
@@ -250,7 +256,7 @@ class CardPlace(CardSource):
             nameImages = dataCells[2].cssselect('img')
             yield {
                 'id': int(cardId) if cardId else None,
-                'name': cardName,
+                'name': self.packName(cardName),
                 'foilness': len(nameImages) > 0 and nameImages[0].attrib['title'] == 'FOIL',
                 'set': self.getSetAbbrv(dataCells[1].cssselect('b')[0].text.strip("'")),
                 'language': language,
@@ -318,7 +324,7 @@ class MtgRu(CardSource):
 
                     yield {
                         'id': cardId,
-                        'name': cardInfo.cssselect('th.txt0')[0].text,
+                        'name': self.packName(cardInfo.cssselect('th.txt0')[0].text),
                         'foilness': foilness,
                         'set': self.getSetAbbrv(setSource),
                         'language': language,
@@ -380,7 +386,7 @@ class Untap(CardSource):
             count = int(detailsHtml.cssselect('#quantityAvailable')[0].text)
 
             yield {
-                'name': detailsParts[0],
+                'name': self.packName(detailsParts[0]),
                 'condition': _CONDITIONS[condition],
                 'foilness': foilness,
                 'set': setId,
@@ -429,7 +435,7 @@ class CenterOfHobby(CardSource):
 
             result = {
                 'id': cells[0].text,
-                'name': cardName,
+                'name': self.packName(cardName),
                 # 'foilness': foilness, TODO
                 'set': self.getSetAbbrv(cardSet.upper()),
                 'language': cardLanguage,
@@ -484,20 +490,24 @@ class TtTopdeck(CardSource):
 
                 detailsString = cells[6].text
                 if detailsString:
-                    detailsString = detailsString.lower()
+                    descriptionString = ' '.join(detailsString.split()).strip()
+                    if descriptionString.isdigit():
+                        descriptionString = None
+
+                    detailsStringLw = detailsString.lower()
 
                     for regexp, currency, valueMultiplier in self.possiblePriceRegexps:
                         # я не смог написать нормальную регулярку, чтобы ловила 15k, но не ловила 15 ktk, поэтому так
-                        whitespaced = detailsString + ' '
+                        whitespaced = detailsStringLw + ' '
                         match = regexp.match(whitespaced)
                         if match:
                             priceValue = decimal.Decimal(match.group(1)) * valueMultiplier
                             priceCurrency = currency
                             break
 
-                    foil = any(foilString in detailsString for foilString in ['foil', u'фойл', u'фоил'])
+                    foil = any(foilString in detailsStringLw for foilString in ['foil', u'фойл', u'фоил'])
 
-                    letterClusters = tools.string.splitByNonLetters(detailsString)
+                    letterClusters = tools.string.splitByNonLetters(detailsStringLw)
 
                     for cluster in letterClusters:
                         cardSet = card.sets.tryGetAbbreviationCaseInsensitive(cluster)
@@ -521,7 +531,7 @@ class TtTopdeck(CardSource):
                     if len(foundConditions) > 0:
                         cardCondition = sorted(foundConditions, key=_CONDITIONS_ORDER.index)[0]
 
-                    countMatch = re.match(ur'(\d+)\W.*?{}'.format(cardName), detailsString, re.U | re.I)
+                    countMatch = re.match(ur'(\d+)\W.*?{}'.format(cardName), detailsStringLw, re.U | re.I)
                     if countMatch:
                         countValue = int(countMatch.group(1))
 
@@ -530,7 +540,7 @@ class TtTopdeck(CardSource):
                     countValue, priceValue = int(priceValue), decimal.Decimal(countValue)
 
                 result = {
-                    'name': cells[3].text,
+                    'name': self.packName(cells[3].text, descriptionString),
                     'foilness': foil,
                     'set': cardSet,
                     'language': core.language.getAbbreviation(cardLanguage) if cardLanguage else None,

@@ -15,8 +15,12 @@ class SmartGrid(wx.grid.Grid):
         self.columnHorzAlignment = []
         self.columnVertAlignment = []
         self.columnValueFormatters = []
+        self.columnValueTooltippers = []
         self.columnSortKeys = []
         self.columnOnClickCallbacks = []
+
+        self.currentTooltip = None
+        self.currentTooltipPosition = (-1, -1)
 
         self.SetRowLabelSize(0)
         self.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self.OnGridCellLeftClick)
@@ -37,6 +41,7 @@ class SmartGrid(wx.grid.Grid):
                 self.columnHorzAlignment.append(setup.get('horz_alignment', wx.ALIGN_LEFT))
                 self.columnVertAlignment.append(setup.get('vert_alignment', wx.ALIGN_CENTER_VERTICAL))
                 self.columnValueFormatters.append(setup.get('formatter', lambda x: x))
+                self.columnValueTooltippers.append(setup.get('tooltipper', lambda x: ''))
                 self.columnSortKeys.append(setup.get('sort_key', lambda x: x))
                 self.columnOnClickCallbacks.append(setup.get('on_click', None))
 
@@ -49,10 +54,26 @@ class SmartGrid(wx.grid.Grid):
 
     def OnGridMouseMotion(self, event):
         x, y = self.CalcUnscrolledPosition(event.GetPosition())
+        row, col = -1, -1
         cursor = wx.StockCursor(wx.CURSOR_ARROW)
-        if len(self.data) > 0 and self.isClickable(self.YToRow(y), self.XToCol(x)):
-            cursor = wx.StockCursor(wx.CURSOR_HAND)
+        tooltip = None
+
+        if len(self.data) > 0:
+            row, col = self.YToRow(y), self.XToCol(x)
+            if self.isClickable(row, col):
+                cursor = wx.StockCursor(wx.CURSOR_HAND)
+            if row < self.GetNumberRows() and col < self.GetNumberCols():
+                tooltip = self.columnValueTooltippers[col](self.data[row][col])
+
         self.SetCursor(cursor)
+
+        if tooltip is None:
+            tooltip = ''
+        if self.currentTooltip != tooltip or self.currentTooltipPosition != (row, col):
+            self.currentTooltip = tooltip
+            self.currentTooltipPosition = (row, col)
+            self.GetGridWindow().SetToolTipString(tooltip)
+
         event.Skip()
 
     def OnGridCellLeftClick(self, event):

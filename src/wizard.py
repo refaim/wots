@@ -43,7 +43,8 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'id': 'set',
         'label': 'Set',
         'horz_alignment': wx.ALIGN_CENTER,
-        'formatter': escapeNone
+        'formatter': escapeNone,
+        'tooltipper': lambda x: card.sets.getFullName(x) if x else '',
     },
     {
         'id': 'language',
@@ -55,7 +56,9 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'id': 'name',
         'label': 'Name',
         'horz_alignment': wx.ALIGN_LEFT,
-        'formatter': card.utils.unescape
+        'formatter': lambda x: card.utils.unescape(x['caption']),
+        'sort_key': lambda x: x['caption'],
+        'tooltipper': lambda x: x.get('description')
     },
     {
         'id': 'condition',
@@ -197,8 +200,6 @@ class MainWindow(wx.Frame):
         self.resultsGrid.EnableDragColSize(enable=False)
         self.resultsGrid.SetDefaultCellFont(wx.Font(pointSize=11, family=wx.FONTFAMILY_MODERN, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, face='Consolas'))
         self.resultsGrid.CreateGrid(numRows=SEARCH_RESULTS_TABLE_ROW_COUNT, columnsSetup=SEARCH_RESULTS_TABLE_COLUMNS_INFO, selMode=wx.grid.Grid.SelectRows)
-        self.resultsGrid.GetGridWindow().Bind(wx.EVT_MOTION, self.OnGridMouseMotion)
-        self.resultsGridToolTipPos = (-1, -1)
         self.resultsGridSizer = wx.BoxSizer()
         self.resultsGridSizer.Add(item=self.resultsGrid, proportion=1, flag=wx.ALL | wx.EXPAND)
 
@@ -242,8 +243,6 @@ class MainWindow(wx.Frame):
         if cardInfo['count'] <= 0:
             return
 
-        cardInfo['name'] = card.utils.escape(card.utils.clean(cardInfo['name']))
-
         cardPrice = cardInfo.get('price', None)
         priceCurrency = cardInfo.get('currency', None)
         if priceCurrency is not None and cardPrice is not None and priceCurrency != core.currency.RUR:
@@ -260,9 +259,8 @@ class MainWindow(wx.Frame):
             self.resultsGrid.AutoSizeColumn(columnIndex)
         self.resultsGrid.AutoSizeRow(rowIndex)
         self.statusBar.SetStatusText('{} cards found. Searching...'.format(self.resultsGrid.GetNumberRows()))
-        # TODO TEMP
-        if 'set' in cardInfo and 'language' in cardInfo and cardInfo['language'] is not None:
-            self.priceRequests.put((cardInfo['name'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
+        # if 'set' in cardInfo and 'language' in cardInfo and cardInfo['language'] is not None:
+        #     self.priceRequests.put((cardInfo['name'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
 
     def OnSearchComplete(self, event):
         self.searchInProgress = False
@@ -311,28 +309,6 @@ class MainWindow(wx.Frame):
     def OnPriceObtained(self, event):
         # print(event.priceInfo)
         pass
-
-    def OnGridMouseMotion(self, event):
-        grid = self.resultsGrid
-
-        x, y = grid.CalcUnscrolledPosition(event.GetPosition())
-        row = grid.YToRow(y)
-        col = grid.XToCol(x)
-
-        newToolTip = ''
-        if grid.GetNumberRows() > row >= 0 and grid.GetNumberCols() > col >= 0:
-            if grid.GetColLabelValue(col).lower() == 'set':
-                setAbbreviation = grid.GetCellValue(row, col)
-                if setAbbreviation:
-                    newToolTip = card.sets.getFullName(setAbbreviation)
-
-        gridWindow = grid.GetGridWindow()
-        curToolTip = gridWindow.GetToolTipString()
-        if curToolTip != newToolTip or self.resultsGridToolTipPos != (row, col):
-            gridWindow.SetToolTipString(newToolTip)
-            self.resultsGridToolTipPos = (row, col)
-
-        event.Skip()
 
 
 def queryCardSource(cardSource, queryString, results, exitEvent):
