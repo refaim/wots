@@ -521,6 +521,10 @@ class TtTopdeck(CardSource):
                     if len(foundConditions) > 0:
                         cardCondition = sorted(foundConditions, key=_CONDITIONS_ORDER.index)[0]
 
+                    countMatch = re.match(ur'(\d+)\W.*?{}'.format(cardName), detailsString, re.U | re.I)
+                    if countMatch:
+                        countValue = int(countMatch.group(1))
+
                 # Если цена и количество перепутаны местами
                 if countValue > 50 and priceValue < 50:
                     countValue, priceValue = int(priceValue), decimal.Decimal(countValue)
