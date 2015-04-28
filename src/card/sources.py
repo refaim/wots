@@ -3,6 +3,7 @@
 import decimal
 import lxml
 import os
+import random
 import re
 import urllib
 import urlparse
@@ -563,16 +564,79 @@ class TtTopdeck(CardSource):
                 })
 
 
+class EasyBoosters(CardSource):
+    def __init__(self):
+        super(EasyBoosters, self).__init__('http://easyboosters.com', '/products?utf8=✓&keywords={}', 'utf-8', {})
+
+    def query(self, queryText):
+        searchResults = self.makeRequest(queryText)
+        for entry in searchResults.cssselect('#products .product-list-item'):
+            cardUrl = entry.cssselect('a')[0].attrib['href']
+            if not cardUrl:
+                continue
+
+            cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
+            cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', cardHtml.cssselect('#product-description .product-title')[0].text).group(1)
+
+            condition = None
+            foil = False
+            language = None
+            cardSet = None
+            cardId = None
+            for row in cardHtml.cssselect('#product-properties tr'):
+                caption = row.cssselect('td strong')[0].text
+                value = row.cssselect('td')[1].text
+                if caption == u'Покрытие':
+                    foil = value != 'Regular'
+                elif caption == u'Состояние':
+                    condition = _CONDITIONS[value]
+                elif caption == u'Язык':
+                    language = core.language.getAbbreviation(value)
+                elif caption == u'Сет':
+                    cardSet = card.sets.getAbbreviation(value)
+                elif caption == u'Номер':
+                    cardId = int(value)
+
+            priceBlock = cardHtml.cssselect('#product-price div')[0]
+            price = decimal.Decimal(re.match(r'\s*(\d+).*', priceBlock.cssselect('span.price')[0].text).group(1))
+            currency = None
+            currencySpan = priceBlock.cssselect('span')[-1]
+            if currencySpan.attrib['itemprop'] == 'priceCurrency' and currencySpan.attrib['content'] == 'RUB':
+                currency = core.currency.RUR
+
+            count = 0
+            countBlock = cardHtml.cssselect('#product-price div')[1]
+            countSpan = countBlock.cssselect('span.lead')[0]
+            if countSpan.attrib['itemprop'] == 'totalOnHand':
+                count = int(countSpan.text)
+
+            yield self.fillCardInfo({
+                'id': cardId,
+                'name': self.packName(cardName),
+                'foilness': foil,
+                'set': cardSet,
+                'language': language,
+                'price': price,
+                'currency': currency,
+                'count': count,
+                'condition': condition,
+                'source': self.packSource(self.getTitle(), cardUrl)
+            })
+
+
 def getCardSourceClasses():
-    return [
+    classes = [
         Amberson,
         AngryBottleGnome,
         CardPlace,
-        ManaPoint,
-        MagicMaze,
-        MtgSale,
-        MtgRu,
-        Untap,
         CenterOfHobby,
-        TtTopdeck
+        EasyBoosters,
+        MagicMaze,
+        ManaPoint,
+        MtgRu,
+        MtgSale,
+        TtTopdeck,
+        Untap,
     ]
+    random.shuffle(classes)
+    return classes
