@@ -598,7 +598,9 @@ class EasyBoosters(CardSource):
                     cardId = int(value)
 
             priceBlock = cardHtml.cssselect('#product-price div')[0]
-            price = decimal.Decimal(re.match(r'\s*(\d+).*', priceBlock.cssselect('span.price')[0].text).group(1))
+            priceString = priceBlock.cssselect('span.price')[0].text
+            priceString = ''.join(priceString.replace('&nbsp;', '').split())
+            price = decimal.Decimal(re.match(r'(\d+).*', priceString).group(1))
             currency = None
             currencySpan = priceBlock.cssselect('span')[-1]
             if currencySpan.attrib['itemprop'] == 'priceCurrency' and currencySpan.attrib['content'] == 'RUB':
