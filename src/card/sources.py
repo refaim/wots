@@ -441,7 +441,7 @@ class CenterOfHobby(CardSource):
             result = {
                 'id': cells[0].text,
                 'name': self.packName(cardName),
-                # 'foilness': foilness, TODO
+                'foilness': False,  # TODO
                 'set': self.getSetAbbrv(cardSet.upper()),
                 'language': cardLanguage,
                 'price': cardPrice,
