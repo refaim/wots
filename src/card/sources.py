@@ -78,6 +78,11 @@ class CardSource(object):
             result['url'] = cardUrl
         return result
 
+    def fillCardInfo(self, cardInfo):
+        if not cardInfo.get('language') and cardInfo.get('set'):
+            cardInfo['language'] = core.language.getAbbreviation(card.sets.SINGLE_LANGUAGE_SETS.get(cardInfo['set'], ''))
+        return cardInfo
+
 
 class AngryBottleGnome(CardSource):
     def __init__(self):
@@ -114,7 +119,7 @@ class AngryBottleGnome(CardSource):
             for cardVersion in cardVersions.cssselect('.abg-card-version-instock'):
                 rawInfo = self.cardInfoRegexp.match(cardVersion.text).groupdict()
                 #print(rawInfo['language'].encode('cp866'))
-                yield {
+                yield self.fillCardInfo({
                     'name': self.packName(cardName),
                     'set': self.getSetAbbrv(cardSet),
                     'language': core.language.getAbbreviation(rawInfo['language']),
@@ -124,7 +129,7 @@ class AngryBottleGnome(CardSource):
                     'price': decimal.Decimal(rawInfo['price']),
                     'currency': core.currency.RUR,
                     'source': self.packSource(self.getTitle(), cardUrl),
-                }
+                })
 
 
 class MtgRuShop(CardSource):
@@ -192,7 +197,7 @@ class MtgSale(CardSource):
             #print(resultsEntry.cssselect('.tablelanguage img')[0].attrib['title'].lower().encode('cp866'))
             language = core.language.getAbbreviation(resultsEntry.cssselect('.tablelanguage img')[0].attrib['title'])
             nameSelector = '.tablename a' if language == 'EN' else '.tablename .tabletranslation'
-            yield {
+            yield self.fillCardInfo({
                 'name': self.packName(resultsEntry.cssselect(nameSelector)[0].text),
                 'set': self.getSetAbbrv(resultsEntry.cssselect('.tableset')[0].text),
                 'language': language,
@@ -202,7 +207,7 @@ class MtgSale(CardSource):
                 'price': decimal.Decimal(re.match(r'(\d+)', resultsEntry.cssselect('.tableprice')[0].text.strip()).group(0)),
                 'currency': core.currency.RUR,
                 'source': self.packSource(self.getTitle()),
-            }
+            })
 
 
 class CardPlace(CardSource):
@@ -254,7 +259,7 @@ class CardPlace(CardSource):
                         cardName = cardName[:cardName.index('(')].strip()
                         cardId = cardIdCandidate
             nameImages = dataCells[2].cssselect('img')
-            yield {
+            yield self.fillCardInfo({
                 'id': int(cardId) if cardId else None,
                 'name': self.packName(cardName),
                 'foilness': len(nameImages) > 0 and nameImages[0].attrib['title'] == 'FOIL',
@@ -264,7 +269,7 @@ class CardPlace(CardSource):
                 'currency': core.currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
                 'source': self.packSource(self.getTitle(), cardNameAnchor.attrib['href']),
-            }
+            })
 
 
 class MtgRu(CardSource):
@@ -322,7 +327,7 @@ class MtgRu(CardSource):
 
                     setSource = cardInfo.cssselect('#table0 td img')[0].attrib['alt']
 
-                    yield {
+                    yield self.fillCardInfo({
                         'id': cardId,
                         'name': self.packName(cardInfo.cssselect('th.txt0')[0].text),
                         'foilness': foilness,
@@ -332,7 +337,7 @@ class MtgRu(CardSource):
                         'currency': core.currency.RUR,
                         'count': int(cardInfo.cssselect('td.txt15 b')[0].text.split()[0]),
                         'source': self.packSource(cardSource, urlparse.urljoin(self.url, exchangeUrl)),
-                    }
+                    })
 
 
 class Untap(CardSource):
@@ -385,7 +390,7 @@ class Untap(CardSource):
 
             count = int(detailsHtml.cssselect('#quantityAvailable')[0].text)
 
-            yield {
+            yield self.fillCardInfo({
                 'name': self.packName(detailsParts[0]),
                 'condition': _CONDITIONS[condition],
                 'foilness': foilness,
@@ -395,7 +400,7 @@ class Untap(CardSource):
                 'currency': priceCurrency,
                 'count': count,
                 'source': self.packSource(self.getTitle(), detailsUrl),
-            }
+            })
 
 
 class CenterOfHobby(CardSource):
@@ -446,7 +451,7 @@ class CenterOfHobby(CardSource):
             }
             prevResult = result.copy()
             if cardCount > 0:
-                yield result
+                yield self.fillCardInfo(result)
 
 
 class TtTopdeck(CardSource):
@@ -539,7 +544,7 @@ class TtTopdeck(CardSource):
                 if countValue > 50 and priceValue < 50:
                     countValue, priceValue = int(priceValue), decimal.Decimal(countValue)
 
-                result = {
+                yield self.fillCardInfo({
                     'name': self.packName(cells[3].text, descriptionString),
                     'foilness': foil,
                     'set': cardSet,
@@ -549,8 +554,7 @@ class TtTopdeck(CardSource):
                     'count': countValue,
                     'condition': cardCondition,
                     'source': self.packSource('topdeck.ru/' + sellerNickname.lower().replace(' ', '_'), sellerAnchor.attrib['href']),
-                }
-                yield result
+                })
 
 
 def getCardSourceClasses():

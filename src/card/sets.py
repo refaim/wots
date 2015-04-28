@@ -25,18 +25,22 @@ _SET_ABBREVIATIONS_SOURCE = {
     'BNG': ('Born of the Gods', 'BOG',),
     'BOK': ('Betrayers of Kamigawa', 'BK',),
     'BRB': ('Battle Royale Box Set', 'Battle Royal',),
-    'BTD': ('Beatdown Box Set',),
+    'BTD': ('Beatdown Box Set', 'Beatdown',),
     'C13': ('Commander 2013', 'Commander 2013 Edition', 'Commander2013',),
     'C14': ('Commander 2014', 'Commander 2014 Edition', 'Commander2014',),
     'CHK': ('Champions of Kamigawa', 'CK',),
+    'CHP': ('Champs Promos',),
     'CHR': ('Chronicles',),
     'CM1': ("Commander's Arsenal", 'CMA',),
     'CMD': ('Commander',),
     'CNS': ('Conspiracy',),
     'CON': ('Conflux', 'CF', 'CFX',),
+    'CP1': ('Magic 2015 Clash Pack',),
+    'CP2': ('Fate Reforged Clash Pack',),
     'CSP': ('Coldsnap', 'CS',),
     'CTD': ('Coldsnap Theme Decks', 'Coldsnap Reprints',),
     'DD2': ('Duel Decks: Jace vs. Chandra', 'Jace vs. Chandra',),
+    'DD3': ('Duel Decks: Anthology',),
     'DDC': ('Duel Decks: Divine vs. Demonic', 'Divine vs. Demonic',),
     'DDD': ('Duel Decks: Garruk vs. Liliana', 'Garruk vs. Liliana', 'GVL', 'GVL2',),
     'DDE': ('Duel Decks: Phyrexia vs. the Coalition', 'Phyrexia vs. the Coalition',),
@@ -54,6 +58,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'DIS': ('Dissension', 'DI',),
     'DKA': ('Dark Ascension',),
     'DKM': ('Deckmasters',),
+    'DLM': ('DCI Legend Membership',),
     'DPA': ('Duels of the Planeswalkers',),
     'DRB': ('From the Vault: Dragons',),
     'DRK': ('The Dark', 'DK',),
@@ -67,11 +72,15 @@ _SET_ABBREVIATIONS_SOURCE = {
     'FRF': ('Fate Reforged',),
     'FUT': ('Future Sight', 'FS',),
     'GPT': ('Guildpact', 'GP',),
+    'GPX': ('Grand Prix Promos',),
     'GTC': ('Gatecrash',),
     'H09': ('Premium Deck Series: Slivers',),
+    'HHL': ('Happy Holidays Promos',),
+    'HJP': ('Hobby Japan Commemorative Cards',),
     'HML': ('Homelands', 'HL',),
     'HOP': ('Planechase',),
     'ICE': ('Ice Age', 'IA',),
+    'INP': ('Intro Pack Promos',),
     'INV': ('Invasion', 'IN',),
     'ISD': ('Innistrad',),
     'JOU': ('Journey into Nyx',),
@@ -82,6 +91,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'LEB': ('Limited Edition Beta', 'Beta',),
     'LEG': ('Legends',),
     'LGN': ('Legions',),
+    'LND': ('Alternate Art Lands',),
     'LRW': ('Lorwyn', 'LW', 'LOR',),
     'M10': ('Magic 2010', '2010 Core Set',),
     'M11': ('Magic 2011', '2011 Core Set',),
@@ -92,6 +102,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'MBP': ('Media Inserts',),
     'MBS': ('Mirrodin Besieged',),
     'MD1': ('Modern Event Deck',),
+    'MGB': ('Multiverse Gift Box',),
     'MGD': ('Magic Game Day Cards', 'Game Day',),
     'MIR': ('Mirage',),
     'MLP': ('Magic: The Gathering Launch Parties',),
@@ -99,6 +110,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'MMQ': ('Mercadian Masques', 'MM',),
     'MOR': ('Morningtide', 'MT',),
     'MPR': ('Magic Player Rewards', 'Reward cards',),
+    'MPS': ('Magic Premiere Shop',),
     'MRD': ('Mirrodin',),
     'NEM': ('Nemesis', 'NE',),
     'NPH': ('New Phyrexia',),
@@ -117,23 +129,30 @@ _SET_ABBREVIATIONS_SOURCE = {
     'PRC': ('Prerelease & Release Cards',),
     'PTK': ('Portal: Three Kingdoms', 'Portal Three Kingdoms',),
     'RAV': ('Ravnica: City of Guilds', 'Ravnica', 'RA',),
+    'RED': ('Redemption Program Cards',),
     'ROE': ('Rise of the Eldrazi',),
+    'RSM': ('Revised Edition (Summer Magic)',),
     'RTR': ('Return to Ravnica', 'Retun to Ravnica',),
-    'S99': ('Starter 1999', 'Starter', ),
+    'S11': ('Salvat 2011',),
+    'S99': ('Starter 1999', 'Starter',),
     'SCG': ('Scourge', 'SC',),
     'SHM': ('Shadowmoor', 'SM',),
     'SOK': ('Saviors of Kamigawa', 'SK',),
     'SOM': ('Scars of Mirrodin',),
     'STH': ('Stronghold', 'SH',),
+    'SUM': ('Summer of Magic Promos',),
+    'THG': ('Two-Headed Giant Promos', '2HG',),
     'THS': ('Theros',),
     'TMP': ('Tempest', 'TE',),
     'TOR': ('Torment', 'TO', 'TR',),
     'TSP': ('Time Spiral', 'TS',),
     'TST': ('Time Spiral Timeshifted', 'TSTS'),
     'UDS': ("Urza's Destiny", 'UD',),
-    'ULG': ("Urza's Legacy", 'UL',),
+    'UGF': ('Ugin\'s Fate Promos',),
     'UGL': ('Unglued',),
+    'ULG': ("Urza's Legacy", 'UL',),
     'UNH': ('Unhinged', 'UH',),
+    'URC': ('Ultra Rare Cards',),
     'USG': ("Urza's Saga", 'US',),
     'V09': ('From the Vault: Exiled',),
     'V10': ('From the Vault: Relics',),
@@ -143,6 +162,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'V14': ('From the Vault: Annihilation',),
     'V15': ('From the Vault: Angels',),
     'VIS': ('Visions', 'VI',),
+    'WLD': ('Championships Prizes',),
     'WMC': ('World Magic Cup Qualifiers',),
     'WPN': ('WPN\\Gateway', 'WPN/Gateway',),
     'WTH': ('Weatherlight', 'WL',),
@@ -155,6 +175,76 @@ _CASE_INSENSITIVE_SET_STRINGS = {}
 for key in _SETS:
     _CASE_INSENSITIVE_SET_STRINGS[key.lower()] = key
 
+_SINGLE_LANGUAGE_SETS_DATA = {
+    'jp': (
+        'Hobby Japan Commemorative Cards',
+        'Magic Premiere Shop',
+        'Redemption Program Cards',
+    ),
+    'es': (
+        'Salvat 2011',
+    ),
+    'en': (
+        'Alternate Art Lands',
+        'Anthologies',
+        'Antiquities',
+        'Arabian Nights',
+        'Archenemy',
+        'Battle Royale Box Set',
+        'Beatdown Box Set',
+        'Championships Prizes',
+        'Champs Promos',
+        'Commander\'s Arsenal',
+        'DCI Legend Membership',
+        'Deckmasters',
+        'Duel Decks: Anthology',
+        'Duel Decks: Divine vs. Demonic',
+        'Duel Decks: Elves vs. Goblins',
+        'Duel Decks: Garruk vs. Liliana',
+        'Duels of the Planeswalkers',
+        'Fallen Empires',
+        'Fate Reforged Clash Pack',
+        'From the Vault: Annihilation',
+        'From the Vault: Dragons',
+        'From the Vault: Exiled',
+        'From the Vault: Legends',
+        'From the Vault: Realms',
+        'From the Vault: Relics',
+        'From the Vault: Twenty',
+        'Grand Prix Promos',
+        'Happy Holidays Promos',
+        'Intro Pack Promos',
+        'Limited Edition Alpha',
+        'Limited Edition Beta',
+        'Magic 2015 Clash Pack',
+        'Magic Player Rewards',
+        'Modern Event Deck',
+        'Modern Masters',
+        'Multiverse Gift Box',
+        'Planechase',
+        'Premium Deck Series: Fire and Lightning',
+        'Premium Deck Series: Graveborn',
+        'Premium Deck Series: Slivers',
+        'Revised Edition (Summer Magic)',
+        'Starter 1999',
+        'Summer of Magic Promos',
+        'Two-Headed Giant Promos',
+        'Ugin\'s Fate Promos',
+        'Ultra Rare Cards',
+        'Unglued',
+        'Unhinged',
+        'Unlimited Edition',
+    )
+}
+
+
+def getAbbreviation(setNameString):
+    return _SETS[setNameString]
+
+
+def getFullName(setAbbrv):
+    return _SET_ABBREVIATIONS_SOURCE[setAbbrv][0]
+
 
 def tryGetAbbreviationCaseInsensitive(setNameString):
     setAbbreviation = None
@@ -164,9 +254,10 @@ def tryGetAbbreviationCaseInsensitive(setNameString):
     return setAbbreviation
 
 
-def getAbbreviation(setNameString):
-    return _SETS[setNameString]
-
-
-def getFullName(setAbbrv):
-    return _SET_ABBREVIATIONS_SOURCE[setAbbrv][0]
+SINGLE_LANGUAGE_SETS = {}
+for language, setStrings in _SINGLE_LANGUAGE_SETS_DATA.iteritems():
+    for setId in setStrings:
+        abbrv = tryGetAbbreviationCaseInsensitive(setId)
+        if abbrv is None:
+            print('Unknown card set "{}"'.format(setId))
+        SINGLE_LANGUAGE_SETS[abbrv] = language
