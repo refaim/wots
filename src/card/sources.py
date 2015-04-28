@@ -448,6 +448,7 @@ class CenterOfHobby(CardSource):
                 'currency': core.currency.RUR,
                 'count': cardCount,
                 'source': self.packSource(self.getTitle(), cardUrl),
+                'url': cardUrl,
             }
             prevResult = result.copy()
             if cardCount > 0:
