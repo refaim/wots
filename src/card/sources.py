@@ -416,12 +416,17 @@ class CenterOfHobby(CardSource):
         for entry in searchResults.cssselect('.mtg_table tr')[1:]:
             cells = entry.cssselect('td')
 
+            foil = False
             isChildEntry = len(entry.cssselect('.child_card')) > 0
             if isChildEntry:
+                cardId = prevResult['id']
                 cardName = cells[2].cssselect('div')[0].text
+                foil = cardName.endswith('(foil)')
+                cardName = cardName.replace('(foil)', '')
                 cardSet = prevResult['set']
                 cardUrl = prevResult['url']
             else:
+                cardId = cells[0].text
                 cardName = cells[2].cssselect('a')[0].cssselect('b')[0].text
                 cardSet = re.match(r'r_([^_]+)_.+', os.path.basename(cells[1].cssselect('img')[0].attrib['src'])).group(1)
                 cardUrl = cells[2].cssselect('a')[0].attrib['href']
@@ -439,9 +444,9 @@ class CenterOfHobby(CardSource):
                 cardLanguage = core.language.getAbbreviation(cardLanguage)
 
             result = {
-                'id': cells[0].text,
+                'id': cardId,
                 'name': self.packName(cardName),
-                'foilness': False,  # TODO
+                'foilness': foil,
                 'set': self.getSetAbbrv(cardSet.upper()),
                 'language': cardLanguage,
                 'price': cardPrice,
