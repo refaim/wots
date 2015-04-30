@@ -6,12 +6,16 @@ SORT_ASC = 'asc'
 SORT_DESC = 'desc'
 SORT_NONE = 'none'
 
+HYPERLINK_COLOR_VISITED = (102, 51, 102)
+HYPERLINK_COLOR_DEFAULT = (  6, 69, 173)
+
 
 class SmartGrid(wx.grid.Grid):
     def __init__(self, parent):
         super(SmartGrid, self).__init__(parent)
 
         self.data = []
+        self.visitedCells = set()
         self.columnHorzAlignment = []
         self.columnVertAlignment = []
         self.columnValueFormatters = []
@@ -82,7 +86,8 @@ class SmartGrid(wx.grid.Grid):
             value = self.data[eRowIndex][eColIndex]
             for rowIndex in xrange(self.GetNumberRows()):
                 if self.data[rowIndex][eColIndex] == value:
-                    self.setHyperlinkCellAttr(rowIndex, eColIndex, (102, 51, 102))
+                    self.setHyperlinkCellAttr(rowIndex, eColIndex, HYPERLINK_COLOR_VISITED)
+                    self.visitedCells.add(self.serializeCellValue(value))
             self.columnOnClickCallbacks[eColIndex](value)
         else:
             event.Skip()
@@ -99,6 +104,12 @@ class SmartGrid(wx.grid.Grid):
         attr.SetFont(font)
         self.SetAttr(rowIndex, columnIndex, attr)
         self.Refresh()
+
+    def serializeCellValue(self, value):
+        result = value
+        if isinstance(value, dict):
+            result = tuple(sorted(value.iteritems()))
+        return result
 
     def OnGridLabelLeftClick(self, event):
         self.updateSorting(event.GetCol(), not event.ShiftDown())
@@ -150,7 +161,10 @@ class SmartGrid(wx.grid.Grid):
             self.SetCellValue(rowIndex, columnIndex, unicode(cellValue))
             self.SetCellAlignment(rowIndex, columnIndex, horiz=self.columnHorzAlignment[columnIndex], vert=self.columnVertAlignment[columnIndex])
             if self.columnOnClickCallbacks[columnIndex] is not None:
-                self.setHyperlinkCellAttr(rowIndex, columnIndex, (6, 69, 173))
+                highlightColor = HYPERLINK_COLOR_DEFAULT
+                if self.serializeCellValue(values[columnIndex]) in self.visitedCells:
+                    highlightColor = HYPERLINK_COLOR_VISITED
+                self.setHyperlinkCellAttr(rowIndex, columnIndex, highlightColor)
 
     def OnGridColLabelWindowPaint(self, event):
         dc = wx.PaintDC(self.GetGridColLabelWindow())
