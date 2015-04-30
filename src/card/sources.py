@@ -156,7 +156,7 @@ class MtgRuShop(CardSource):
             dataCells = resultsEntry.cssselect('td')
             language = core.language.getAbbreviation(os.path.basename(urlparse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
-            yield {
+            yield self.fillCardInfo({
                 'name': self.packName(dataCells[2].cssselect(nameSelector)[0].text),
                 'set': self.getSetAbbrv(dataCells[0].cssselect('img')[0].attrib['alt']),
                 'language': language,
@@ -165,7 +165,7 @@ class MtgRuShop(CardSource):
                 'price': decimal.Decimal(re.match(r'(\d+)', dataCells[6].text.replace('`', '')).group(0)),
                 'currency': core.currency.RUR,
                 'source': self.packSource(self.getTitle())
-            }
+            })
 
 
 class Amberson(MtgRuShop):
@@ -181,6 +181,36 @@ class ManaPoint(MtgRuShop):
 class MagicMaze(MtgRuShop):
     def __init__(self):
         super(MagicMaze, self).__init__('http://magicmaze.mtg.ru')
+
+
+# class MtgRuPromoShop(CardSource):
+#     def __init__(self, siteUrl, promoUrl):
+#         super(MtgRuPromoShop, self).__init__(siteUrl, promoUrl, 'cp1251', {})
+#         self.fullPromoUrl = urlparse.urljoin(siteUrl, promoUrl)
+
+
+# class AmbersonPromo(MtgRuPromoShop):
+#     def __init__(self):
+#         super(AmbersonPromo, self).__init__('http://amberson.mtg.ru', '/3.html')
+
+#     def query(self, queryText):
+#         searchResults = self.makeRequest(queryText)
+#         for resultsEntry in searchResults.cssselect('table.Catalog tr'):
+#             cells = resultsEntry.cssselect('td')
+#             nameString = cells[0].text
+#             result = {
+#                 'name': self.packName('...', nameString),
+#                 # 'name': self.packName(dataCells[2].cssselect(nameSelector)[0].text), TODO
+#                 # 'set': self.getSetAbbrv(dataCells[0].cssselect('img')[0].attrib['alt']), TODO
+#                 # 'language': language, TODO
+#                 # 'foilness': bool(dataCells[3].text), TODO
+#                 'count': int(re.match(r'(\d+)', cells[1].text).group(1)),
+#                 'price': decimal.Decimal(re.match(r'(\d+)', cells[2].text.replace('`', '')).group(1)),
+#                 'currency': core.currency.RUR,
+#                 'source': self.packSource(self.getTitle(), self.fullPromoUrl)
+#             }
+#             # TODO compare with query text
+#             yield self.fillCardInfo(result)
 
 
 class MtgSale(CardSource):
@@ -628,6 +658,7 @@ class EasyBoosters(CardSource):
 
 def getCardSourceClasses():
     classes = [
+        # AmbersonPromo,
         Amberson,
         AngryBottleGnome,
         CardPlace,
