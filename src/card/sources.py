@@ -74,7 +74,7 @@ class CardSource(object):
         return result
 
     def packSource(self, caption, cardUrl=None):
-        result = {'caption': caption}
+        result = {'caption': caption, 'url': caption}
         if cardUrl is not None:
             result['url'] = cardUrl
         return result
