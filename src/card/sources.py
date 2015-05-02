@@ -616,15 +616,15 @@ class EasyBoosters(CardSource):
             for row in cardHtml.cssselect('#product-properties tr'):
                 caption = row.cssselect('td strong')[0].text
                 value = row.cssselect('td')[1].text
-                if caption == u'Покрытие':
+                if caption in (u'Покрытие', 'Finish'):
                     foil = value != 'Regular'
-                elif caption == u'Состояние':
+                elif caption in (u'Состояние', 'Condition'):
                     condition = _CONDITIONS[value]
-                elif caption == u'Язык':
+                elif caption in (u'Язык', 'Language'):
                     language = core.language.getAbbreviation(value)
-                elif caption == u'Сет':
+                elif caption in (u'Сет', 'Set'):
                     cardSet = card.sets.getAbbreviation(value)
-                elif caption == u'Номер':
+                elif caption in (u'Номер', 'Number'):
                     cardId = int(value)
 
             priceBlock = cardHtml.cssselect('#product-price div')[0]
