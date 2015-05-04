@@ -1,3 +1,4 @@
+import decimal
 import re
 import string
 import urllib
@@ -20,11 +21,11 @@ class TcgPlayer(object):
     def getTitle(self):
         return 'tcgplayer.com'
 
-    def queryPrice(self, cardName, setId, language, foilness):
-        return
-        #print(cardName, setId, language, foilness)
-        # TODO foilness
-        # TODO cache
+    def queryPrice(self, cardName, setId, language, foil):
+        # TODO
+        if foil:
+            return
+
         setAbbrv = card.sets.getAbbreviation(setId)
         cardKey = getCardKey(cardName)
         if setAbbrv not in self.pricesBySetAbbrv or cardKey not in self.pricesBySetAbbrv[setAbbrv]:
@@ -44,11 +45,11 @@ class TcgPlayer(object):
                             if setAbbrv not in self.pricesBySetAbbrv:
                                 self.pricesBySetAbbrv[setAbbrv] = {}
                             self.pricesBySetAbbrv[setAbbrv][cellCardKey] = {
-                                'name': cellCardNameString.strip(),
-                                'set': setAbbrv,
-                                'value': float(re.match(r'\$([\d\.]+).*', priceString).group(1)),
+                                # 'name': cellCardNameString.strip(),
+                                # 'set': setAbbrv,
+                                'price': decimal.Decimal(re.match(r'\$([\d\.]+).*', priceString).group(1)),
                                 'currency': core.currency.USD,
-                                'source': 'TCG',
+                                'source_id': 'tcg',
                             }
         result = self.pricesBySetAbbrv.get(setAbbrv, {}).get(cardKey, {})
         return result

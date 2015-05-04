@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import decimal
 import lxml
 import threading
@@ -7,6 +9,12 @@ import network
 EUR = 'EUR'
 RUR = 'RUR'
 USD = 'USD'
+
+FORMAT_STRINGS = {
+    RUR: u'{}₽',
+    EUR: u'€{}',
+    USD: u'${}',
+}
 
 
 class Converter(object):
@@ -33,3 +41,11 @@ class Converter(object):
         srcNominal, srcNominalValueInRoubles = self.exchangeRates[srcCurrencyCode]
         dstNominal, dstNominalValueInRoubles = self.exchangeRates[dstCurrencyCode]
         return decimal.Decimal(amount) / srcNominal * srcNominalValueInRoubles / dstNominalValueInRoubles * dstNominal
+
+
+def roundPrice(price):
+    return int(price)
+
+
+def formatPrice(price, currency):
+    return FORMAT_STRINGS[currency].format(price)

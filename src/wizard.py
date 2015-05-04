@@ -31,6 +31,10 @@ def escapeNone(value):
     return value if value is not None else ''
 
 
+def formatRoubles(value):
+    return core.currency.formatPrice(core.currency.roundPrice(value), core.currency.RUR) if value else ''
+
+
 SEARCH_RESULTS_TABLE_ROW_COUNT = 30
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {
@@ -81,7 +85,15 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'id': 'price',
         'label': 'Price',
         'horz_alignment': wx.ALIGN_RIGHT,
-        'formatter': lambda x: u'{}₽'.format(int(x)) if x else ''
+        'formatter': lambda x: formatRoubles(x.get('roubles')) if x else '',
+        'tooltipper': lambda x: x.get('original') if x else ''
+    },
+    {
+        'id': 'tcg',
+        'label': 'TCG',
+        'horz_alignment': wx.ALIGN_RIGHT,
+        'formatter': lambda x: formatRoubles(x.get('roubles')) if x else '',
+        'tooltipper': lambda x: x.get('original') if x else ''
     },
     {
         'id': 'source',
@@ -138,6 +150,7 @@ class MainWindow(wx.Frame):
 
         self.searchInProgress = False
         self.searchStopEvent = threading.Event()
+
         self.priceRequests = Queue.Queue()
         self.priceRetrieverStopEvent = threading.Event()
         self.priceRetriever = threading.Thread(name='Prices', target=priceRetriever, args=(self.priceRequests, self, self.priceRetrieverStopEvent,))
@@ -243,24 +256,43 @@ class MainWindow(wx.Frame):
         if cardInfo['count'] <= 0:
             return
 
-        cardPrice = cardInfo.get('price', None)
-        priceCurrency = cardInfo.get('currency', None)
-        if priceCurrency is not None and cardPrice is not None and priceCurrency != core.currency.RUR:
-            cardInfo['price'] = self.currencyConverter.convert(priceCurrency, core.currency.RUR, cardPrice)
+        if cardInfo.get('price'):
+            cardInfo['price'] = self.packPrice(cardInfo['price'], cardInfo['currency'])
 
         rowData = []
         columnCount = self.resultsGrid.GetNumberCols()
         for columnIndex in xrange(columnCount):
-            columnSetup = SEARCH_RESULTS_TABLE_COLUMNS_INFO[columnIndex]
-            value = cardInfo.get(columnSetup['id'].lower(), '')
-            rowData.append(value)
-        rowIndex = self.resultsGrid.AddRow(rowData)
+            rowData.append(cardInfo.get(SEARCH_RESULTS_TABLE_COLUMNS_INFO[columnIndex]['id'], ''))
+        rowId, rowIndex = self.resultsGrid.AddRow(rowData)
         for columnIndex in xrange(columnCount):
             self.resultsGrid.AutoSizeColumn(columnIndex)
         self.resultsGrid.AutoSizeRow(rowIndex)
         self.statusBar.SetStatusText('{} cards found. Searching...'.format(self.resultsGrid.GetNumberRows()))
-        # if 'set' in cardInfo and 'language' in cardInfo and cardInfo['language'] is not None:
-        #     self.priceRequests.put((cardInfo['name'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
+        if cardInfo.get('set'):
+            self.priceRequests.put((rowId, cardInfo['name']['caption'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
+
+    def OnPriceObtained(self, event):
+        rowId, priceInfo = event.priceInfo
+        if not priceInfo:
+            return
+
+        columnIndex = -1
+        for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
+            if columnInfo['id'] == priceInfo['source_id']:
+                columnIndex = i
+
+        self.resultsGrid.UpdateCell(rowId, columnIndex, self.packPrice(priceInfo['price'], priceInfo['currency']))
+        self.resultsGrid.AutoSizeColumn(columnIndex)
+        self.resultsGrid.AutoSizeRow(self.resultsGrid.GetRowIndex(rowId))
+
+    def packPrice(self, price, currency):
+        result = {}
+        roubles = price
+        if currency is not None and price is not None and currency != core.currency.RUR:
+            roubles = self.currencyConverter.convert(currency, core.currency.RUR, price)
+            result['original'] = core.currency.formatPrice(price, currency)
+        result['roubles'] = roubles
+        return result
 
     def OnSearchComplete(self, event):
         self.searchInProgress = False
@@ -306,10 +338,6 @@ class MainWindow(wx.Frame):
         self.searchThread.daemon = True
         self.searchThread.start()
 
-    def OnPriceObtained(self, event):
-        # print(event.priceInfo)
-        pass
-
 
 def queryCardSource(cardSource, queryString, results, exitEvent):
     for cardInfo in cardSource.query(queryString):
@@ -349,8 +377,8 @@ def searchCards(queryString, wxEventBus, exitEvent):
 
 def processPriceRequests(processor, requests, results):
     while True:
-        cardName, setId, language, foilness = requests.get()
-        results.put(processor.queryPrice(cardName, setId, language, foilness))
+        jobId, cardName, setId, language, foilness = requests.get()
+        results.put((jobId, processor.queryPrice(cardName, setId, language, foilness)))
 
 
 def priceRetriever(taskQueue, wxEventBus, exitEvent):

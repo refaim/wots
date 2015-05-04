@@ -7,7 +7,7 @@ SORT_DESC = 'desc'
 SORT_NONE = 'none'
 
 HYPERLINK_COLOR_VISITED = (102, 51, 102)
-HYPERLINK_COLOR_DEFAULT = (  6, 69, 173)
+HYPERLINK_COLOR_DEFAULT = (6, 69, 173)
 
 
 class SmartGrid(wx.grid.Grid):
@@ -15,6 +15,8 @@ class SmartGrid(wx.grid.Grid):
         super(SmartGrid, self).__init__(parent)
 
         self.data = []
+        self.dataByRowId = {}
+        self.freeRowId = -1
         self.visitedCells = set()
         self.columnHorzAlignment = []
         self.columnVertAlignment = []
@@ -142,6 +144,9 @@ class SmartGrid(wx.grid.Grid):
         if columnIndex in self.columnsSortOrder:
             self.columnsSortOrder.remove(columnIndex)
         self.columnsSortOrder.append(columnIndex)
+        self.applySorting()
+
+    def applySorting(self):
         self.data.sort(cmp=self.getCmpFunction())
         for rowIndex, values in enumerate(self.data):
             self.fillRow(rowIndex, values)
@@ -153,7 +158,18 @@ class SmartGrid(wx.grid.Grid):
         rowIndex = self.data.index(values)
         self.InsertRows(rowIndex, 1)
         self.fillRow(rowIndex, values)
-        return rowIndex
+        self.freeRowId += 1
+        self.dataByRowId[self.freeRowId] = values
+        return self.freeRowId, rowIndex
+
+    def UpdateCell(self, rowId, columnIndex, value):
+        values = self.dataByRowId.get(rowId)
+        if values:
+            values[columnIndex] = value
+        self.applySorting()
+
+    def GetRowIndex(self, rowId):
+        return self.data.index(self.dataByRowId[rowId])
 
     def fillRow(self, rowIndex, values):
         for columnIndex in xrange(self.GetNumberCols()):
