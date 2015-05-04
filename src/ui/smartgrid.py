@@ -59,17 +59,17 @@ class SmartGrid(wx.grid.Grid):
     def OnGridMouseMotion(self, event):
         x, y = self.CalcUnscrolledPosition(event.GetPosition())
         row, col = -1, -1
-        cursor = wx.StockCursor(wx.CURSOR_ARROW)
+        cursorId = wx.CURSOR_ARROW
         tooltip = None
 
         if len(self.data) > 0:
             row, col = self.YToRow(y), self.XToCol(x)
-            if self.isClickable(row, col):
-                cursor = wx.StockCursor(wx.CURSOR_HAND)
-            if row < self.GetNumberRows() and col < self.GetNumberCols():
+            if 0 <= row < self.GetNumberRows() and 0 <= col < self.GetNumberCols():
                 tooltip = self.columnValueTooltippers[col](self.data[row][col])
+                if self.isClickable(row, col):
+                    cursorId = wx.CURSOR_HAND
 
-        self.SetCursor(cursor)
+        self.SetCursor(wx.StockCursor(cursorId))
 
         if tooltip is None:
             tooltip = ''
@@ -93,7 +93,7 @@ class SmartGrid(wx.grid.Grid):
             event.Skip()
 
     def isClickable(self, row, col):
-        return (len(self.data) > row and len(self.data[row]) > col and
+        return (len(self.data) > row >= 0 and len(self.data[row]) > col >= 0 and
                 len(self.columnOnClickCallbacks) > col and self.columnOnClickCallbacks[col] is not None)
 
     def setHyperlinkCellAttr(self, rowIndex, columnIndex, color):
