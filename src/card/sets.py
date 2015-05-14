@@ -101,7 +101,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'M15': ('Magic 2015', '2015 Core Set',),
     'MBP': ('Media Inserts',),
     'MBS': ('Mirrodin Besieged',),
-    'MD1': ('Modern Event Deck',),
+    'MD1': ('Modern Event Deck', 'Modern Event Deck 2014',),
     'MGB': ('Multiverse Gift Box',),
     'MGD': ('Magic Game Day Cards', 'Game Day',),
     'MIR': ('Mirage',),
