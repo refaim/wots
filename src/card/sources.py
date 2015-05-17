@@ -228,6 +228,17 @@ class MtgSale(CardSource):
             #print(resultsEntry.cssselect('.tablelanguage img')[0].attrib['title'].lower().encode('cp866'))
             language = core.language.getAbbreviation(resultsEntry.cssselect('.tablelanguage img')[0].attrib['title'])
             nameSelector = '.tablename a' if language == 'EN' else '.tablename .tabletranslation'
+
+            priceTable = resultsEntry.cssselect('.tableprice')[0]
+            priceString = priceTable.text
+            discountPriceBlocks = priceTable.cssselect('.discount_price')
+            if len(discountPriceBlocks) > 0:
+                priceString = discountPriceBlocks[0].text
+
+            price = None
+            if priceString and not priceString.isspace():
+                price = decimal.Decimal(re.match(r'(\d+)', priceString.strip()).group(0))
+
             yield self.fillCardInfo({
                 'name': self.packName(resultsEntry.cssselect(nameSelector)[0].text),
                 'set': self.getSetAbbrv(resultsEntry.cssselect('.tableset')[0].text),
@@ -235,7 +246,7 @@ class MtgSale(CardSource):
                 'condition': _CONDITIONS[resultsEntry.cssselect('.tablecondition')[0].text],
                 'foilness': bool(resultsEntry.cssselect('.tablekind')[0].text.replace(u'\xa0', u'')),
                 'count': int(re.match(r'(\d+)', resultsEntry.cssselect('.tablestock')[0].text).group(0)),
-                'price': decimal.Decimal(re.match(r'(\d+)', resultsEntry.cssselect('.tableprice')[0].text.strip()).group(0)),
+                'price': price,
                 'currency': core.currency.RUR,
                 'source': self.packSource(self.getTitle()),
             })
