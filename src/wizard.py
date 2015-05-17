@@ -377,8 +377,11 @@ def searchCards(queryString, wxEventBus, exitEvent):
 
 def processPriceRequests(processor, requests, results):
     while True:
-        jobId, cardName, setId, language, foilness = requests.get()
-        results.put((jobId, processor.queryPrice(cardName, setId, language, foilness)))
+        try:
+            jobId, cardName, setId, language, foilness = requests.get()
+            results.put((jobId, processor.queryPrice(cardName, setId, language, foilness)))
+        except Queue.Empty:
+            pass
 
 
 def priceRetriever(taskQueue, wxEventBus, exitEvent):
