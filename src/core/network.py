@@ -35,7 +35,7 @@ def getUrl(url):
             _logger.info('Finished [GET] {}'.format(url))
             return dstObj.read()
         except urllib2.HTTPError, ex:
-            if ex.code == httplib.NOT_FOUND:
+            if ex.code in (httplib.NOT_FOUND, httplib.REQUESTED_RANGE_NOT_SATISFIABLE):
                 raise
         except Exception:
             if attempt <= MAX_ATTEMPTS:
