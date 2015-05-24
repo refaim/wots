@@ -94,6 +94,8 @@ class TcgPlayer(object):
                     }
 
     def queryPrice(self, cardName, setId, language, foil):
+        if not foil:
+            language = ''
         setAbbrv = card.sets.getAbbreviation(setId)
         cardKey = getCardKey(cardName, language, foil)
         if setAbbrv not in self.pricesBySetAbbrv:
