@@ -106,6 +106,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'MGD': ('Magic Game Day Cards', 'Game Day',),
     'MIR': ('Mirage',),
     'MLP': ('Magic: The Gathering Launch Parties',),
+    'MM2': ('Modern Masters 2015',),
     'MMA': ('Modern Masters',),
     'MMQ': ('Mercadian Masques', 'MM',),
     'MOR': ('Morningtide', 'MT',),

@@ -449,6 +449,7 @@ class CenterOfHobby(CardSource):
     def __init__(self):
         sourceSpecificSets = {
             'LE': 'Legions',
+            'MI': 'Mirrodin',
         }
         super(CenterOfHobby, self).__init__('http://www.centerofhobby.ru', '/catalog/mtgcards/search/?card_name={}', 'utf-8', sourceSpecificSets)
 
