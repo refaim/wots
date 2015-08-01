@@ -6,7 +6,7 @@ import string
 import tools.dict
 
 _LANGUAGES_SOURCE = {
-    'cn': (u'китайский', 'chinese', 'chi',),
+    'cn': (u'китайский', 'chinese', 'chi', 'kit',),
     'de': (u'немецкий', 'deutch',),
     'en': (u'английский', 'english', 'eng',),
     'es': (u'испанский',),

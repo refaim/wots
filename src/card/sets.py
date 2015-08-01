@@ -117,7 +117,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'NPH': ('New Phyrexia',),
     'ODY': ('Odyssey', 'OD',),
     'ONS': ('Onslaught', 'ON',),
-    'ORI': ('Magic Origins',),
+    'ORI': ('Magic Origins', 'Origins',),
     'OVS': ('Oversized Cards',),
     'PC2': ('Planechase 2012', 'Planechase 2012 Edition',),
     'PCY': ('Prophecy', 'PY', 'PR',),

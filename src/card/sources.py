@@ -618,7 +618,10 @@ class EasyBoosters(CardSource):
                 continue
 
             cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
-            cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', cardHtml.cssselect('#product-description .product-title')[0].text).group(1)
+            itemName = cardHtml.cssselect('#product-description .product-title')[0].text
+            if u'фигурка' in itemName.lower():
+                continue
+            cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', itemName).group(1)
 
             condition = None
             foil = False
