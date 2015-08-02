@@ -16,7 +16,7 @@ import tools.dict
 import tools.string
 
 _CONDITIONS_SOURCE = {
-    'NM': ('M/NM', 'Mint', 'Near Mint', 'Excellent', u'НМ'),
+    'NM': ('M/NM', 'Mint', 'Near Mint', 'Excellent', 'great', u'НМ'),  # TODO great :(
     'SP': ('Slightly Played', u'СП'),
     'HP': ('Heavily Played', 'Hardly Played',),
     'MP': ('Played', 'Moderately Played', u'МП')
@@ -619,7 +619,7 @@ class EasyBoosters(CardSource):
 
             cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
             itemName = cardHtml.cssselect('#product-description .product-title')[0].text
-            if u'фигурка' in itemName.lower():
+            if any(substring in itemName.lower() for substring in [u'фигурка', u'протекторы']):
                 continue
             cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', itemName).group(1)
 

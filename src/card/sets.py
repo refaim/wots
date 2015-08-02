@@ -85,7 +85,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'ISD': ('Innistrad',),
     'JOU': ('Journey into Nyx',),
     'JRW': ('Judge Rewards',),
-    'JUD': ('Judgment', 'JU',),
+    'JUD': ('Judgment', 'JU', 'Judgement',),
     'KTK': ('Khans of Tarkir',),
     'LEA': ('Limited Edition Alpha', 'Alpha',),
     'LEB': ('Limited Edition Beta', 'Beta',),
