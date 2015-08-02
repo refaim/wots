@@ -6,6 +6,7 @@ import json
 import multiprocessing
 import os
 import Queue
+import sys
 import threading
 import webbrowser
 import wx
@@ -86,6 +87,7 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'label': 'Price',
         'horz_alignment': wx.ALIGN_RIGHT,
         'formatter': lambda x: formatRoubles(x.get('roubles')) if x else '',
+        'sort_key': lambda x: x.get('roubles') if x else sys.maxint,
         'tooltipper': lambda x: x.get('original') if x else ''
     },
     {
