@@ -2,6 +2,7 @@
 
 import codecs
 import functools
+import itertools
 import json
 import multiprocessing
 import os
@@ -115,23 +116,27 @@ def getCardCompletionKey(cardname):
 
 
 class CardFoundEvent(wx.PyEvent):
-    def __init__(self, cardInfo):
+    def __init__(self, cardInfo, cookie):
         super(CardFoundEvent, self).__init__()
         self.SetEventType(EVT_CARD_FOUND)
         self.cardInfo = cardInfo
+        self.cookie = cookie
 
 
 class SearchCompleteEvent(wx.PyEvent):
-    def __init__(self):
+    def __init__(self, cookie):
         super(SearchCompleteEvent, self).__init__()
         self.SetEventType(EVT_SEARCH_COMPLETE)
+        self.cookie = cookie
 
 
 class PriceObtainedEvent(wx.PyEvent):
-    def __init__(self, priceInfo):
+    def __init__(self, jobId, priceInfo, cookie):
         super(PriceObtainedEvent, self).__init__()
         self.SetEventType(EVT_PRICE_OBTAINED)
+        self.jobId = jobId
         self.priceInfo = priceInfo
+        self.cookie = cookie
 
 
 def getResourcePath(resourceId):
@@ -150,9 +155,16 @@ class MainWindow(wx.Frame):
         with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as data:
             self.cardCompletions = json.load(data)
 
+        self.interfaceUpdateTimer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnInterfaceUpdateTimerTick, self.interfaceUpdateTimer)
+        self.interfaceUpdateTimer.Start(100)
+
+        self.searchVersion = 0
         self.searchInProgress = False
         self.searchStopEvent = threading.Event()
+        self.foundCards = Queue.Queue()
 
+        self.obtainedPrices = Queue.Queue()
         self.priceRequests = Queue.Queue()
         self.priceRetrieverStopEvent = threading.Event()
         self.priceRetriever = threading.Thread(name='Prices', target=priceRetriever, args=(self.priceRequests, self, self.priceRetrieverStopEvent,))
@@ -162,6 +174,7 @@ class MainWindow(wx.Frame):
         self.currencyConverter = core.currency.Converter()
         self.currencyConverter.update()
 
+        self.Bind(wx.EVT_CLOSE, self.OnClose, self)
         self.Connect(id=-1, lastId=-1, eventType=EVT_CARD_FOUND, func=self.OnCardFound)
         self.Connect(id=-1, lastId=-1, eventType=EVT_SEARCH_COMPLETE, func=self.OnSearchComplete)
         self.Connect(id=-1, lastId=-1, eventType=EVT_PRICE_OBTAINED, func=self.OnPriceObtained)
@@ -250,42 +263,52 @@ class MainWindow(wx.Frame):
             return 1
         return -1 if a <= b else 1
 
-    def OnExit(self, event):
-        self.Close()
+    def OnClose(self, event):
+        self.searchStopEvent.set()
+        self.priceRetrieverStopEvent.set()
+        event.Skip()
+
+    # def OnExit(self, event):
+    #     self.Close()
 
     def OnCardFound(self, event):
-        cardInfo = event.cardInfo
-        if cardInfo['count'] <= 0:
-            return
-
-        if cardInfo.get('price'):
-            cardInfo['price'] = self.packPrice(cardInfo['price'], cardInfo['currency'])
-
-        rowData = []
-        columnCount = self.resultsGrid.GetNumberCols()
-        for columnIndex in xrange(columnCount):
-            rowData.append(cardInfo.get(SEARCH_RESULTS_TABLE_COLUMNS_INFO[columnIndex]['id'], ''))
-        rowId, rowIndex = self.resultsGrid.AddRow(rowData)
-        for columnIndex in xrange(columnCount):
-            self.resultsGrid.AutoSizeColumn(columnIndex)
-        self.resultsGrid.AutoSizeRow(rowIndex)
-        self.statusBar.SetStatusText('{} cards found. Searching...'.format(self.resultsGrid.GetNumberRows()))
-        if cardInfo.get('set'):
-            self.priceRequests.put((rowId, cardInfo['name']['caption'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
+        self.foundCards.put((event.cardInfo, event.cookie))
 
     def OnPriceObtained(self, event):
-        rowId, priceInfo = event.priceInfo
-        if not priceInfo:
-            return
+        self.obtainedPrices.put((event.jobId, event.priceInfo, event.cookie))
 
-        columnIndex = -1
-        for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
-            if columnInfo['id'] == priceInfo['source_id']:
-                columnIndex = i
+    def OnInterfaceUpdateTimerTick(self, event):
+        newCards = []
+        newRows = []
+        changedCells = []
+        while not self.foundCards.empty():
+            cardInfo, cookie = self.foundCards.get(block=False)
+            if cookie == self.searchVersion and cardInfo['count'] > 0:
+                if cardInfo.get('price'):
+                    cardInfo['price'] = self.packPrice(cardInfo['price'], cardInfo['currency'])
+                row = []
+                columnCount = self.resultsGrid.GetNumberCols()
+                for columnIndex in xrange(columnCount):
+                    row.append(cardInfo.get(SEARCH_RESULTS_TABLE_COLUMNS_INFO[columnIndex]['id'], ''))
+                newCards.append(cardInfo)
+                newRows.append(row)
 
-        self.resultsGrid.UpdateCell(rowId, columnIndex, self.packPrice(priceInfo['price'], priceInfo['currency']))
-        self.resultsGrid.AutoSizeColumn(columnIndex)
-        self.resultsGrid.AutoSizeRow(self.resultsGrid.GetRowIndex(rowId))
+        while not self.obtainedPrices.empty():
+            rowId, priceInfo, cookie = self.obtainedPrices.get(block=False)
+            if cookie == self.searchVersion and priceInfo:
+                columnIndex = -1
+                for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
+                    if columnInfo['id'] == priceInfo['source_id']:
+                        columnIndex = i
+                changedCells.append((rowId, columnIndex, self.packPrice(priceInfo['price'], priceInfo['currency'])))
+
+        if newRows or changedCells:
+            newRowsIds = self.resultsGrid.Populate(newRows, changedCells)
+            for rowId, cardInfo in itertools.izip(newRowsIds, newCards):
+                if cardInfo.get('set'):
+                    self.priceRequests.put((rowId, self.searchVersion, cardInfo['name']['caption'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
+            if newRows:
+                self.statusBar.SetStatusText('{} cards found. Searching...'.format(self.resultsGrid.GetNumberRows()))
 
     def packPrice(self, price, currency):
         result = {}
@@ -297,11 +320,12 @@ class MainWindow(wx.Frame):
         return result
 
     def OnSearchComplete(self, event):
-        self.searchInProgress = False
-        self.searchField.Enable()
-        self.searchButton.Enable()
-        self.searchButton.SetLabel('Search')
-        self.statusBar.SetStatusText('{} cards found.'.format(self.resultsGrid.GetNumberRows()))
+        if event.cookie == self.searchVersion:
+            self.searchInProgress = False
+            self.searchField.Enable()
+            self.searchButton.Enable()
+            self.searchButton.SetLabel('Search')
+            self.statusBar.SetStatusText('{} cards found.'.format(self.resultsGrid.GetNumberRows()))
 
     def OnSearchFieldKeyDown(self, event):
         keyCode = event.GetKeyCode()
@@ -336,7 +360,8 @@ class MainWindow(wx.Frame):
             self.resultsGrid.DeleteRows(pos=0, numRows=rowCount)
 
         self.searchStopEvent.clear()
-        self.searchThread = threading.Thread(name='Search', target=searchCards, args=(queryString, self, self.searchStopEvent))
+        self.searchVersion += 1
+        self.searchThread = threading.Thread(name='Search', target=searchCards, args=(queryString, self, self.searchStopEvent, self.searchVersion))
         self.searchThread.daemon = True
         self.searchThread.start()
 
@@ -348,10 +373,10 @@ def queryCardSource(cardSource, queryString, results, exitEvent):
         results.put(cardInfo)
 
 
-def searchCards(queryString, wxEventBus, exitEvent):
+def searchCards(queryString, wxEventBus, exitEvent, cookie):
     results = multiprocessing.Queue()
-    terminators = []
     workers = []
+    terminators = []
     for sourceClass in card.sources.getCardSourceClasses():
         source = sourceClass()
         event = multiprocessing.Event()
@@ -361,27 +386,21 @@ def searchCards(queryString, wxEventBus, exitEvent):
         process.daemon = True
         process.start()
 
-    while any(process.is_alive() for process in workers) or not results.empty():
+    while not exitEvent.is_set() and (any(process.is_alive() for process in workers) or not results.empty()):
         try:
-            wx.PostEvent(wxEventBus, CardFoundEvent(results.get(block=False)))
+            wx.PostEvent(wxEventBus, CardFoundEvent(results.get(block=False), cookie))
         except Queue.Empty:
             pass
-        if exitEvent.is_set():
-            for terminator in terminators:
-                terminator.set()
-            break
-
-    for process in workers:
-        process.join()
-
-    wx.PostEvent(wxEventBus, SearchCompleteEvent())
+    for terminator in terminators:
+        terminator.set()
+    wx.PostEvent(wxEventBus, SearchCompleteEvent(cookie))
 
 
-def processPriceRequests(processor, requests, results):
-    while True:
+def processPriceRequests(processor, requests, results, exitEvent):
+    while not exitEvent.is_set():
         try:
-            jobId, cardName, setId, language, foilness = requests.get()
-            results.put((jobId, processor.queryPrice(cardName, setId, language, foilness)))
+            jobId, cookie, cardName, setId, language, foilness = requests.get(block=False)
+            results.put((jobId, processor.queryPrice(cardName, setId, language, foilness), cookie))
         except Queue.Empty:
             pass
 
@@ -390,9 +409,12 @@ def priceRetriever(taskQueue, wxEventBus, exitEvent):
     requests = multiprocessing.Queue()
     results = multiprocessing.Queue()
     workers = []
-    for source in price.sources.getPriceSourceClasses():
-        source = source()
-        workers.append(multiprocessing.Process(name=source.getTitle(), target=processPriceRequests, args=(source, requests, results,)))
+    terminators = []
+    for sourceClass in price.sources.getPriceSourceClasses():
+        source = sourceClass()
+        event = multiprocessing.Event()
+        terminators.append(event)
+        workers.append(multiprocessing.Process(name=source.getTitle(), target=processPriceRequests, args=(source, requests, results, event,)))
     for process in workers:
         process.daemon = True
         process.start()
@@ -401,9 +423,12 @@ def priceRetriever(taskQueue, wxEventBus, exitEvent):
             while not taskQueue.empty():
                 requests.put(taskQueue.get(block=False))
             while not results.empty():
-                wx.PostEvent(wxEventBus, PriceObtainedEvent(results.get(block=False)))
+                jobId, priceInfo, cookie = results.get(block=False)
+                wx.PostEvent(wxEventBus, PriceObtainedEvent(jobId, priceInfo, cookie))
         except Queue.Empty:
             pass
+    for terminator in terminators:
+        terminator.set()
 
 
 if __name__ == '__main__':

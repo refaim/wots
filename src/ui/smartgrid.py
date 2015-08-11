@@ -1,3 +1,4 @@
+import time
 import wx
 import wx.grid
 
@@ -13,27 +14,29 @@ HYPERLINK_COLOR_DEFAULT = (6, 69, 173)
 class SmartGrid(wx.grid.Grid):
     def __init__(self, parent):
         super(SmartGrid, self).__init__(parent)
-
-        self.data = []
-        self.dataByRowId = {}
-        self.freeRowId = -1
-        self.visitedCells = set()
         self.columnHorzAlignment = []
         self.columnVertAlignment = []
         self.columnValueFormatters = []
         self.columnValueTooltippers = []
-        self.columnSortKeys = []
+        self.columnsSortKeys = []
         self.columnOnClickCallbacks = []
-
-        self.currentTooltip = None
-        self.currentTooltipPosition = (-1, -1)
-
+        self.resetDataRelatedFields()
         self.SetRowLabelSize(0)
         self.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self.OnGridCellLeftClick)
         self.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self.OnGridLabelLeftClick)
         self.Bind(wx.grid.EVT_GRID_LABEL_LEFT_DCLICK, self.OnGridLabelLeftDoubleClick)
         self.GetGridColLabelWindow().Bind(wx.EVT_PAINT, self.OnGridColLabelWindowPaint)
         self.GetGridWindow().Bind(wx.EVT_MOTION, self.OnGridMouseMotion)
+
+    def resetDataRelatedFields(self):
+        self.freeRowId = -1
+        self.data = []
+        self.dataByRowId = {}
+        self.rowIndices = {}
+        self.visitedCells = set()
+        self.columnsSortOrder = []
+        self.currentTooltip = None
+        self.currentTooltipPosition = (-1, -1)
 
     def CreateGrid(self, selMode, numRows, numCols=0, columnsSetup=None):
         if columnsSetup:
@@ -48,15 +51,13 @@ class SmartGrid(wx.grid.Grid):
                 self.columnVertAlignment.append(setup.get('vert_alignment', wx.ALIGN_CENTER_VERTICAL))
                 self.columnValueFormatters.append(setup.get('formatter', lambda x: x))
                 self.columnValueTooltippers.append(setup.get('tooltipper', lambda x: ''))
-                self.columnSortKeys.append(setup.get('sort_key', lambda x: x))
+                self.columnsSortKeys.append(setup.get('sort_key', lambda x: x))
                 self.columnOnClickCallbacks.append(setup.get('on_click', None))
-
         self.columnsSortDirections = [SORT_NONE] * numCols
-        self.columnsSortOrder = []
 
     def ClearGrid(self):
         super(SmartGrid, self).ClearGrid()
-        self.data = []
+        self.resetDataRelatedFields()
 
     def OnGridMouseMotion(self, event):
         x, y = self.CalcUnscrolledPosition(event.GetPosition())
@@ -123,11 +124,11 @@ class SmartGrid(wx.grid.Grid):
         def compare(x, y):
             for col in self.columnsSortOrder:
                 direction = self.columnsSortDirections[col]
-                xData = self.columnSortKeys[col](x[col])
-                yData = self.columnSortKeys[col](y[col])
+                xData = self.columnsSortKeys[col](x[col])
+                yData = self.columnsSortKeys[col](y[col])
                 if xData != yData:
                     if direction == SORT_ASC:
-                        return 1 if xData > yData else -1  # TODO azaza custom comparator ftw
+                        return 1 if xData > yData else -1
                     elif direction == SORT_DESC:
                         return 1 if xData < yData else -1
                     else:
@@ -144,41 +145,84 @@ class SmartGrid(wx.grid.Grid):
         if columnIndex in self.columnsSortOrder:
             self.columnsSortOrder.remove(columnIndex)
         self.columnsSortOrder.append(columnIndex)
-        self.applySorting()
-
-    def applySorting(self):
         self.data.sort(cmp=self.getCmpFunction())
-        for rowIndex, values in enumerate(self.data):
-            self.fillRow(rowIndex, values)
+        for rowIndex, rowData in enumerate(self.data):
+            self.fillRow(rowIndex, rowData)
+            self.rowIndices[rowData[-1]] = rowIndex
         self.Refresh()
 
-    def AddRow(self, values):
-        self.data.append(values)
-        self.data.sort(cmp=self.getCmpFunction())
-        rowIndex = self.data.index(values)
-        self.InsertRows(rowIndex, 1)
-        self.fillRow(rowIndex, values)
-        self.freeRowId += 1
-        self.dataByRowId[self.freeRowId] = values
-        return self.freeRowId, rowIndex
+    def Populate(self, newRows, changedCells):
+        newRowsIds = []
+        for rowData in newRows:
+            self.freeRowId += 1
+            rowId = self.freeRowId
+            self.dataByRowId[rowId] = rowData
+            rowData.append(rowId)
+            newRowsIds.append(rowId)
 
-    def UpdateCell(self, rowId, columnIndex, value):
-        values = self.dataByRowId.get(rowId)
-        if values:
-            values[columnIndex] = value
-        self.applySorting()
+        changedColsIndices = set(range(self.GetNumberCols())) if newRows else set()
+        changedRowsIds = []
+        for rowId, columnIndex, value in changedCells:
+            self.dataByRowId[rowId][columnIndex] = value
+            changedRowsIds.append(rowId)
+            changedColsIndices.add(columnIndex)
+
+        self.data.extend(newRows)
+        self.data.sort(cmp=self.getCmpFunction())
+        oldRowIndices = dict(self.rowIndices)
+        for rowIndex, rowData in enumerate(self.data):
+            self.rowIndices[rowData[-1]] = rowIndex
+
+        actionsOrder = {'delete': 0, 'insert': 1, 'fill': 2}
+        actionsSequence = []
+        # self.AppendRows(len(newRows))
+        for i, rowId in enumerate(newRowsIds):
+            lastRowIndex = self.GetNumberRows() - 1
+            if lastRowIndex < 0:
+                lastRowIndex = 0
+            self.InsertRows(lastRowIndex)
+            actionsSequence.append((lastRowIndex, 'delete'))
+            actionsSequence.append((self.rowIndices[rowId], 'insert'))
+            actionsSequence.append((self.rowIndices[rowId], 'fill'))
+        for rowId in changedRowsIds:  # TODO do not delete/insert if index was not changed
+            actionsSequence.append((oldRowIndices[rowId], 'delete'))
+            actionsSequence.append((self.rowIndices[rowId], 'insert'))
+            actionsSequence.append((self.rowIndices[rowId], 'fill'))
+
+        actionsSequence.sort(key=lambda x: (-x[0], actionsOrder[x[1]]))
+        for rowIndex, actionId in actionsSequence:
+            if actionId == 'delete':
+                self.DeleteRows(rowIndex)
+            elif actionId == 'insert':
+                self.InsertRows(rowIndex)
+            elif actionId == 'fill':
+                self.fillRow(rowIndex, self.data[rowIndex])
+
+        for rowIndex in xrange(self.GetNumberRows()):
+            self.AutoSizeRow(rowIndex)
+        # for rowId in newRowsIds + changedRowsIds:
+        #     rowIndex = self.rowIndices[rowId]
+        #     if rowIndex - 1 >= 0:
+        #         self.AutoSizeRow(rowIndex - 1)
+        #     self.AutoSizeRow(self.rowIndices[rowId])
+        #     if rowIndex + 1 < self.GetNumberRows():
+        #         self.AutoSizeRow(rowIndex + 1)
+        for colIndex in changedColsIndices:
+            self.AutoSizeColumn(colIndex)
+
+        return newRowsIds
 
     def GetRowIndex(self, rowId):
-        return self.data.index(self.dataByRowId[rowId])
+        return self.rowIndices[rowId]
 
-    def fillRow(self, rowIndex, values):
+    def fillRow(self, rowIndex, rowData):
         for columnIndex in xrange(self.GetNumberCols()):
-            cellValue = self.columnValueFormatters[columnIndex](values[columnIndex])
+            cellValue = self.columnValueFormatters[columnIndex](rowData[columnIndex])
             self.SetCellValue(rowIndex, columnIndex, unicode(cellValue))
             self.SetCellAlignment(rowIndex, columnIndex, horiz=self.columnHorzAlignment[columnIndex], vert=self.columnVertAlignment[columnIndex])
             if self.columnOnClickCallbacks[columnIndex] is not None:
                 highlightColor = HYPERLINK_COLOR_DEFAULT
-                if self.serializeCellValue(values[columnIndex]) in self.visitedCells:
+                if self.serializeCellValue(rowData[columnIndex]) in self.visitedCells:
                     highlightColor = HYPERLINK_COLOR_VISITED
                 self.setHyperlinkCellAttr(rowIndex, columnIndex, highlightColor)
 
