@@ -3,20 +3,20 @@
 
 def _processCard(cardname, rules):
     result = cardname
-    for k, v in rules.iteritems():
+    for k, v in rules.items():
         result = cardname.replace(k, v)
     return result
 
 
 _STRINGS_TO_ESCAPE = {
-    u'Æ': u'AE',
+    'Æ': 'AE',
 }
 _STRINGS_TO_UNESCAPE = {}
-for k, v in _STRINGS_TO_ESCAPE.iteritems():
+for k, v in _STRINGS_TO_ESCAPE.items():
     _STRINGS_TO_UNESCAPE[v] = k
 
 _STRINGS_TO_CLEAN = {
-    u'//': u'/',
+    '//': '/',
 }
 
 

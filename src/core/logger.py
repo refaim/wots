@@ -44,5 +44,5 @@ class Logger(object):
                 message,
             )
             # with STDERR_LOCK:
-                # sys.stderr.write(logEntry + '\n')
-                # sys.stderr.flush()
+            #     sys.stderr.write(logEntry + '\n')
+            #     sys.stderr.flush()

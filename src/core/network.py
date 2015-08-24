@@ -2,18 +2,19 @@
 
 from __future__ import print_function
 
-import httplib
-import StringIO
+import http.client
+import io
 import time
-import urllib2
+import urllib.error
+import urllib.request
 
-import logger
+import core.logger
 
 MAX_ATTEMPTS = 30
 HTTP_DELAY_SECONDS = 1
 CHUNK_SIZE_BYTES = 1024 * 100
 
-_logger = logger.Logger('Network')
+_logger = core.logger.Logger('Network')
 
 
 def getUrl(url):
@@ -22,9 +23,9 @@ def getUrl(url):
     while True:
         try:
             attempt += 1
-            opener = urllib2.build_opener(urllib2.HTTPCookieProcessor)
+            opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor)
             srcObj = opener.open(url)
-            dstObj = StringIO.StringIO()
+            dstObj = io.BytesIO()
             while True:
                 chunk = srcObj.read(CHUNK_SIZE_BYTES)
                 if not chunk:
@@ -34,10 +35,10 @@ def getUrl(url):
             srcObj.close()
             _logger.info('Finished [GET] {}'.format(url))
             return dstObj.read()
-        except urllib2.HTTPError, ex:
-            if ex.code in (httplib.NOT_FOUND, httplib.REQUESTED_RANGE_NOT_SATISFIABLE):
+        except urllib.error.HTTPError as ex:
+            if ex.code in (http.client.NOT_FOUND, http.client.REQUESTED_RANGE_NOT_SATISFIABLE):
                 raise
-        except Exception:
+        except Exception as ex:
             if attempt <= MAX_ATTEMPTS:
                 _logger.info('Restarting ({}/{}) [GET] {}'.format(attempt, MAX_ATTEMPTS, url))
                 time.sleep(HTTP_DELAY_SECONDS)

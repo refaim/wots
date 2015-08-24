@@ -1,12 +1,12 @@
 # coding: utf-8
 
 import decimal
-import lxml
+import lxml.html
 import os
 import random
 import re
 import urllib
-import urlparse
+import urllib.parse
 
 import card.sets
 import core.currency
@@ -16,15 +16,15 @@ import tools.dict
 import tools.string
 
 _CONDITIONS_SOURCE = {
-    'NM': ('M/NM', 'Mint', 'Near Mint', 'Excellent', 'great', u'НМ'),  # TODO great :(
-    'SP': ('Slightly Played', u'СП'),
+    'NM': ('M/NM', 'Mint', 'Near Mint', 'Excellent', 'great', 'НМ'),  # TODO great :(
+    'SP': ('Slightly Played', 'СП'),
     'HP': ('Heavily Played', 'Hardly Played',),
-    'MP': ('Played', 'Moderately Played', u'МП')
+    'MP': ('Played', 'Moderately Played', 'МП')
 }
 _CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
 _CONDITIONS = tools.dict.expandMapping(_CONDITIONS_SOURCE)
 _CONDITIONS_CASE_INSENSITIVE = {}
-for k, v in _CONDITIONS.iteritems():
+for k, v in _CONDITIONS.items():
     _CONDITIONS_CASE_INSENSITIVE[k.lower()] = v
 
 MTG_RU_SPECIFIC_SETS = {
@@ -42,7 +42,7 @@ MTG_RU_SPECIFIC_SETS = {
 def guessCardLanguage(cardName):
     language = None
     nameLetters = re.sub(r'\W', '', cardName.lower())
-    for abbrv, letters in core.language.LANGUAGES_TO_LOWERCASE_LETTERS.iteritems():
+    for abbrv, letters in core.language.LANGUAGES_TO_LOWERCASE_LETTERS.items():
         if all(c in letters for c in nameLetters):
             language = abbrv
             break
@@ -57,7 +57,7 @@ class CardSource(object):
         self.encoding = encoding
 
     def getTitle(self):
-        location = urlparse.urlparse(self.url).netloc
+        location = urllib.parse.urlparse(self.url).netloc
         return re.sub(r'^www\.', '', location)
 
     def getSetAbbrv(self, setId):
@@ -65,18 +65,14 @@ class CardSource(object):
 
     def makeRequest(self, queryText):
         queryText = queryText.replace(u'`', "'").replace(u'’', "'")
-        return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.quote(queryText))).decode(self.encoding))
+        return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.parse.quote(queryText))).decode(self.encoding))
 
     def packName(self, caption, description=None):
-        result = {'caption': card.utils.escape(card.utils.clean(caption))}
-        if description is not None:
-            result['description'] = description
+        result = {'caption': card.utils.escape(card.utils.clean(caption)), 'description': description}
         return result
 
     def packSource(self, caption, cardUrl=None):
-        result = {'caption': caption, 'url': caption}
-        if cardUrl is not None:
-            result['url'] = cardUrl
+        result = {'caption': caption, 'url': cardUrl or caption}
         return result
 
     def fillCardInfo(self, cardInfo):
@@ -115,7 +111,7 @@ class AngryBottleGnome(CardSource):
             cardName = dataCells[0].cssselect('a')[0].text
             cardSet = dataCells[1].cssselect('a')[0].text
             cardRelativeUrl = dataCells[0].cssselect('a')[0].attrib['href']
-            cardUrl = urlparse.urljoin(self.url, cardRelativeUrl)
+            cardUrl = urllib.parse.urljoin(self.url, cardRelativeUrl)
             cardVersions = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
             for cardVersion in cardVersions.cssselect('.abg-card-version-instock'):
                 rawInfo = self.cardInfoRegexp.match(cardVersion.text).groupdict()
@@ -154,7 +150,7 @@ class MtgRuShop(CardSource):
         searchResults = self.makeRequest(queryText)
         for resultsEntry in searchResults.cssselect('#Catalog tr'):
             dataCells = resultsEntry.cssselect('td')
-            language = core.language.getAbbreviation(os.path.basename(urlparse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
+            language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
             yield self.fillCardInfo({
                 'name': self.packName(dataCells[2].cssselect(nameSelector)[0].text),
@@ -186,7 +182,7 @@ class MagicMaze(MtgRuShop):
 # class MtgRuPromoShop(CardSource):
 #     def __init__(self, siteUrl, promoUrl):
 #         super(MtgRuPromoShop, self).__init__(siteUrl, promoUrl, 'cp1251', {})
-#         self.fullPromoUrl = urlparse.urljoin(siteUrl, promoUrl)
+#         self.fullPromoUrl = urllib.parse.urljoin(siteUrl, promoUrl)
 
 
 # class AmbersonPromo(MtgRuPromoShop):
@@ -284,7 +280,7 @@ class CardPlace(CardSource):
         searchResults = self.makeRequest(queryText)
         for resultsEntry in searchResults.cssselect('#mtgksingles tbody tr'):
             dataCells = resultsEntry.cssselect('td')
-            language = core.language.getAbbreviation(os.path.basename(urlparse.urlparse(self.url + dataCells[3].cssselect('img')[0].attrib['src']).path))
+            language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(self.url + dataCells[3].cssselect('img')[0].attrib['src']).path))
             cardId = None
             cardNameAnchor = dataCells[2].cssselect('a')[0]
             cardName = cardNameAnchor.text
@@ -341,7 +337,7 @@ class MtgRu(CardSource):
             if not any(source in exchangeUrl.lower() for source in self.sourceSubstringsToExclude):
                 cardSource = self.getTitle() + '/' + nickname.lower().replace(' ', '_')
                 if any(substring in exchangeUrl for substring in self.knownShopSourceSubstrings):
-                    cardSource = urlparse.urlparse(exchangeUrl).netloc
+                    cardSource = urllib.parse.urlparse(exchangeUrl).netloc
                 elif not exchangeUrl.endswith('.html'):
                     cardSource = exchangeUrl
                     print('Shop found: {}'.format(exchangeUrl))
@@ -378,7 +374,7 @@ class MtgRu(CardSource):
                         'price': price,
                         'currency': core.currency.RUR,
                         'count': int(cardInfo.cssselect('td.txt15 b')[0].text.split()[0]),
-                        'source': self.packSource(cardSource, urlparse.urljoin(self.url, exchangeUrl)),
+                        'source': self.packSource(cardSource, urllib.parse.urljoin(self.url, exchangeUrl)),
                     })
 
 
@@ -487,7 +483,7 @@ class CenterOfHobby(CardSource):
                 cardLanguage = core.language.getAbbreviation(cardLanguage)
 
             result = {
-                'id': cardId,
+                'id': int(cardId),
                 'name': self.packName(cardName),
                 'foilness': foil,
                 'set': self.getSetAbbrv(cardSet.upper()),
@@ -559,7 +555,7 @@ class TtTopdeck(CardSource):
                             priceCurrency = currency
                             break
 
-                    foil = any(foilString in detailsStringLw for foilString in ['foil', u'фойл', u'фоил'])
+                    foil = any(foilString in detailsStringLw for foilString in ['foil', 'фойл', 'фоил'])
 
                     letterClusters = tools.string.splitByNonLetters(detailsStringLw)
 
@@ -585,7 +581,7 @@ class TtTopdeck(CardSource):
                     if len(foundConditions) > 0:
                         cardCondition = sorted(foundConditions, key=_CONDITIONS_ORDER.index)[0]
 
-                    countMatch = re.match(ur'(\d+)\W.*?{}'.format(cardName), detailsStringLw, re.U | re.I)
+                    countMatch = re.match(r'(\d+)\W.*?{}'.format(cardName), detailsStringLw, re.U | re.I)
                     if countMatch:
                         countValue = int(countMatch.group(1))
 
@@ -608,7 +604,7 @@ class TtTopdeck(CardSource):
 
 class EasyBoosters(CardSource):
     def __init__(self):
-        super(EasyBoosters, self).__init__('http://easyboosters.com', '/products?utf8=✓&keywords={}', 'utf-8', {})
+        super(EasyBoosters, self).__init__('http://easyboosters.com', '/products?keywords={}', 'utf-8', {})
 
     def query(self, queryText):
         searchResults = self.makeRequest(queryText)
@@ -619,7 +615,7 @@ class EasyBoosters(CardSource):
 
             cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
             itemName = cardHtml.cssselect('#product-description .product-title')[0].text
-            if any(substring in itemName.lower() for substring in [u'фигурка', u'протекторы']):
+            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы']):
                 continue
             cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', itemName).group(1)
 
@@ -631,15 +627,15 @@ class EasyBoosters(CardSource):
             for row in cardHtml.cssselect('#product-properties tr'):
                 caption = row.cssselect('td strong')[0].text
                 value = row.cssselect('td')[1].text
-                if caption in (u'Покрытие', 'Finish'):
+                if caption in ('Покрытие', 'Finish'):
                     foil = value != 'Regular'
-                elif caption in (u'Состояние', 'Condition'):
+                elif caption in ('Состояние', 'Condition'):
                     condition = _CONDITIONS[value]
-                elif caption in (u'Язык', 'Language'):
+                elif caption in ('Язык', 'Language'):
                     language = core.language.getAbbreviation(value)
-                elif caption in (u'Сет', 'Set'):
+                elif caption in ('Сет', 'Set'):
                     cardSet = card.sets.getAbbreviation(value)
-                elif caption in (u'Номер', 'Number'):
+                elif caption in ('Номер', 'Number'):
                     cardId = int(value)
 
             priceBlock = cardHtml.cssselect('#product-price div')[0]

@@ -256,7 +256,7 @@ def tryGetAbbreviationCaseInsensitive(setNameString):
 
 
 SINGLE_LANGUAGE_SETS = {}
-for language, setStrings in _SINGLE_LANGUAGE_SETS_DATA.iteritems():
+for language, setStrings in _SINGLE_LANGUAGE_SETS_DATA.items():
     for setId in setStrings:
         abbrv = tryGetAbbreviationCaseInsensitive(setId)
         if abbrv is None:

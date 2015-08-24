@@ -1,6 +1,6 @@
 def expandMapping(src):
     dst = {}
-    for abbrv, values in src.iteritems():
+    for abbrv, values in src.items():
         if not isinstance(values, tuple):
             raise Exception('Found non-tuple for {}'.format(abbrv))
         for variant in values + (abbrv,):

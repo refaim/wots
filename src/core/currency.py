@@ -4,7 +4,7 @@ import decimal
 import lxml
 import threading
 
-import network
+import core.network
 
 EUR = 'EUR'
 RUR = 'RUR'
@@ -30,7 +30,7 @@ class Converter(object):
             self.updateThread.start()
 
     def _update(self, results, readyEvent):
-        tree = lxml.etree.fromstring(network.getUrl('http://www.cbr.ru/scripts/XML_daily.asp'))
+        tree = lxml.etree.fromstring(core.network.getUrl('http://www.cbr.ru/scripts/XML_daily.asp'))
         for currency in tree.xpath('/ValCurs/Valute'):
             code = currency.xpath('CharCode')[0].text
             nominal = decimal.Decimal(currency.xpath('Nominal')[0].text.replace(',', '.'))
