@@ -39,9 +39,6 @@ class MainWindow(wx.Frame):
         with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as data:
             self.cardCompletions = json.load(data)
 
-        self.currencyConverter = core.currency.Converter()
-        self.currencyConverter.update()
-
     def autoCompleteCard(self, query):
         cards = {}
         completionKey = getCardCompletionKey(query)
@@ -62,47 +59,3 @@ class MainWindow(wx.Frame):
         if bv.startswith(completionKey):
             return 1
         return -1 if a <= b else 1
-
-    def OnClose(self, event):
-        self.searchStopEvent.set()
-        self.priceRetrieverStopEvent.set()
-        event.Skip()
-
-    def OnCardFound(self, event):
-        self.foundCards.put((event.cardInfo, event.cookie))
-
-    def OnPriceObtained(self, event):
-        self.obtainedPrices.put((event.jobId, event.priceInfo, event.cookie))
-
-    def OnInterfaceUpdateTimerTick(self, event):
-        newCards = []
-        newRows = []
-        changedCells = []
-        while not self.foundCards.empty():
-            cardInfo, cookie = self.foundCards.get(block=False)
-            if cookie == self.searchVersion and cardInfo['count'] > 0:
-                if cardInfo.get('price'):
-                    cardInfo['price'] = self.packPrice(cardInfo['price'], cardInfo['currency'])
-                row = []
-                columnCount = self.resultsGrid.GetNumberCols()
-                for columnIndex in xrange(columnCount):
-                    row.append(cardInfo.get(SEARCH_RESULTS_TABLE_COLUMNS_INFO[columnIndex]['id'], ''))
-                newCards.append(cardInfo)
-                newRows.append(row)
-
-        while not self.obtainedPrices.empty():
-            rowId, priceInfo, cookie = self.obtainedPrices.get(block=False)
-            if cookie == self.searchVersion and priceInfo:
-                columnIndex = -1
-                for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
-                    if columnInfo['id'] == priceInfo['source_id']:
-                        columnIndex = i
-                changedCells.append((rowId, columnIndex, self.packPrice(priceInfo['price'], priceInfo['currency'])))
-
-        if newRows or changedCells:
-            newRowsIds = self.resultsGrid.Populate(newRows, changedCells)
-            for rowId, cardInfo in itertools.izip(newRowsIds, newCards):
-                if cardInfo.get('set'):
-                    self.priceRequests.put((rowId, self.searchVersion, cardInfo['name']['caption'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
-            if newRows:
-                self.statusBar.SetStatusText('{} cards found. Searching...'.format(self.resultsGrid.GetNumberRows()))

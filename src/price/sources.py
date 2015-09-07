@@ -1,7 +1,8 @@
 import decimal
 import re
 import string
-import urllib
+import urllib.parse
+
 from lxml import html
 
 import card.sets
@@ -12,7 +13,7 @@ import core.network
 
 def getCardKey(cardName, language, foil):
     return ';'.join([
-        ''.join(c.lower() for c in cardName if c in string.letters),
+        ''.join(c.lower() for c in cardName if c in string.ascii_letters),
         language,
         'foil' if foil else 'regular'
     ])
@@ -71,7 +72,7 @@ class TcgPlayer(object):
         if setAbbrv not in self.pricesBySetAbbrv:
             self.pricesBySetAbbrv[setAbbrv] = {}
 
-        setPrices = html.document_fromstring(core.network.getUrl(self.setQueryUrlTemplate.format(urllib.quote(self.getFullSetName(setId)))))
+        setPrices = html.document_fromstring(core.network.getUrl(self.setQueryUrlTemplate.format(urllib.parse.quote(self.getFullSetName(setId)))))
         tables = setPrices.cssselect('table')
         if not tables:
             return

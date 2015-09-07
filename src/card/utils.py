@@ -19,13 +19,20 @@ _STRINGS_TO_CLEAN = {
     '//': '/',
 }
 
+_CACHE_ESCAPE = {}
+_CACHE_UNESCAPE = {}
+
 
 def escape(cardname):
-    return _processCard(cardname, _STRINGS_TO_ESCAPE)
+    if not cardname in _CACHE_ESCAPE:
+        _CACHE_ESCAPE[cardname] = _processCard(cardname, _STRINGS_TO_ESCAPE)
+    return _CACHE_ESCAPE[cardname]
 
 
 def unescape(cardname):
-    return _processCard(cardname, _STRINGS_TO_UNESCAPE)
+    if not cardname in _CACHE_UNESCAPE:
+        _CACHE_UNESCAPE[cardname] = _processCard(cardname, _STRINGS_TO_UNESCAPE)
+    return _CACHE_UNESCAPE[cardname]
 
 
 def clean(cardname):

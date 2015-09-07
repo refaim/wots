@@ -1,5 +1,6 @@
 import multiprocessing
 import sys
+import webbrowser
 
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
@@ -8,159 +9,109 @@ from PyQt5 import uic
 import card.sources
 import card.utils
 import core.currency
-
-
-class QTableNumberWidgetItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, value):
-        super().__init__()
-        self.value = value or 0
-        self.setData(QtCore.Qt.DisplayRole, self.getText())
-        self.setData(QtCore.Qt.ToolTipRole, self.getToolTip())
-
-    def getText(self):
-        return str(self.value)
-
-    def getToolTip(self):
-        return None
-
-    def __lt__(self, other):
-        return self.value < other.value
-
-
-class QTableCardIdWidgetItem(QTableNumberWidgetItem):
-    def getText(self):
-        return str(self.value).zfill(3) if self.value > 0 else ''
-
-
-class QTableCardPriceWidgetItem(QTableNumberWidgetItem):
-    def __init__(self, data):
-        self.price, self.currency = data['price'], data['currency']
-        self.roubles = self.price
-        if self.currency is not None and self.price is not None and self.currency != core.currency.RUR:
-            self.roubles = currencyConverter.convert(self.currency, core.currency.RUR, self.price)
-        super().__init__(self.roubles)
-
-    def getText(self):
-        return core.currency.formatPrice(core.currency.roundPrice(self.roubles), core.currency.RUR)
-
-    def getToolTip(self):
-        return core.currency.formatPrice(self.price, self.currency) if self.currency != core.currency.RUR else None
-
-
-class QTableCardConditionWidgetItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, condition):
-        super().__init__(condition)
-        self.condition = condition
-        self.order = card.sources._CONDITIONS_ORDER
-
-    def __lt__(self, other):
-        return self.order.index(self.condition) < self.order.index(other.condition)
-
-
-class QTableCardSetWidgetItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, setAbbrv):
-        super().__init__(setAbbrv)
-        if setAbbrv:
-            self.setData(QtCore.Qt.ToolTipRole, card.sets.getFullName(setAbbrv))
-
-
-class QTableCardNameWidgetItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, data):
-        self.value = data['caption']
-        super().__init__(card.utils.unescape(self.value))
-        self.setData(QtCore.Qt.ToolTipRole, data['description'])
-
-
-class QTableCardSourceWidgetItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, data):
-        super().__init__()
-        self.value = data['caption']
-
-    def __lt__(self, other):
-        return self.value < other.value
-
-
-class QCardSourceHyperlinkLabel(QtWidgets.QLabel):
-    def __init__(self, data):
-        self.caption = data['caption']
-        super().__init__('<a href="{}">{}</a>'.format(data['url'], self.caption))
-        self.setOpenExternalLinks(True)
-
-
-class QTableCardFoilnessWidgetItem(QtWidgets.QLabel):
-    def __init__(self, foil):
-        super().__init__('Foil' if foil else None)
-
-
-class CardsTableModel(QtCore.QAbstractTableModel):
-    def data(self, index, role):
-        row = index.row()
-        column = index.column()
+import price.sources
 
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {
+        'id': 'number',
         'label': '#',
         'sources': ('id',),
         'align': QtCore.Qt.AlignRight,
-        'item': QTableCardIdWidgetItem,
+        'default_value': 0,
     },
     {
+        'id': 'set',
         'label': 'Set',
         'sources': ('set',),
         'align': QtCore.Qt.AlignHCenter,
-        'item': QTableCardSetWidgetItem,
+        'default_value': '',
     },
     {
+        'id': 'language',
         'label': 'LNG',
         'sources': ('language',),
         'align': QtCore.Qt.AlignHCenter,
-        'item': QtWidgets.QTableWidgetItem,
+        'default_value': '',
     },
     {
+        'id': 'name',
         'label': 'Name',
         'sources': ('name',),
         'align': QtCore.Qt.AlignLeft,
-        'item': QTableCardNameWidgetItem,
+        'default_value': '',
     },
     {
+        'id': 'condition',
         'label': 'CND',
         'sources': ('condition',),
         'align': QtCore.Qt.AlignHCenter,
-        'item': QTableCardConditionWidgetItem,
+        'default_value': '',
     },
     {
+        'id': 'foilness',
         'label': 'Foil',
         'sources': ('foilness',),
         'align': QtCore.Qt.AlignHCenter,
+        'default_value': False,
     },
     {
+        'id': 'count',
         'label': 'Count',
         'sources': ('count',),
         'align': QtCore.Qt.AlignRight,
-        'item': QTableNumberWidgetItem,
+        'default_value': 0,
     },
     {
+        'id': 'price',
         'label': 'Price',
         'sources': ('price', 'currency',),
         'align': QtCore.Qt.AlignRight,
-        'item': QTableCardPriceWidgetItem,
+        'default_value': None,
     },
-    # {
-    #     'id': 'tcg',
-    #     'label': 'TCG',
-    #     'horz_alignment': QtCore.Qt.AlignRight,
-    #     'formatter': lambda x: formatRoubles(x.get('roubles')) if x else '',
-    #     'tooltipper': lambda x: x.get('original') if x else ''
-    # },
     {
+        'id': 'tcg_price',
+        'label': 'TCG',
+        'sources': tuple(),
+        'align': QtCore.Qt.AlignRight,
+        'class': price.sources.TcgPlayer,
+        'default_value': None,
+    },
+    {
+        'id': 'source',
         'label': 'Source',
         'sources': ('source',),
         'align': QtCore.Qt.AlignLeft,
-        'item': QTableCardSourceWidgetItem,
-        'widget': QCardSourceHyperlinkLabel,
+        'cursor': QtCore.Qt.PointingHandCursor,
+        'default_value': '',
     },
 ]
+
+VISITED_URLS = set()
+
+
+class HypelinkItemDelegate(QtWidgets.QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        color = option.palette.link().color()
+        if index.data(QtCore.Qt.ToolTipRole) in VISITED_URLS:
+            color = option.palette.linkVisited().color()
+        option.font.setUnderline(True)
+
+        painter.save()
+        painter.setFont(option.font)
+        painter.setPen(color)
+        painter.drawText(option.rect.adjusted(3, 0, 0, 0), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, index.data(QtCore.Qt.DisplayRole))
+        painter.restore()
+
+    def editorEvent(self, event, model, option, index):
+        if event.type() == QtCore.QEvent.MouseButtonRelease:
+            url = index.data(QtCore.Qt.ToolTipRole)
+            VISITED_URLS.add(url)
+            if not url.startswith('http://'):
+                url = 'http://{0}'.format(url)
+            webbrowser.open(url)
+            return True
+        return False
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -171,18 +122,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.searchVersion = 0
         self.searchWorkers = []
-        self.searchResultsQueue = multiprocessing.Queue()
+        self.searchResults = multiprocessing.Queue()
 
-        self.obtainedPrices = multiprocessing.Queue()
         self.priceRequests = multiprocessing.Queue()
-        # self.priceRetrieverStopEvent = threading.Event()
-        # self.priceRetriever = threading.Thread(name='Prices', target=priceRetriever, args=(self.priceRequests, self, self.priceRetrieverStopEvent,))
-        # self.priceRetriever.daemon = True
-        # self.priceRetriever.start()
+        self.obtainedPrices = multiprocessing.Queue()
+        for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
+            if columnInfo['id'].endswith('price') and 'class' in columnInfo:
+                priceSource = columnInfo['class']()
+                process = multiprocessing.Process(
+                    name=priceSource.getTitle(),
+                    target=queryPriceSource,
+                    args=(priceSource, i, self.priceRequests, self.obtainedPrices,),
+                    daemon=True)
+                process.start()
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.onTimerTick)
-        self.timer.start(300)
+        self.timer.start(100)
 
         self.searchStopButton.setVisible(False)
         self.searchStopButton.clicked.connect(self.onSearchStopButtonClick)
@@ -191,11 +147,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.textChanged.connect(self.onSearchFieldTextChanged)
         self.searchField.returnPressed.connect(self.searchCards)
 
-        self.resultsTable.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        # self.resultsTable.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.resultsTable.setColumnCount(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO))
-        for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
-            self.resultsTable.setHorizontalHeaderItem(i, QtWidgets.QTableWidgetItem(columnInfo['label']))
+        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.priceRequests)
+        self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
+        self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
+        self.searchResultsView.setModel(self.searchResultsSortProxy)
+        self.searchResultsView.setItemDelegateForColumn(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO) - 1, HypelinkItemDelegate())
+        self.searchResultsView.entered.connect(self.onSearchResultsCellMouseEnter)
+
+        header = self.searchResultsView.horizontalHeader()
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        # header.setMouseTracking(True)
+        # header.entered.connect(self.onSearchResultsCellMouseEnter)
+
+    def onSearchResultsCellMouseEnter(self, index):
+        pass
+        # cursor = SEARCH_RESULTS_TABLE_COLUMNS_INFO[index.column()].get('cursor', None)
+        # if cursor:
+        #     QtWidgets.QApplication.setOverrideCursor(cursor)
+        # else:
+        #     QtWidgets.QApplication.restoreOverrideCursor()
 
     def onSearchFieldTextChanged(self, text):
         self.searchStartButton.setEnabled(len(text) > 0)
@@ -206,35 +176,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchWorkers = []
 
     def onTimerTick(self):
-        foundCount = 0
-        self.resultsTable.setSortingEnabled(False)
-        while not self.searchResultsQueue.empty() and foundCount <= 10:
-            foundCount += 1
-            cardInfo, searchVersion = self.searchResultsQueue.get(block=False)
-            if searchVersion == self.searchVersion:
-                self.resultsTable.setRowCount(self.resultsTable.rowCount() + 1)  # TODO Optimize
-                for columnIndex in range(self.resultsTable.columnCount()):
-                    rowIndex = self.resultsTable.rowCount() - 1
-                    columnInfo = SEARCH_RESULTS_TABLE_COLUMNS_INFO[columnIndex]
-                    dataSources = columnInfo['sources']
-                    if len(dataSources) > 1:
-                        cellData = {}
-                        for fieldId in dataSources:
-                            cellData[fieldId] = cardInfo.get(fieldId, None)
-                    else:
-                        cellData = cardInfo.get(dataSources[0], None)
-                    if 'widget' in columnInfo:
-                        widget = columnInfo['widget'](cellData)
-                        self.resultsTable.setCellWidget(rowIndex, columnIndex, widget)
-                    if 'item' in columnInfo:
-                        item = columnInfo['item'](cellData)
-                        item.setTextAlignment(columnInfo['align'] | QtCore.Qt.AlignVCenter)
-                        self.resultsTable.setItem(rowIndex, columnIndex, item)
-        self.resultsTable.setSortingEnabled(True)
-                # if cardInfo.get('set'):
-                #     # TODO Replace 0 with proper jobId
-                #     self.priceRequests.put((0, self.searchVersion, cardInfo['name'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
-
+        if self.searchResultsModel.canFetchMore(None):
+            self.searchResultsModel.fetchMore(None)
+        while not self.obtainedPrices.empty():
+            row, column, priceInfo, searchVersion = self.obtainedPrices.get()
+            if priceInfo and searchVersion == self.searchVersion:
+                self.searchResultsModel.updateCell(row, column, convertPrice(priceInfo))
         self.updateSearchControlsStatus()
 
     def updateSearchControlsStatus(self):
@@ -249,10 +196,16 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         queryString = card.utils.escape(queryString)
 
+        while not self.priceRequests.empty():
+            self.priceRequests.get_nowait()
+        while not self.obtainedPrices.empty():
+            self.obtainedPrices.get_nowait()
+
         self.searchVersion += 1
         self.searchWorkers = []
         self.searchStopEvent = multiprocessing.Event()
-        self.resultsTable.setRowCount(0)
+        self.searchResultsModel.setCookie(self.searchVersion)
+        self.searchResultsModel.clear()
 
         sourceClasses = card.sources.getCardSourceClasses()
         for sourceClass in sourceClasses:
@@ -260,17 +213,13 @@ class MainWindow(QtWidgets.QMainWindow):
             process = multiprocessing.Process(
                 name=instance.getTitle(),
                 target=queryCardSource,
-                args=(instance, queryString, self.searchResultsQueue, self.searchStopEvent, self.searchVersion,),
+                args=(instance, queryString, self.searchResults, self.searchStopEvent, self.searchVersion,),
                 daemon=True)
             process.start()
             self.searchWorkers.append(process)
 
         self.searchStopButton.setEnabled(True)
         self.updateSearchControlsStatus()
-        # rowCount = self.resultsGrid.GetNumberRows()
-        # if rowCount > 0:
-        #     self.resultsGrid.ClearGrid()
-        #     self.resultsGrid.DeleteRows(pos=0, numRows=rowCount)
 
     def packPrice(self, price, currency):
         result = {}
@@ -289,72 +238,180 @@ def queryCardSource(cardSource, queryString, resultsQueue, exitEvent, cookie):
         resultsQueue.put((cardInfo, cookie,))
 
 
-# class SearchResultsTableModel(QtCore.QAbstractTableModel):
-#     def __init__(self, columnsInfo):
-#         super().__init__()
-#         self.data = []
-#         self.columnsInfo = columnsInfo
-
-#     def data(self, index, role):
-#         result = QtCore.QVariant()
-#         if index.isValid() and role == QtCore.Qt.DisplayRole:
-#             result = self.data[index.row()][index.column()]
-#         return result
-
-#     def rowCount(self, parent):
-#         return len(self.data)
-
-#     def columnCount(self, parent):
-#         return len(self.columnsInfo)
-
-#     def headerData(self, section, orientation, role):
-#         result = QtCore.QVariant()
-#         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-#             result = self.columnsInfo[section]['label']
-#         return result
-
-#     def insertRows(self, row, count, parent):
-#         self.beginInsertRows(parent, row, row + count - 1)
-#         tableItems.insert(tableIndex(row, 0), cc * count, 0);
-#         self.endInsertRows()
-#         return True
-
-# def processPriceRequests(processor, requests, results, exitEvent):
-#     while not exitEvent.is_set():
-#         try:
-#             jobId, cookie, cardName, setId, language, foilness = requests.get(block=False)
-#             results.put((jobId, processor.queryPrice(cardName, setId, language, foilness), cookie))
-#         except Queue.Empty:
-#             pass
+def queryPriceSource(priceSource, sourceId, requestsQueue, resultsQueue):
+    while True:
+        jobId, cookie, cardName, setId, language, foilness = requestsQueue.get()
+        resultsQueue.put((jobId, sourceId, priceSource.queryPrice(cardName, setId, language, foilness), cookie))
 
 
-# def priceRetriever(taskQueue, wxEventBus, exitEvent):
-#     requests = multiprocessing.Queue()
-#     results = multiprocessing.Queue()
-#     workers = []
-#     terminators = []
-#     for sourceClass in price.sources.getPriceSourceClasses():
-#         source = sourceClass()
-#         event = multiprocessing.Event()
-#         terminators.append(event)
-#         workers.append(multiprocessing.Process(name=source.getTitle(), target=processPriceRequests, args=(source, requests, results, event,)))
-#     for process in workers:
-#         process.daemon = True
-#         process.start()
-#     while not exitEvent.is_set():
-#         try:
-#             while not taskQueue.empty():
-#                 requests.put(taskQueue.get(block=False))
-#             while not results.empty():
-#                 jobId, priceInfo, cookie = results.get(block=False)
-#                 wx.PostEvent(wxEventBus, PriceObtainedEvent(jobId, priceInfo, cookie))
-#         except Queue.Empty:
-#             pass
-#     for terminator in terminators:
-#         terminator.set()
+def convertPrice(priceInfo):
+    price, currency = priceInfo['price'], priceInfo['currency']
+    roubles = price
+    if currency is not None and price is not None and currency != core.currency.RUR:
+        roubles = currencyConverter.convert(currency, core.currency.RUR, price)
+    return {'price': price, 'currency': currency, 'roubles': roubles}
+
+
+class CardsTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, columnsInfo, dataQueue, priceRequests):
+        super().__init__()
+        self.columnsInfo = columnsInfo
+        self.colunmCount = len(columnsInfo)
+        self.dataQueue = dataQueue
+        self.priceRequests = priceRequests
+        self.dataTable = []
+        self.cardCount = 0
+
+    def setCookie(self, cookie):
+        self.cookie = cookie
+
+    def clear(self):
+        self.beginRemoveRows(QtCore.QModelIndex(), 0, self.cardCount - 1)
+        self.dataTable = []
+        self.cardCount = 0
+        self.endRemoveRows()
+
+    def rowCount(self, parent):
+        return self.cardCount
+
+    def columnCount(self, parent):
+        return self.colunmCount
+
+    def data(self, index, role):
+        if index.isValid():
+            columnIndex = index.column()
+            columnInfo = self.columnsInfo[columnIndex]
+            columnId = columnInfo['id']
+            data = self.dataTable[index.row()][columnIndex]
+
+            if role == QtCore.Qt.TextAlignmentRole:
+                return columnInfo['align'] + QtCore.Qt.AlignVCenter
+
+            if columnId == 'number':
+                if role == QtCore.Qt.DisplayRole:
+                    return str(data['id']).zfill(3) if data['id'] > 0 else None
+            elif columnId == 'set':
+                if role == QtCore.Qt.DisplayRole:
+                    return data['set']
+                elif role == QtCore.Qt.ToolTipRole:
+                    setAbbrv = data['set']
+                    return card.sets.getFullName(setAbbrv) if setAbbrv else None
+            elif columnId == 'language':
+                if role == QtCore.Qt.DisplayRole:
+                    return data['language']
+            elif columnId == 'name':
+                if role == QtCore.Qt.DisplayRole:
+                    return card.utils.unescape(data['name']['caption'])
+                elif role == QtCore.Qt.ToolTipRole:
+                    return data['name']['description']
+            elif columnId == 'condition':
+                if role == QtCore.Qt.DisplayRole:
+                    return data['condition']
+            elif columnId == 'foilness':
+                if role == QtCore.Qt.DisplayRole:
+                    return 'Foil' if data['foilness'] else None  # TODO image
+            elif columnId == 'count':
+                if role == QtCore.Qt.DisplayRole:
+                    return int(data['count']) or ''
+            elif columnId.endswith('price') and data:
+                if role == QtCore.Qt.DisplayRole:
+                    return core.currency.formatPrice(core.currency.roundPrice(data['roubles']), core.currency.RUR)
+                elif role == QtCore.Qt.ToolTipRole:
+                    return core.currency.formatPrice(data['price'], data['currency']) if data['currency'] != core.currency.RUR else ''
+            elif columnId == 'source':
+                if role == QtCore.Qt.DisplayRole:
+                    return data['source']['caption']
+                elif role == QtCore.Qt.ToolTipRole:
+                    return data['source']['url']
+
+        return QtCore.QVariant()
+
+    def headerData(self, section, orientation, role):
+        result = QtCore.QVariant()
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            result = self.columnsInfo[section]['label']
+        return result
+
+    def canFetchMore(self, parent):
+        return not self.dataQueue.empty()
+
+    def fetchMore(self, parent):
+        batch = []
+        batchLength = 0
+        while not self.dataQueue.empty() and batchLength <= 100:
+            cardInfo, cookie = self.dataQueue.get(block=False)
+            if cookie == self.cookie:
+                batch.append(cardInfo)
+                batchLength += 1
+        self.beginInsertRows(QtCore.QModelIndex(), self.cardCount, self.cardCount + batchLength - 1)
+        for cardInfo in batch:
+            rowData = []
+            for columnInfo in self.columnsInfo:
+                columnData = {}
+                for sourceId in columnInfo['sources']:
+                    columnData[sourceId] = cardInfo.get(sourceId, None) or columnInfo['default_value']
+
+                if columnInfo['id'].endswith('price') and len(columnData) > 0:
+                    columnData = convertPrice(columnData)
+
+                rowData.append(columnData)
+            self.dataTable.append(rowData)
+
+            if cardInfo.get('set'):
+                self.priceRequests.put((len(self.dataTable) - 1, self.cookie, cardInfo['name']['caption'], cardInfo['set'], cardInfo['language'], cardInfo.get('foilness', False),))
+
+        self.cardCount += batchLength
+        self.endInsertRows()
+
+    def updateCell(self, row, column, value):
+        self.dataTable[row][column] = value
+        self.dataChanged.emit(self.index(row, column), self.index(row, column))
+
+
+class CardsSortProxy(QtCore.QSortFilterProxyModel):
+    def __init__(self, columnsInfo):
+        super().__init__()
+        self.columnsInfo = columnsInfo
+        self.conditionsOrder = card.sources._CONDITIONS_ORDER
+
+    def lessThan(self, aIndex, bIndex):
+        model = self.sourceModel()
+        columnIndex = aIndex.column()
+        a = model.dataTable[aIndex.row()][columnIndex]
+        b = model.dataTable[bIndex.row()][columnIndex]
+
+        columnId = self.columnsInfo[columnIndex]['id']
+        if columnId == 'number':
+            return a['id'] < b['id']
+        elif columnId == 'set':
+            return a['set'] < b['set']
+        elif columnId == 'language':
+            return a['language'] < b['language']
+        elif columnId == 'name':
+            return a['name']['caption'] < b['name']['caption']
+        elif columnId == 'condition':
+            if not a['condition']:
+                return True
+            if not b['condition']:
+                return False
+            return self.conditionsOrder.index(a['condition']) < self.conditionsOrder.index(b['condition'])
+        elif columnId == 'foilness':
+            return a['foilness'] < b['foilness']
+        elif columnId == 'count':
+            return a['count'] < b['count']
+        elif columnId.endswith('price'):
+            if not a:
+                return True
+            if not b:
+                return False
+            return a['roubles'] < b['roubles']
+        elif columnId == 'source':
+            return a['source']['caption'] < b['source']['caption']
+        return a < b
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     currencyConverter = core.currency.Converter()
     currencyConverter.update()
     application = QtWidgets.QApplication(sys.argv)

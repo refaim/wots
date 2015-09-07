@@ -85,9 +85,14 @@
      </widget>
     </item>
     <item>
-     <widget class="QTableWidget" name="resultsTable">
-      <property name="editTriggers">
-       <set>QAbstractItemView::NoEditTriggers</set>
+     <widget class="QTableView" name="searchResultsView">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+       </font>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="showDropIndicator" stdset="0">
        <bool>false</bool>
@@ -95,11 +100,11 @@
       <property name="alternatingRowColors">
        <bool>true</bool>
       </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::SingleSelection</enum>
-      </property>
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <property name="textElideMode">
+       <enum>Qt::ElideNone</enum>
       </property>
       <property name="sortingEnabled">
        <bool>true</bool>
@@ -110,6 +115,12 @@
       <property name="cornerButtonEnabled">
        <bool>false</bool>
       </property>
+      <attribute name="horizontalHeaderVisible">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="horizontalHeaderHighlightSections">
+       <bool>false</bool>
+      </attribute>
       <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
        <bool>true</bool>
       </attribute>
@@ -118,6 +129,12 @@
       </attribute>
       <attribute name="verticalHeaderVisible">
        <bool>false</bool>
+      </attribute>
+      <attribute name="verticalHeaderDefaultSectionSize">
+       <number>25</number>
+      </attribute>
+      <attribute name="verticalHeaderMinimumSectionSize">
+       <number>5</number>
       </attribute>
      </widget>
     </item>

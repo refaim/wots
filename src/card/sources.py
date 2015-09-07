@@ -68,7 +68,7 @@ class CardSource(object):
         return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.parse.quote(queryText))).decode(self.encoding))
 
     def packName(self, caption, description=None):
-        result = {'caption': card.utils.escape(card.utils.clean(caption)), 'description': description}
+        result = {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
         return result
 
     def packSource(self, caption, cardUrl=None):
