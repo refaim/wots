@@ -73,9 +73,9 @@ class CardSource(object):
     def getSetAbbrv(self, setId):
         return card.sets.getAbbreviation(self.sourceSpecificSets.get(setId, setId))
 
-    def makeRequest(self, queryText):
+    def makeRequest(self, queryText, pageIndex=1):
         queryText = queryText.replace(u'`', "'").replace(u'’', "'")
-        return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.parse.quote(queryText))).decode(self.encoding))
+        return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.parse.quote(queryText), pageIndex)).decode(self.encoding))
 
     def packName(self, caption, description=None):
         result = {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
@@ -237,12 +237,31 @@ class MtgSale(CardSource):
             'MR': 'Mirage',
             'TP': 'Tempest',
         }
-        super(MtgSale, self).__init__('http://mtgsale.ru', '/home/search-results?Name={}', 'utf-8', sourceSpecificSets)
+        super(MtgSale, self).__init__('http://mtgsale.ru', '/home/search-results?Name={}&Page={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText).cssselect('.tab_container div.ctclass')
-        self.estimatedCardsCount = len(searchResults)
-        for resultsEntry in searchResults:
+        html = self.makeRequest(queryText, pageIndex=1)
+        self.estimatedCardsCount = int(re.match(r'\D*(\d+)\D*', html.cssselect('span.search-number')[0].text).group(1))
+
+        pagesCount = 1
+        pagesLinks = list(html.cssselect('ul.tabsb li a'))
+        if pagesLinks:
+            pagesCount = int(pagesLinks[-1].text)
+
+        for cardInfo in self.processSearchResults(html):
+            yield cardInfo
+        for i in range(2, pagesCount + 1):
+            for cardInfo in self.processSearchResults(self.makeRequest(queryText, pageIndex=i)):
+                yield cardInfo
+
+    def processSearchResults(self, html):
+        for resultsEntry in html.cssselect('.tab_container div.ctclass'):
+            count = int(re.match(r'(\d+)', resultsEntry.cssselect('p.colvo')[0].text).group(0))
+            if count <= 0:
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
             priceString = resultsEntry.cssselect('p.pprice')[0].text
             discountPriceBlocks = resultsEntry.cssselect('p.pprice .discount_price')
             if len(discountPriceBlocks) > 0:
@@ -250,21 +269,23 @@ class MtgSale(CardSource):
             price = None
             if priceString and not priceString.isspace():
                 price = decimal.Decimal(re.match(r'(\d+)', priceString.strip()).group(0))
-            count = int(re.match(r'(\d+)', resultsEntry.cssselect('p.colvo')[0].text).group(0))
-            if count > 0:
-                yield self.fillCardInfo({
-                    'name': self.packName(resultsEntry.cssselect('p.tname .tnamec')[0].text),
-                    'set': self.getSetAbbrv(resultsEntry.cssselect('p.nabor span')[0].attrib['title']),
-                    'language': core.language.getAbbreviation(resultsEntry.cssselect('p.lang i')[0].attrib['title']),
-                    'condition': _CONDITIONS[resultsEntry.cssselect('p.sost span')[0].text],
-                    'foilness': bool(resultsEntry.cssselect('p.foil')[0].text),
-                    'count': count,
-                    'price': price,
-                    'currency': core.currency.RUR,
-                    'source': self.packSource(self.getTitle()),
-                })
-            else:
-                self.estimatedCardsCount -= 1
+
+            nameSelector = 'p.tname .tnamec'
+            language = core.language.getAbbreviation(resultsEntry.cssselect('p.lang i')[0].attrib['title'])
+            if language != 'EN':
+                nameSelector = 'p.tname .smallfont'
+
+            yield self.fillCardInfo({
+                'name': self.packName(resultsEntry.cssselect(nameSelector)[0].text),
+                'set': self.getSetAbbrv(resultsEntry.cssselect('p.nabor span')[0].attrib['title']),
+                'language': language,
+                'condition': _CONDITIONS[resultsEntry.cssselect('p.sost span')[0].text],
+                'foilness': bool(resultsEntry.cssselect('p.foil')[0].text),
+                'count': count,
+                'price': price,
+                'currency': core.currency.RUR,
+                'source': self.packSource(self.getTitle()),
+            })
 
 
 class CardPlace(CardSource):
@@ -523,6 +544,7 @@ class CenterOfHobby(CardSource):
                 yield self.fillCardInfo(result)
             else:
                 self.estimatedCardsCount -= 1
+                yield None
 
 
 class TtTopdeck(CardSource):
@@ -629,6 +651,7 @@ class TtTopdeck(CardSource):
                 })
             else:
                 self.estimatedCardsCount -= 1
+                yield None
 
 
 class EasyBoosters(CardSource):
@@ -642,12 +665,14 @@ class EasyBoosters(CardSource):
             cardUrl = entry.cssselect('a')[0].attrib['href']
             if not cardUrl:
                 self.estimatedCardsCount -= 1
+                yield None
                 continue
 
             cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
             itemName = cardHtml.cssselect('#product-description .product-title')[0].text
             if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы']):
                 self.estimatedCardsCount -= 1
+                yield None
                 continue
             cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', itemName).group(1)
 

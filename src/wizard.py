@@ -250,7 +250,7 @@ class MainWindow(QtWidgets.QMainWindow):
             process = multiprocessing.Process(
                 name=engine.getTitle(),
                 target=queryCardSource,
-                args=(engineId, engine, queryString, self.searchResults, self.searchStopEvent, self.searchVersion,),
+                args=(engineId, sourceClass, queryString, self.searchResults, self.searchStopEvent, self.searchVersion,),
                 daemon=True)
             process.start()
             self.searchWorkers.append(process)
@@ -259,7 +259,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateSearchControlsStatus()
 
 
-def queryCardSource(cardSourceId, cardSource, queryString, resultsQueue, exitEvent, cookie):
+def queryCardSource(cardSourceId, cardSourceClass, queryString, resultsQueue, exitEvent, cookie):
+    cardSource = cardSourceClass()
     for cardInfo in cardSource.query(queryString):
         if exitEvent.is_set():
             return
@@ -378,8 +379,9 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         while not self.dataQueue.empty() and batchLength <= 100:
             cardInfo, statInfo, cookie = self.dataQueue.get(block=False)
             if cookie == self.cookie:
-                batch.append(cardInfo)
-                batchLength += 1
+                if cardInfo:
+                    batch.append(cardInfo)
+                    batchLength += 1
                 self.statQueue.put(statInfo)
         self.beginInsertRows(QtCore.QModelIndex(), self.cardCount, self.cardCount + batchLength - 1)
         for cardInfo in batch:
