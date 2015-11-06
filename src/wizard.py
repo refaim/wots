@@ -200,7 +200,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.setEnabled(not searchInProgress)
         self.searchStartButton.setVisible(not searchInProgress)
         self.searchStopButton.setVisible(searchInProgress)
-        if not searchInProgress and 0 < self.searchProgress.value() < 100:
+        if not searchInProgress and len(self.searchWorkers) > 0 and self.searchProgress.value() == 0:
             self.searchProgress.setValue(100)
 
     def updateSearchProgress(self):
@@ -216,7 +216,6 @@ class MainWindow(QtWidgets.QMainWindow):
         for foundCount, estimCount in self.searchProgressStats.values():
             currentProgress += min(100, foundCount / estimCount * 100) * weightMultiplier
 
-        currentProgress = math.floor(currentProgress)
         if currentProgress > self.searchProgress.value():
             self.searchProgress.setValue(currentProgress)
 
