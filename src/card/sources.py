@@ -340,8 +340,6 @@ class MtgRu(CardSource):
             'manapoint.mtg.ru',
             'mckru.mtg.ru',
             'mtgsale.ru',
-            'shuma0963',  # shame on you!
-            'radhawarlord',  # да она поехавшая с такими ценами
         ]
         self.knownShopSourceSubstrings = [
             'shop.mymagic.ru',
