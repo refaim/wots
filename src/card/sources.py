@@ -19,7 +19,7 @@ import tools.string
 
 _CONDITIONS_SOURCE = {
     'HP': ('Heavily Played', 'Hardly Played', 'ХП',),
-    'MP': ('Moderately Played', 'Played', 'МП',)
+    'MP': ('Moderately Played', 'Played', 'МП',),
     'SP': ('Slightly Played', 'СП',),
     'NM': ('Near Mint', 'M/NM', 'Mint', 'Excellent', 'great', 'НМ',),  # TODO great :(
 }
