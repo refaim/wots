@@ -16,6 +16,7 @@ FORMAT_STRINGS = {
     USD: u'${}',
 }
 
+_logger = core.logger.Logger('Currency')
 
 class Converter(object):
     def __init__(self):
@@ -30,19 +31,26 @@ class Converter(object):
             self.updateThread.start()
 
     def _update(self, results, readyEvent):
-        tree = lxml.etree.fromstring(core.network.getUrl('http://www.cbr.ru/scripts/XML_daily.asp'))
-        for currency in tree.xpath('/ValCurs/Valute'):
-            code = currency.xpath('CharCode')[0].text
-            nominal = decimal.Decimal(currency.xpath('Nominal')[0].text.replace(',', '.'))
-            value = decimal.Decimal(currency.xpath('Value')[0].text.replace(',', '.'))
-            results[code] = (nominal, value,)
-        results[RUR] = (1, 1,)
-        readyEvent.set()
+        try:
+            tree = lxml.etree.fromstring(core.network.getUrl('http://www.cbr.ru/scripts/XML_daily.asp'))
+            for currency in tree.xpath('/ValCurs/Valute'):
+                code = currency.xpath('CharCode')[0].text
+                nominal = decimal.Decimal(currency.xpath('Nominal')[0].text.replace(',', '.'))
+                value = decimal.Decimal(currency.xpath('Value')[0].text.replace(',', '.'))
+                results[code] = (nominal, value,)
+            results[RUR] = (1, 1,)
+        except:
+            _logger.warning('Unable to obtain actual information')
+        finally:
+            readyEvent.set()
 
     def convert(self, srcCurrencyCode, dstCurrencyCode, amount):
-        srcNominal, srcNominalValueInRoubles = self.exchangeRates[srcCurrencyCode]
-        dstNominal, dstNominalValueInRoubles = self.exchangeRates[dstCurrencyCode]
-        return decimal.Decimal(amount) / srcNominal * srcNominalValueInRoubles / dstNominalValueInRoubles * dstNominal
+        result = None
+        if srcCurrencyCode in self.exchangeRates and dstCurrencyCode in self.exchangeRates:
+            srcNominal, srcNominalValueInRoubles = self.exchangeRates[srcCurrencyCode]
+            dstNominal, dstNominalValueInRoubles = self.exchangeRates[dstCurrencyCode]
+            result = decimal.Decimal(amount) / srcNominal * srcNominalValueInRoubles / dstNominalValueInRoubles * dstNominal
+        return result
 
     def isReady(self):
         return self.readyEvent.isSet()
