@@ -41,6 +41,12 @@ MTG_RU_SPECIFIC_SETS = {
 }
 
 
+def getConditionHumanReadableString(conditionString):
+    key = conditionString.lower()
+    if key in _CONDITIONS_CASE_INSENSITIVE:
+        return _CONDITIONS_SOURCE[_CONDITIONS_CASE_INSENSITIVE[key]][0]
+
+
 def guessCardLanguage(cardName):
     language = None
     nameLetters = re.sub(r'\W', '', cardName.lower())
