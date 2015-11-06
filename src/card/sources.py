@@ -699,6 +699,29 @@ class EasyBoosters(CardSource):
             })
 
 
+class OfflineTestSource(CardSource):
+    def __init__(self):
+        super(OfflineTestSource, self).__init__('http://offline.shop', '?query={}', 'utf-8', {})
+
+    def query(self, queryText):
+        self.estimatedCardsCount = random.randint(1, 10)
+        for _ in range(self.estimatedCardsCount):
+            if bool(random.randint(0, 1)):
+                time.sleep(random.randint(0, 1))
+            yield self.fillCardInfo({
+                'id': random.randint(1, 300),
+                'name': self.packName(random.choice(string.ascii_letters) * random.randint(10, 25)),
+                'foilness': bool(random.randint(0, 1)),
+                'set': random.choice(list(card.sets._SET_ABBREVIATIONS_SOURCE.keys())),
+                'language': core.language.getAbbreviation(random.choice(list(core.language._LANGUAGES.keys()))),
+                'price': decimal.Decimal(random.randint(10, 1000)),
+                'currency': random.choice((core.currency.RUR, core.currency.USD, core.currency.EUR)),
+                'count': random.randint(1, 10),
+                'condition': _CONDITIONS[random.choice(list(_CONDITIONS.keys()))],
+                'source': self.packSource(self.getTitle(), '')
+            })
+
+
 def getCardSourceClasses():
     classes = [
         # AmbersonPromo,
