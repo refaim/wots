@@ -60,5 +60,10 @@ def roundPrice(price):
     return int(price)
 
 
-def formatPrice(price, currency):
-    return FORMAT_STRINGS[currency].format(price)
+__formatPriceCache = {}
+def formatPrice(amount, currency):
+    if amount not in __formatPriceCache:
+        __formatPriceCache[amount] = {}
+    if currency not in __formatPriceCache[amount]:
+        __formatPriceCache[amount][currency] = FORMAT_STRINGS[currency].format(amount)
+    return __formatPriceCache[amount][currency]
