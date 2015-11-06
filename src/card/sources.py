@@ -5,6 +5,8 @@ import lxml.html
 import os
 import random
 import re
+import string
+import time
 import urllib
 import urllib.parse
 
@@ -55,6 +57,8 @@ class CardSource(object):
         self.cardQueryUrlTemplate = url + cardQueryUrlTemplate
         self.sourceSpecificSets = sourceSpecificSets
         self.encoding = encoding
+        self.foundCardsCount = 0
+        self.estimatedCardsCount = None
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
@@ -78,8 +82,14 @@ class CardSource(object):
     def fillCardInfo(self, cardInfo):
         if not cardInfo.get('language') and cardInfo.get('set'):
             cardInfo['language'] = core.language.getAbbreviation(card.sets.SINGLE_LANGUAGE_SETS.get(cardInfo['set'], ''))
+        self.foundCardsCount += 1
         return cardInfo
 
+    def getFoundCardsCount(self):
+        return self.foundCardsCount
+
+    def getEstimatedCardsCount(self):
+        return self.estimatedCardsCount
 
 class AngryBottleGnome(CardSource):
     def __init__(self):
@@ -105,15 +115,19 @@ class AngryBottleGnome(CardSource):
         </table>
         </div>
         '''
-        searchResults = self.makeRequest(queryText)
-        for resultsEntry in searchResults.cssselect('#search-results tbody tr'):
+        searchResults = self.makeRequest(queryText).cssselect('#search-results tbody tr')
+        self.estimatedCardsCount = len(searchResults)
+        for resultsEntry in searchResults:
             dataCells = resultsEntry.cssselect('td')
             cardName = dataCells[0].cssselect('a')[0].text
             cardSet = dataCells[1].cssselect('a')[0].text
             cardRelativeUrl = dataCells[0].cssselect('a')[0].attrib['href']
             cardUrl = urllib.parse.urljoin(self.url, cardRelativeUrl)
-            cardVersions = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
-            for cardVersion in cardVersions.cssselect('.abg-card-version-instock'):
+            cardVersionsHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
+            cardVersions = cardVersionsHtml.cssselect('.abg-card-version-instock')
+            if len(cardVersions) > 0:
+                self.estimatedCardsCount += len(cardVersions) - 1  # одну карту уже учли выше
+            for cardVersion in cardVersions:
                 rawInfo = self.cardInfoRegexp.match(cardVersion.text).groupdict()
                 #print(rawInfo['language'].encode('cp866'))
                 yield self.fillCardInfo({
@@ -147,8 +161,9 @@ class MtgRuShop(CardSource):
             <td width="60" align="center"><button class="BT_to_cart" onClick="Cart('add', '2941159-eng-Y');"></button></td>
         </tr>
         '''
-        searchResults = self.makeRequest(queryText)
-        for resultsEntry in searchResults.cssselect('#Catalog tr'):
+        searchResults = self.makeRequest(queryText).cssselect('#Catalog tr')
+        self.estimatedCardsCount = len(searchResults)
+        for resultsEntry in searchResults:
             dataCells = resultsEntry.cssselect('td')
             language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
@@ -277,8 +292,9 @@ class CardPlace(CardSource):
         return contents
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText)
-        for resultsEntry in searchResults.cssselect('#mtgksingles tbody tr'):
+        searchResults = self.makeRequest(queryText).cssselect('#mtgksingles tbody tr')
+        self.estimatedCardsCount = len(searchResults)
+        for resultsEntry in searchResults:
             dataCells = resultsEntry.cssselect('td')
             language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(self.url + dataCells[3].cssselect('img')[0].attrib['src']).path))
             cardId = None
@@ -329,8 +345,9 @@ class MtgRu(CardSource):
         super(MtgRu, self).__init__('http://mtg.ru', '/exchange/card.phtml?Title={}&Amount=1', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText)
-        for userEntry in searchResults.cssselect('table.NoteDivWidth'):
+        searchResults = self.makeRequest(queryText).cssselect('table.NoteDivWidth')
+        self.estimatedCardsCount = len(searchResults)
+        for userEntry in searchResults:
             userInfo = userEntry.cssselect('tr table')[0]
             nickname = userInfo.cssselect('tr th')[0].text
             exchangeUrl = userInfo.cssselect('tr td')[-1].cssselect('a')[0].attrib['href']
@@ -342,7 +359,10 @@ class MtgRu(CardSource):
                     cardSource = exchangeUrl
                     print('Shop found: {}'.format(exchangeUrl))
 
-                for cardInfo in userEntry.cssselect('table.CardInfo'):
+                userCards = userEntry.cssselect('table.CardInfo')
+                if len(userCards) > 0:
+                    self.estimatedCardsCount += len(userCards) - 1
+                for cardInfo in userCards:
 
                     idSource = cardInfo.cssselect('nobr.txt0')[0].text
                     cardId = int(re.match(r'[^\d]*(\d+)[^\d]*', idSource).group(1)) if idSource else None
@@ -386,8 +406,9 @@ class Untap(CardSource):
         super(Untap, self).__init__('http://untap.ru', '/search?controller=search&search_query={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText)
-        for entry in searchResults.cssselect('.product-container .right-block'):
+        searchResults = self.makeRequest(queryText).cssselect('.product-container .right-block')
+        self.estimatedCardsCount = len(searchResults)
+        for entry in searchResults:
             nameSource = entry.cssselect('.product-name')[0].text.strip()
             detailsParts = nameSource.strip().split('\t')
 
@@ -450,9 +471,10 @@ class CenterOfHobby(CardSource):
         super(CenterOfHobby, self).__init__('http://www.centerofhobby.ru', '/catalog/mtgcards/search/?card_name={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText)
+        searchResults = self.makeRequest(queryText).cssselect('.mtg_table tr')[1:]
+        self.estimatedCardsCount = len(searchResults)
         prevResult = None
-        for entry in searchResults.cssselect('.mtg_table tr')[1:]:
+        for entry in searchResults:
             cells = entry.cssselect('td')
 
             foil = False
@@ -497,6 +519,8 @@ class CenterOfHobby(CardSource):
             prevResult = result.copy()
             if cardCount > 0:
                 yield self.fillCardInfo(result)
+            else:
+                self.estimatedCardsCount -= 1
 
 
 class TtTopdeck(CardSource):
@@ -513,8 +537,9 @@ class TtTopdeck(CardSource):
         ]
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText)
-        for entry in searchResults.cssselect('table table tr')[1:]:
+        searchResults = self.makeRequest(queryText).cssselect('table table tr')[1:]
+        self.estimatedCardsCount = len(searchResults)
+        for entry in searchResults:
             cells = entry.cssselect('td')
             cardName = cells[3].text
             sellerAnchor = cells[5].cssselect('a')[0]
@@ -600,6 +625,8 @@ class TtTopdeck(CardSource):
                     'condition': cardCondition,
                     'source': self.packSource('topdeck.ru/' + sellerNickname.lower().replace(' ', '_'), sellerAnchor.attrib['href']),
                 })
+            else:
+                self.estimatedCardsCount -= 1
 
 
 class EasyBoosters(CardSource):
@@ -607,15 +634,18 @@ class EasyBoosters(CardSource):
         super(EasyBoosters, self).__init__('http://easyboosters.com', '/products?keywords={}', 'utf-8', {})
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText)
-        for entry in searchResults.cssselect('#products .product-list-item'):
+        searchResults = self.makeRequest(queryText).cssselect('#products .product-list-item')
+        self.estimatedCardsCount = len(searchResults)
+        for entry in searchResults:
             cardUrl = entry.cssselect('a')[0].attrib['href']
             if not cardUrl:
+                self.estimatedCardsCount -= 1
                 continue
 
             cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
             itemName = cardHtml.cssselect('#product-description .product-title')[0].text
             if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы']):
+                self.estimatedCardsCount -= 1
                 continue
             cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', itemName).group(1)
 
