@@ -237,36 +237,34 @@ class MtgSale(CardSource):
             'MR': 'Mirage',
             'TP': 'Tempest',
         }
-        super(MtgSale, self).__init__('http://mtgsale.ru', '?Name={}', 'utf-8', sourceSpecificSets)
+        super(MtgSale, self).__init__('http://mtgsale.ru', '/home/search-results?Name={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText)
-        for resultsEntry in searchResults.cssselect('.goodstable tr')[1:]:
-            #print(resultsEntry.cssselect('.tablelanguage img')[0].attrib['title'].lower().encode('cp866'))
-            language = core.language.getAbbreviation(resultsEntry.cssselect('.tablelanguage img')[0].attrib['title'])
-            nameSelector = '.tablename a' if language == 'EN' else '.tablename .tabletranslation'
-
-            priceTable = resultsEntry.cssselect('.tableprice')[0]
-            priceString = priceTable.text
-            discountPriceBlocks = priceTable.cssselect('.discount_price')
+        searchResults = self.makeRequest(queryText).cssselect('.tab_container div.ctclass')
+        self.estimatedCardsCount = len(searchResults)
+        for resultsEntry in searchResults:
+            priceString = resultsEntry.cssselect('p.pprice')[0].text
+            discountPriceBlocks = resultsEntry.cssselect('p.pprice .discount_price')
             if len(discountPriceBlocks) > 0:
                 priceString = discountPriceBlocks[0].text
-
             price = None
             if priceString and not priceString.isspace():
                 price = decimal.Decimal(re.match(r'(\d+)', priceString.strip()).group(0))
-
-            yield self.fillCardInfo({
-                'name': self.packName(resultsEntry.cssselect(nameSelector)[0].text),
-                'set': self.getSetAbbrv(resultsEntry.cssselect('.tableset')[0].text),
-                'language': language,
-                'condition': _CONDITIONS[resultsEntry.cssselect('.tablecondition')[0].text],
-                'foilness': bool(resultsEntry.cssselect('.tablekind')[0].text.replace(u'\xa0', u'')),
-                'count': int(re.match(r'(\d+)', resultsEntry.cssselect('.tablestock')[0].text).group(0)),
-                'price': price,
-                'currency': core.currency.RUR,
-                'source': self.packSource(self.getTitle()),
-            })
+            count = int(re.match(r'(\d+)', resultsEntry.cssselect('p.colvo')[0].text).group(0))
+            if count > 0:
+                yield self.fillCardInfo({
+                    'name': self.packName(resultsEntry.cssselect('p.tname .tnamec')[0].text),
+                    'set': self.getSetAbbrv(resultsEntry.cssselect('p.nabor span')[0].attrib['title']),
+                    'language': core.language.getAbbreviation(resultsEntry.cssselect('p.lang i')[0].attrib['title']),
+                    'condition': _CONDITIONS[resultsEntry.cssselect('p.sost span')[0].text],
+                    'foilness': bool(resultsEntry.cssselect('p.foil')[0].text),
+                    'count': count,
+                    'price': price,
+                    'currency': core.currency.RUR,
+                    'source': self.packSource(self.getTitle()),
+                })
+            else:
+                self.estimatedCardsCount -= 1
 
 
 class CardPlace(CardSource):
