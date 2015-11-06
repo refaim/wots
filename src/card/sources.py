@@ -18,10 +18,10 @@ import tools.dict
 import tools.string
 
 _CONDITIONS_SOURCE = {
-    'NM': ('M/NM', 'Mint', 'Near Mint', 'Excellent', 'great', 'НМ'),  # TODO great :(
-    'SP': ('Slightly Played', 'СП'),
-    'HP': ('Heavily Played', 'Hardly Played',),
-    'MP': ('Played', 'Moderately Played', 'МП')
+    'HP': ('Heavily Played', 'Hardly Played', 'ХП',),
+    'MP': ('Moderately Played', 'Played', 'МП',)
+    'SP': ('Slightly Played', 'СП',),
+    'NM': ('Near Mint', 'M/NM', 'Mint', 'Excellent', 'great', 'НМ',),  # TODO great :(
 }
 _CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
 _CONDITIONS = tools.dict.expandMapping(_CONDITIONS_SOURCE)
