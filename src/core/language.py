@@ -6,22 +6,22 @@ import string
 import tools.dict
 
 _LANGUAGES_SOURCE = {
-    'cn': (u'китайский', 'chinese', 'chi', 'kit',),
-    'de': (u'немецкий', 'deutch',),
-    'en': (u'английский', 'english', 'eng',),
-    'es': (u'испанский',),
-    'fr': (u'французский',),
-    'it': (u'итальянский',),
-    'jp': (u'японский', 'japanese', 'jap',),
-    'ko': (u'корейский', 'korean', 'kor',),
-    'pt': (u'португальский', 'portuguese',),
-    'ru': (u'русский', 'russian', 'rus',),
-    'tw': (u'тайваньский',),
+    'cn': ('китайский', 'chinese', 'chi', 'kit',),
+    'de': ('немецкий', 'deutch',),
+    'en': ('английский', 'english', 'eng',),
+    'es': ('испанский',),
+    'fr': ('французский',),
+    'it': ('итальянский',),
+    'jp': ('японский', 'japanese', 'jap',),
+    'ko': ('корейский', 'korean', 'kor',),
+    'pt': ('португальский', 'portuguese',),
+    'ru': ('русский', 'russian', 'rus',),
+    'tw': ('тайваньский',),
     '': ('other',),
 }
 _LANGUAGES = tools.dict.expandMapping(_LANGUAGES_SOURCE)
 
-LOWERCASE_LETTERS_RUSSIAN = set(u'абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
+LOWERCASE_LETTERS_RUSSIAN = set('абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
 LOWERCASE_LETTERS_ENGLISH = set(string.ascii_lowercase)
 
 LANGUAGES_TO_LOWERCASE_LETTERS = {
