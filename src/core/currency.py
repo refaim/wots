@@ -2,6 +2,7 @@
 
 import decimal
 import lxml
+import sys
 import threading
 
 import core.network
@@ -15,6 +16,8 @@ FORMAT_STRINGS = {
     EUR: u'€{}',
     USD: u'${}',
 }
+if sys.platform.startswith('win32') and sys.getwindowsversion().major <= 5:
+    FORMAT_STRINGS[RUR] = '{}р.'
 
 _logger = core.logger.Logger('Currency')
 
