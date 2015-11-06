@@ -740,7 +740,7 @@ class OfflineTestSource(CardSource):
                 'set': random.choice(list(card.sets._SET_ABBREVIATIONS_SOURCE.keys())),
                 'language': core.language.getAbbreviation(random.choice(list(core.language._LANGUAGES.keys()))),
                 'price': decimal.Decimal(random.randint(10, 1000)),
-                'currency': random.choice((core.currency.RUR, core.currency.USD, core.currency.EUR)),
+                'currency': random.choice([core.currency.RUR, core.currency.USD, core.currency.EUR]),
                 'count': random.randint(1, 10),
                 'condition': _CONDITIONS[random.choice(list(_CONDITIONS.keys()))],
                 'source': self.packSource(self.getTitle(), '')

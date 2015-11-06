@@ -7,14 +7,14 @@ import threading
 
 import core.network
 
-EUR = 'EUR'
-RUR = 'RUR'
-USD = 'USD'
+RUR = 1
+USD = 2
+EUR = 3
 
 FORMAT_STRINGS = {
-    RUR: u'{}₽',
-    EUR: u'€{}',
-    USD: u'${}',
+    RUR: '{}₽',
+    EUR: '€{}',
+    USD: '${}',
 }
 if sys.platform.startswith('win32') and sys.getwindowsversion().major <= 5:
     FORMAT_STRINGS[RUR] = '{}р.'

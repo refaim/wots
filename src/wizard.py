@@ -447,6 +447,9 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
                 return True
             if not b:
                 return False
+            ac, bc = a['currency'], b['currency']
+            if a['currency'] != b['currency']:
+                return a['currency'] < b['currency']
             return a['amount'] < b['amount']
         elif columnId == 'source':
             return a['source']['caption'] < b['source']['caption']
