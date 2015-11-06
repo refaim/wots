@@ -165,6 +165,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # header.setMouseTracking(True)
         # header.entered.connect(self.onSearchResultsCellMouseEnter)
 
+    def abort(self):
+        if self.searchStopEvent:
+            self.searchStopEvent.set()
+
     def onSearchResultsCellMouseEnter(self, index):
         pass
         # cursor = SEARCH_RESULTS_TABLE_COLUMNS_INFO[index.column()].get('cursor', None)
@@ -461,4 +465,8 @@ if __name__ == '__main__':
     application = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.show()
-    sys.exit(application.exec_())
+    try:
+        sys.exit(application.exec_())
+    except Exception as e:
+        window.abort()
+        raise e
