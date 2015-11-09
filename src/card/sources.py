@@ -108,7 +108,7 @@ class AngryBottleGnome(CardSource):
             'Release Events': 'Prerelease & Release Cards',
             'Launch Party': 'Magic: The Gathering Launch Parties',
         }
-        super(AngryBottleGnome, self).__init__('http://angrybottlegnome.ru', '/shop/search/{}/filter/instock', 'utf-8', sourceSpecificSets)
+        super().__init__('http://angrybottlegnome.ru', '/shop/search/{}/filter/instock', 'utf-8', sourceSpecificSets)
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Английский, M/NM  (30р., в наличии: 1)</div>
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Итальянский, M/NM  Фойл (180р., в наличии: 1)</div>
         self.cardInfoRegexp = re.compile(r'(?P<language>[^,]+),\s*(?P<condition>[\S]+)\s*(?P<foilness>[^\(]+)?\s*\((?P<price>\d+)[^\d]*(?P<count>\d+)\)')
@@ -154,7 +154,7 @@ class AngryBottleGnome(CardSource):
 
 class MtgRuShop(CardSource):
     def __init__(self, url):
-        super(MtgRuShop, self).__init__(url, '/catalog.phtml?Title={}', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__(url, '/catalog.phtml?Title={}', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def query(self, queryText):
         '''
@@ -190,28 +190,28 @@ class MtgRuShop(CardSource):
 
 class Amberson(MtgRuShop):
     def __init__(self):
-        super(Amberson, self).__init__('http://amberson.mtg.ru')
+        super().__init__('http://amberson.mtg.ru')
 
 
 class ManaPoint(MtgRuShop):
     def __init__(self):
-        super(ManaPoint, self).__init__('http://manapoint.mtg.ru')
+        super().__init__('http://manapoint.mtg.ru')
 
 
 class MagicMaze(MtgRuShop):
     def __init__(self):
-        super(MagicMaze, self).__init__('http://magicmaze.mtg.ru')
+        super().__init__('http://magicmaze.mtg.ru')
 
 
 # class MtgRuPromoShop(CardSource):
 #     def __init__(self, siteUrl, promoUrl):
-#         super(MtgRuPromoShop, self).__init__(siteUrl, promoUrl, 'cp1251', {})
+#         super().__init__(siteUrl, promoUrl, 'cp1251', {})
 #         self.fullPromoUrl = urllib.parse.urljoin(siteUrl, promoUrl)
 
 
 # class AmbersonPromo(MtgRuPromoShop):
 #     def __init__(self):
-#         super(AmbersonPromo, self).__init__('http://amberson.mtg.ru', '/3.html')
+#         super().__init__('http://amberson.mtg.ru', '/3.html')
 
 #     def query(self, queryText):
 #         searchResults = self.makeRequest(queryText)
@@ -240,7 +240,7 @@ class MtgSale(CardSource):
             'MR': 'Mirage',
             'TP': 'Tempest',
         }
-        super(MtgSale, self).__init__('http://mtgsale.ru', '/home/search-results?Name={}&Page={}', 'utf-8', sourceSpecificSets)
+        super().__init__('http://mtgsale.ru', '/home/search-results?Name={}&Page={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
         html = self.makeRequest(queryText, pageIndex=1)
@@ -300,7 +300,7 @@ class CardPlace(CardSource):
             'Premium deck: Graveborn': 'Premium Deck Series: Graveborn',
             'Release & Prerelease cards': 'Prerelease & Release Cards',
         }
-        super(CardPlace, self).__init__('http://cardplace.ru', '/directory/new_search/{}/singlemtg', 'utf-8', sourceSpecificSets)
+        super().__init__('http://cardplace.ru', '/directory/new_search/{}/singlemtg', 'utf-8', sourceSpecificSets)
 
     def _extractFirstLevelParenthesesContents(self, string):
         # Лес (#246) (Forest (#246))
@@ -368,7 +368,7 @@ class MtgRu(CardSource):
         self.knownShopSourceSubstrings = [
             'shop.mymagic.ru',
         ]
-        super(MtgRu, self).__init__('http://mtg.ru', '/exchange/card.phtml?Title={}&Amount=1', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={}&Amount=1', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def query(self, queryText):
         searchResults = self.makeRequest(queryText).cssselect('table.NoteDivWidth')
@@ -429,7 +429,7 @@ class Untap(CardSource):
         sourceSpecificSets = {
             'New Phyrxia': 'New Phyrexia',
         }
-        super(Untap, self).__init__('http://untap.ru', '/search?controller=search&search_query={}', 'utf-8', sourceSpecificSets)
+        super().__init__('http://untap.ru', '/search?controller=search&search_query={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
         searchResults = self.makeRequest(queryText).cssselect('.product-container .right-block')
@@ -494,7 +494,7 @@ class CenterOfHobby(CardSource):
             'LE': 'Legions',
             'MI': 'Mirrodin',
         }
-        super(CenterOfHobby, self).__init__('http://www.centerofhobby.ru', '/catalog/mtgcards/search/?card_name={}', 'utf-8', sourceSpecificSets)
+        super().__init__('http://www.centerofhobby.ru', '/catalog/mtgcards/search/?card_name={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
         searchResults = self.makeRequest(queryText).cssselect('.mtg_table tr')[1:]
@@ -552,11 +552,10 @@ class CenterOfHobby(CardSource):
 
 class TtTopdeck(CardSource):
     def __init__(self):
-        super(TtTopdeck, self).__init__('http://tt.topdeck.ru', '/?req={}&mode=sell&group=card', 'utf-8', {})
+        super().__init__('http://tt.topdeck.ru', '/?req={}&mode=sell&group=card', 'utf-8', {})
         self.excludedSellers = [
             'angrybottlegnome',
             'mtgsale',
-            'shuma0963',  # shame on you!
         ]
         self.possiblePriceRegexps = [
             [re.compile(r'.*?(\d+)\s*\$.*'), core.currency.USD, 1],
@@ -659,7 +658,7 @@ class TtTopdeck(CardSource):
 
 class EasyBoosters(CardSource):
     def __init__(self):
-        super(EasyBoosters, self).__init__('http://easyboosters.com', '/products?keywords={}', 'utf-8', {})
+        super().__init__('http://easyboosters.com', '/products?keywords={}', 'utf-8', {})
 
     def query(self, queryText):
         searchResults = self.makeRequest(queryText).cssselect('#products .product-list-item')
