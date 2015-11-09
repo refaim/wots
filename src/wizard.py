@@ -169,7 +169,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def abort(self):
         for worker in self.searchWorkers:
-            os.kill(worker.pid, signal.SIGTERM)
+            if worker.is_alive():
+                os.kill(worker.pid, signal.SIGTERM)
 
     def onSearchResultsCellMouseEnter(self, index):
         pass
