@@ -1,7 +1,9 @@
 import functools
 import math
 import multiprocessing
+import os
 import queue
+import signal
 import sys
 import webbrowser
 
@@ -166,8 +168,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # header.entered.connect(self.onSearchResultsCellMouseEnter)
 
     def abort(self):
-        if self.searchStopEvent:
-            self.searchStopEvent.set()
+        for worker in self.searchWorkers:
+            os.kill(worker.pid, signal.SIGTERM)
 
     def onSearchResultsCellMouseEnter(self, index):
         pass
@@ -354,7 +356,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
             elif columnId == 'count':
                 if role == QtCore.Qt.DisplayRole:
                     return int(data['count']) or ''
-            elif columnId.endswith('price') and data:
+            elif columnId.endswith('price') and data and data['amount'] is not None:
                 if role == QtCore.Qt.DisplayRole:
                     return core.currency.formatPrice(core.currency.roundPrice(data['amount']), data['currency'])
                 elif role == QtCore.Qt.ToolTipRole:
@@ -444,13 +446,17 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
             return a['count'] < b['count']
         elif columnId.endswith('price'):
             if not a:
-                return True
-            if not b:
                 return False
-            ac, bc = a['currency'], b['currency']
+            if not b:
+                return True
+            am, bm = a['amount'], b['amount']
+            if am is None:
+                return False
+            if bm is None:
+                return True
             if a['currency'] != b['currency']:
                 return a['currency'] < b['currency']
-            return a['amount'] < b['amount']
+            return am < bm
         elif columnId == 'source':
             return a['source']['caption'] < b['source']['caption']
         return a < b
@@ -470,6 +476,5 @@ if __name__ == '__main__':
     window.show()
     try:
         sys.exit(application.exec_())
-    except Exception as e:
+    finally:
         window.abort()
-        raise e

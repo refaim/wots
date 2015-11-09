@@ -7,9 +7,9 @@ import threading
 
 import core.network
 
-RUR = 1
-USD = 2
-EUR = 3
+RUR = 'RUR'
+USD = 'USD'
+EUR = 'EUR'
 
 FORMAT_STRINGS = {
     RUR: '{}₽',
