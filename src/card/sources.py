@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import decimal
+import http.client
 import lxml.html
 import os
 import random
@@ -8,6 +9,7 @@ import re
 import string
 import time
 import urllib
+import urllib.error
 import urllib.parse
 
 import card.sets
@@ -21,7 +23,7 @@ _CONDITIONS_SOURCE = {
     'HP': ('Heavily Played', 'Hardly Played', 'ХП',),
     'MP': ('Moderately Played', 'Played', 'МП',),
     'SP': ('Slightly Played', 'СП',),
-    'NM': ('Near Mint', 'M/NM', 'Mint', 'Excellent', 'great', 'НМ',),  # TODO great :(
+    'NM': ('Near Mint', 'M/NM', 'M', 'Mint', 'Excellent', 'great', 'НМ',),  # TODO great :(
 }
 _CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
 _CONDITIONS = tools.dict.expandMapping(_CONDITIONS_SOURCE)
@@ -96,6 +98,7 @@ class CardSource(object):
 
     def getEstimatedCardsCount(self):
         return self.estimatedCardsCount
+
 
 class AngryBottleGnome(CardSource):
     def __init__(self):
@@ -724,6 +727,56 @@ class EasyBoosters(CardSource):
             })
 
 
+class MtgTrade(CardSource):
+    def __init__(self):
+        super().__init__('http://mtgtrade.net', '/search/?query={}', 'utf-8', {})
+
+    def makeRequest(self, queryText, pageIndex=1):
+        result = lxml.html.document_fromstring('<html/>')
+        try:
+            result = super().makeRequest(queryText, pageIndex)
+        except urllib.error.HTTPError as ex:
+            if ex.code != http.client.INTERNAL_SERVER_ERROR:
+                raise
+        return result
+
+    def query(self, queryText):
+        cardSelector = 'table.search-card tbody tr'
+        response = self.makeRequest(queryText)
+        foundCards = response.cssselect(cardSelector)
+        self.estimatedCardsCount = len(foundCards)
+
+        for resultsEntry in response.cssselect('.search-item'):
+            sellerCardsGroups = resultsEntry.cssselect('table.search-card')
+            anchor = resultsEntry.cssselect('.search-title')[0]
+            if '/single/' not in anchor.attrib['href']:
+                self.estimatedCardsCount -= len(resultsEntry.cssselect(cardSelector))
+                continue
+
+            for cardsGroup in sellerCardsGroups:
+                sellerBlock = cardsGroup.cssselect('td.center')[0]
+                sellerNickname = sellerBlock.cssselect('a')[0].text.lower()
+                sellerUrl = list(sellerBlock.cssselect('a'))[-1].attrib['href']
+
+                for cardEntry in cardsGroup.cssselect('tbody tr'):
+                    condition = None
+                    conditionBlocks = cardEntry.cssselect('.js-card-quality-tooltip')
+                    if len(conditionBlocks) > 0:
+                        condition = _CONDITIONS[cardEntry.cssselect('.js-card-quality-tooltip')[0].text]
+
+                    yield self.fillCardInfo({
+                        'name': self.packName(' '.join(anchor.text_content().split())),
+                        'foilness': len(cardEntry.cssselect('img.foil')) > 0,
+                        'set': card.sets.getAbbreviation(cardEntry.cssselect('.choose-set')[0].attrib['title']),
+                        'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|')),
+                        'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"')),
+                        'currency': core.currency.RUR,
+                        'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
+                        'condition': condition,
+                        'source': self.packSource(self.getTitle() + '/' + sellerNickname, self.url + sellerUrl)
+                    })
+
+
 class OfflineTestSource(CardSource):
     def __init__(self):
         super(OfflineTestSource, self).__init__('http://offline.shop', '?query={}', 'utf-8', {})
@@ -759,7 +812,8 @@ def getCardSourceClasses():
         ManaPoint,
         MtgRu,
         MtgSale,
-        TtTopdeck,
+        MtgTrade,
+        # TtTopdeck,
         Untap,
     ]
     random.shuffle(classes)
