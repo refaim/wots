@@ -246,7 +246,7 @@ _SINGLE_LANGUAGE_SETS_DATA = {
 
 
 def getAbbreviation(setNameString):
-    return _SETS[setNameString]
+    return _SETS[setNameString.strip()]
 
 
 def getFullName(setAbbrv):
