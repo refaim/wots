@@ -72,6 +72,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'EVE': ('Eventide', 'ET',),
     'EVG': ('Duel Decks: Elves vs. Goblins', 'EVG2', 'Elves vs. Goblins'),
     'EXO': ('Exodus', 'EX',),
+    'EXP': ('Zendikar Expeditions', 'Zendikar Expedition',),
     'FEM': ('Fallen Empires', 'FE',),
     'FNM': ('Friday Night Magic', 'Friday Night Magic (FNM)',),
     'FRF': ('Fate Reforged',),
