@@ -1,5 +1,4 @@
 import functools
-import math
 import multiprocessing
 import os
 import queue
@@ -14,7 +13,6 @@ from PyQt5 import uic
 import card.sources
 import card.utils
 import core.currency
-import price.sources
 
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
@@ -129,7 +127,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchProgressQueue = queue.Queue()
         self.searchResults = multiprocessing.Queue()
 
-        self.searchWorkers = []
+        self.searchWorkers = {}
         self.searchProgressStats = {}
 
         self.priceRequests = multiprocessing.Queue()
@@ -168,7 +166,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # header.entered.connect(self.onSearchResultsCellMouseEnter)
 
     def abort(self):
-        for worker in self.searchWorkers:
+        for worker in self.searchWorkers.values():
             if worker.is_alive():
                 os.kill(worker.pid, signal.SIGTERM)
 
@@ -187,7 +185,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchStopEvent.set()
         self.searchStopButton.setEnabled(False)
         self.searchProgress.setValue(0)
-        self.searchWorkers = []
+        self.searchWorkers = {}
         self.searchProgressStats = {}
 
     def onTimerTick(self):
@@ -203,7 +201,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateSearchControlsStatus()
 
     def updateSearchControlsStatus(self):
-        searchInProgress = any(process.is_alive() for process in self.searchWorkers)
+        searchInProgress = any(process.is_alive() for process in self.searchWorkers.values())
         self.searchField.setEnabled(not searchInProgress)
         self.searchStartButton.setVisible(not searchInProgress)
         self.searchStopButton.setVisible(searchInProgress)
@@ -220,8 +218,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         weightMultiplier = 1.0 / len(self.searchWorkers)
         currentProgress = 0
-        for foundCount, estimCount in self.searchProgressStats.values():
-            currentProgress += min(100, foundCount / estimCount * 100) * weightMultiplier
+        for engineId, worker in self.searchWorkers.items():
+            engineProgress = 0
+            if engineId in self.searchProgressStats:
+                foundCount, estimCount = self.searchProgressStats[engineId]
+                if estimCount > 0:
+                    engineProgress = foundCount / estimCount * 100
+            elif not worker.is_alive():
+                engineProgress = 100
+
+            if engineProgress > 0:
+                currentProgress += min(100, engineProgress) * weightMultiplier
 
         if currentProgress > self.searchProgress.value():
             self.searchProgress.setValue(currentProgress)
@@ -240,7 +247,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchProgressQueue.get_nowait()
 
         self.searchVersion += 1
-        self.searchWorkers = []
+        self.searchWorkers = {}
         self.searchProgressStats = {}
         self.searchStopEvent = multiprocessing.Event()
         self.searchResultsModel.setCookie(self.searchVersion)
@@ -259,7 +266,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 args=(engineId, sourceClass, queryString, self.searchResults, self.searchStopEvent, self.searchVersion,),
                 daemon=True)
             process.start()
-            self.searchWorkers.append(process)
+            self.searchWorkers[engineId] = process
 
         self.searchStopButton.setEnabled(True)
         self.updateSearchControlsStatus()
