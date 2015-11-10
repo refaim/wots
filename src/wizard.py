@@ -209,11 +209,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.setEnabled(not searchInProgress)
         self.searchStartButton.setVisible(not searchInProgress)
         self.searchStopButton.setVisible(searchInProgress)
-        if not searchInProgress and len(self.searchWorkers) > 0 and self.searchProgress.value() == 0:
-            self.searchProgress.setValue(100)
+        # if not searchInProgress and len(self.searchWorkers) > 0:
+        #     import pprint
+        #     pprint.pprint(self.searchProgressStats)
 
     def updateSearchProgress(self):
-        if len(self.searchWorkers) == 0:
+        if len(self.searchWorkers) == 0 or self.searchProgress.value() == 100:
             return
 
         while not self.searchProgressQueue.empty():
@@ -226,7 +227,9 @@ class MainWindow(QtWidgets.QMainWindow):
             engineProgress = 0
             if engineId in self.searchProgressStats:
                 foundCount, estimCount = self.searchProgressStats[engineId]
-                if estimCount > 0:
+                if estimCount == foundCount:
+                    engineProgress = 100
+                elif estimCount > 0:
                     engineProgress = foundCount / estimCount * 100
             elif not worker.is_alive():
                 engineProgress = 100
