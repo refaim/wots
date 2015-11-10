@@ -1,4 +1,3 @@
-import functools
 import multiprocessing
 import os
 import queue
@@ -13,6 +12,7 @@ from PyQt5 import uic
 import card.sources
 import card.utils
 import core.currency
+import price.sources
 
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
@@ -77,7 +77,7 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'label': 'TCG',
         'sources': tuple(),
         'align': QtCore.Qt.AlignRight,
-        # 'class': price.sources.TcgPlayer,
+        'class': price.sources.TcgPlayer,
         'default_value': None,
     },
     {
@@ -130,16 +130,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchWorkers = {}
         self.searchProgressStats = {}
 
+        self.priceStopEvent = multiprocessing.Event()
         self.priceRequests = multiprocessing.Queue()
         self.obtainedPrices = multiprocessing.Queue()
+        self.priceWorkers = []
         for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
             if columnInfo['id'].endswith('price') and 'class' in columnInfo:
-                priceSource = columnInfo['class']()
+                sourceClass = columnInfo['class']
                 process = multiprocessing.Process(
-                    name=priceSource.getTitle(),
+                    name=columnInfo['id'],
                     target=queryPriceSource,
-                    args=(priceSource, i, self.priceRequests, self.obtainedPrices,),
+                    args=(sourceClass, i, self.priceRequests, self.obtainedPrices, self.priceStopEvent,),
                     daemon=True)
+                self.priceWorkers.append(process)
                 process.start()
 
         self.timer = QtCore.QTimer()
@@ -166,9 +169,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # header.entered.connect(self.onSearchResultsCellMouseEnter)
 
     def abort(self):
-        for worker in self.searchWorkers.values():
-            if worker.is_alive():
-                os.kill(worker.pid, signal.SIGTERM)
+        self.priceStopEvent.set()
+        for process in list(self.searchWorkers.values()) + self.priceWorkers:
+            if process.is_alive():
+                os.kill(process.pid, signal.SIGTERM)
 
     def onSearchResultsCellMouseEnter(self, index):
         pass
@@ -280,14 +284,20 @@ def queryCardSource(cardSourceId, cardSourceClass, queryString, resultsQueue, ex
         resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
 
 
-def queryPriceSource(priceSource, sourceId, requestsQueue, resultsQueue):
+def queryPriceSource(priceSourceClass, sourceId, requestsQueue, resultsQueue, exitEvent):
+    pricesQueue = multiprocessing.Queue()
+    priceSource = priceSourceClass(pricesQueue)
     while True:
-        jobId, cookie, cardName, setId, language, foilness = requestsQueue.get()
-        priceSource.queryPrice(cardName, setId, language, foilness, functools.partial(onPriceQueryAnswer, resultsQueue, jobId, sourceId, cookie))
-
-
-def onPriceQueryAnswer(resultsQueue, jobId, sourceId, cookie, priceInfo):
-    resultsQueue.put((jobId, sourceId, priceInfo, cookie,))
+        if exitEvent.is_set():
+            priceSource.terminate()
+            return
+        while not requestsQueue.empty():
+            jobId, cookie, cardName, setId, language, foilness = requestsQueue.get_nowait()
+            priceSource.queryPrice(cardName, setId, language, foilness, (jobId, cookie,))
+        while not pricesQueue.empty():
+            priceInfo, priceCookie = pricesQueue.get_nowait()
+            jobId, cookie = priceCookie
+            resultsQueue.put((jobId, sourceId, priceInfo, cookie,))
 
 
 def convertPrice(priceInfo):
