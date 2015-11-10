@@ -9,14 +9,14 @@ def _processCard(cardname, rules):
 
 
 _STRINGS_TO_ESCAPE = {
-    'Æ': 'AE',
+    u'Æ': u'AE',
 }
 _STRINGS_TO_UNESCAPE = {}
 for k, v in _STRINGS_TO_ESCAPE.items():
     _STRINGS_TO_UNESCAPE[v] = k
 
 _STRINGS_TO_CLEAN = {
-    '//': '/',
+    u'//': u'/',
 }
 
 _CACHE_ESCAPE = {}

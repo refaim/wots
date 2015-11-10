@@ -1,3 +1,5 @@
+import codecs
+import json
 import multiprocessing
 import os
 import queue
@@ -117,6 +119,10 @@ class HypelinkItemDelegate(QtWidgets.QStyledItemDelegate):
         return False
 
 
+def getResourcePath(resourceId):
+    return os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'resources', resourceId))
+
+
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -162,6 +168,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchResultsView.setModel(self.searchResultsSortProxy)
         self.searchResultsView.setItemDelegateForColumn(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO) - 1, HypelinkItemDelegate())
         self.searchResultsView.entered.connect(self.onSearchResultsCellMouseEnter)
+
+        cardNames = set()
+        with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as data:
+            rawCompletionData = json.load(data)
+            for namesList in rawCompletionData.values():
+                for name in namesList:
+                    cardNames.add(name)
+
+        self.searchCompleter = QtWidgets.QCompleter(sorted(cardNames))
+        self.searchCompleter.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.searchField.setCompleter(self.searchCompleter)
 
         header = self.searchResultsView.horizontalHeader()
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -481,11 +498,6 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
         elif columnId == 'source':
             return a['source']['caption'] < b['source']['caption']
         return a < b
-
-
-class CardsComplete(QtWidgets.QCompleter):
-    def setCompletionPrefix(self, prefix):
-        pass
 
 
 if __name__ == '__main__':

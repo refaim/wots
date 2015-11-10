@@ -5,9 +5,19 @@ import csv
 import json
 import os
 import sys
+import string
 
 sys.path.append(os.path.abspath(os.path.join('..', 'src')))
-import wizard
+import card.utils
+
+LOWERCASE_LETTERS_RUSSIAN = set(u'абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
+LOWERCASE_LETTERS_ENGLISH = set(string.lowercase)
+
+_LETTERS = LOWERCASE_LETTERS_ENGLISH | LOWERCASE_LETTERS_RUSSIAN
+
+
+def getCardCompletionKey(cardname):
+    return u''.join(c for c in card.utils.escape(cardname).lower() if c in _LETTERS)
 
 
 def utf_8_encoder(unicode_csv_data):
@@ -36,7 +46,7 @@ def main(args):
         for row in reader:
             row['name'] = row['name'].replace(nameSeparator, u'|')
             row['original'] = row['original'].replace(nameSeparator, u'|')
-            for key in (wizard.getCardCompletionKey(card) for card in (row['name'], row['original']) if row['lang'] in ('RUS', 'ENG')):
+            for key in (getCardCompletionKey(card) for card in (row['name'], row['original']) if row['lang'] in ('RUS', 'ENG')):
                 values = autocomplete.setdefault(key, [])
                 if not row['name'] in values:
                     values.append(row['name'])
