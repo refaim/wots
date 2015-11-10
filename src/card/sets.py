@@ -133,7 +133,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'PLS': ('Planeshift', 'PS',),
     'PO2': ('Portal: Second Age', 'Portal Second Age',),
     'POR': ('Portal',),
-    'PRC': ('Prerelease & Release Cards',),
+    'PRC': ('Prerelease & Release Cards', 'Prerelease Events', 'Release Events',),
     'PTK': ('Portal: Three Kingdoms', 'Portal Three Kingdoms',),
     'RAV': ('Ravnica: City of Guilds', 'Ravnica', 'RA',),
     'RED': ('Redemption Program Cards',),
@@ -242,6 +242,7 @@ _SINGLE_LANGUAGE_SETS_DATA = {
         'Unglued',
         'Unhinged',
         'Unlimited Edition',
+        'Zendikar Expeditions',
     )
 }
 
