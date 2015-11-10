@@ -378,7 +378,10 @@ class MtgRu(CardSource):
             userInfo = userEntry.cssselect('tr table')[0]
             nickname = userInfo.cssselect('tr th')[0].text
             exchangeUrl = userInfo.cssselect('tr td')[-1].cssselect('a')[0].attrib['href']
-            if not any(source in exchangeUrl.lower() for source in self.sourceSubstringsToExclude):
+            if any(source in exchangeUrl.lower() for source in self.sourceSubstringsToExclude):
+                self.estimatedCardsCount -= 1
+                yield None
+            else:
                 cardSource = self.getTitle() + '/' + nickname.lower().replace(' ', '_')
                 if any(substring in exchangeUrl for substring in self.knownShopSourceSubstrings):
                     cardSource = urllib.parse.urlparse(exchangeUrl).netloc
