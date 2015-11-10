@@ -162,19 +162,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.textChanged.connect(self.onSearchFieldTextChanged)
         self.searchField.returnPressed.connect(self.searchCards)
 
-        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
+        cardNames = set()
+        with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as data:
+            self.cardsInfo = json.load(data)
+            for namesList in self.cardsInfo.values():
+                for name in namesList:
+                    cardNames.add(name)
+
+        self.searchResultsModel = CardsTableModel(self.cardsInfo, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
         self.searchResultsView.setItemDelegateForColumn(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO) - 1, HypelinkItemDelegate())
         self.searchResultsView.entered.connect(self.onSearchResultsCellMouseEnter)
-
-        cardNames = set()
-        with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as data:
-            rawCompletionData = json.load(data)
-            for namesList in rawCompletionData.values():
-                for name in namesList:
-                    cardNames.add(name)
 
         self.searchCompleter = QtWidgets.QCompleter(sorted(cardNames))
         self.searchCompleter.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
@@ -282,10 +282,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # sourceClasses = [card.sources.OfflineTestSource] * 10
 
         for i, sourceClass in enumerate(sourceClasses):
-            engine = sourceClass()
-            engineId = ';'.join((engine.getTitle(), str(i + 1), str(self.searchVersion)))
+            engineId = ';'.join((str(sourceClass), str(i + 1), str(self.searchVersion)))
             process = multiprocessing.Process(
-                name=engine.getTitle(),
+                name=str(sourceClass),
                 target=queryCardSource,
                 args=(engineId, sourceClass, queryString, self.searchResults, self.searchStopEvent, self.searchVersion,),
                 daemon=True)
@@ -331,8 +330,9 @@ def convertPrice(priceInfo):
 
 
 class CardsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests):
+    def __init__(self, cardsInfo, columnsInfo, dataQueue, statQueue, priceRequests):
         super().__init__()
+        self.cardsInfo = cardsInfo
         self.columnsInfo = columnsInfo
         self.colunmCount = len(columnsInfo)
         self.dataQueue = dataQueue
@@ -428,6 +428,10 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                 self.statQueue.put(statInfo)
         self.beginInsertRows(QtCore.QModelIndex(), self.cardCount, self.cardCount + batchLength - 1)
         for cardInfo in batch:
+            cardNameKey = card.utils.getNameKey(cardInfo['name']['caption'])
+            if cardNameKey in self.cardsInfo:
+                cardInfo['name']['caption'] = self.cardsInfo[cardNameKey][0]
+
             rowData = []
             for columnInfo in self.columnsInfo:
                 columnData = {}

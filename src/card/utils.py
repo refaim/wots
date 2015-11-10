@@ -1,5 +1,7 @@
 # coding: utf-8
 
+import core.language
+
 
 def _processCard(cardname, rules):
     result = cardname
@@ -22,6 +24,8 @@ _STRINGS_TO_CLEAN = {
 _CACHE_ESCAPE = {}
 _CACHE_UNESCAPE = {}
 
+_LETTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LETTERS_RUSSIAN
+
 
 def escape(cardname):
     if not cardname in _CACHE_ESCAPE:
@@ -37,3 +41,7 @@ def unescape(cardname):
 
 def clean(cardname):
     return _processCard(cardname, _STRINGS_TO_CLEAN)
+
+
+def getNameKey(cardname):
+    return u''.join(c for c in escape(cardname).lower() if c in _LETTERS)
