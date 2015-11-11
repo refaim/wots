@@ -154,9 +154,26 @@ class AngryBottleGnome(CardSource):
 
 class MtgRuShop(CardSource):
     def __init__(self, url):
-        super().__init__(url, '/catalog.phtml?Title={}', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__(url, '/catalog.phtml?Title={}&page={}', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        self.cardsPerPage = 25
 
     def query(self, queryText):
+        self.estimatedCardsCount = self.cardsPerPage
+        index = self.makeRequest(queryText, pageIndex=1)
+        pagesCount = 0
+
+        pagesLinks = index.cssselect('.split-pages a')
+        if len(pagesLinks) > 0:
+            pagesCount = int(re.match(r'.+page=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
+            self.estimatedCardsCount = pagesCount * self.cardsPerPage
+
+        for cardInfo in self.parse(index):
+            yield cardInfo
+        for i in range(2, pagesCount + 1):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
+                yield cardInfo
+
+    def parse(self, html):
         '''
         <table id="Catalog">
         <tr class="ui-state-highlight ui-widget" id="2941159-eng-Y">
@@ -170,9 +187,15 @@ class MtgRuShop(CardSource):
             <td width="60" align="center"><button class="BT_to_cart" onClick="Cart('add', '2941159-eng-Y');"></button></td>
         </tr>
         '''
-        searchResults = self.makeRequest(queryText).cssselect('#Catalog tr')
-        self.estimatedCardsCount = len(searchResults)
-        for resultsEntry in searchResults:
+
+        products = html.cssselect('#Catalog tr')
+        if len(products) < self.cardsPerPage:
+            self.estimatedCardsCount -= self.cardsPerPage - len(products)
+            if self.estimatedCardsCount < 0:
+                self.estimatedCardsCount = 0
+            yield None
+
+        for resultsEntry in products:
             dataCells = resultsEntry.cssselect('td')
             language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
