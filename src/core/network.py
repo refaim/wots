@@ -11,7 +11,7 @@ import urllib.request
 import core.logger
 
 MAX_ATTEMPTS = 30
-HTTP_DELAY_SECONDS = 1
+HTTP_DELAY_SECONDS_MULTIPLIER = 2
 CHUNK_SIZE_BYTES = 1024 * 100
 
 _logger = core.logger.Logger('Network')
@@ -41,6 +41,6 @@ def getUrl(url):
         except Exception as ex:
             if attempt <= MAX_ATTEMPTS:
                 _logger.info('Restarting ({}/{}) [GET] {}'.format(attempt, MAX_ATTEMPTS, url))
-                time.sleep(HTTP_DELAY_SECONDS)
+                time.sleep(attempt * HTTP_DELAY_SECONDS_MULTIPLIER)
                 continue
             raise
