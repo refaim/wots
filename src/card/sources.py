@@ -662,24 +662,43 @@ class TtTopdeck(CardSource):
 
 class EasyBoosters(CardSource):
     def __init__(self):
-        super().__init__('http://easyboosters.com', '/products?keywords={}', 'utf-8', {})
+        super().__init__('http://easyboosters.com', '/products?keywords={}&page={}', 'utf-8', {})
+        self.cardsPerPage = 12
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText).cssselect('#products .product-list-item')
-        self.estimatedCardsCount = len(searchResults)
-        for entry in searchResults:
+        index = self.makeRequest(queryText, pageIndex=1)
+        pagesCount = 0
+        pagesLinks = index.cssselect('.pagination li a')
+        if len(pagesLinks) > 0:
+            pagesCount = int(re.match(r'.+?page=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
+            self.estimatedCardsCount = self.cardsPerPage * pagesCount
+
+        for cardInfo in self.processSearchResults(index):
+            yield cardInfo
+        for i in range(2, pagesCount + 1):
+            for cardInfo in self.processSearchResults(self.makeRequest(queryText, pageIndex=i)):
+                yield cardInfo
+
+    def processSearchResults(self, html):
+        products = html.cssselect('#products .product-list-item')
+        self.estimatedCardsCount -= self.cardsPerPage - len(products)
+        yield None
+
+        for entry in products:
             cardUrl = entry.cssselect('a')[0].attrib['href']
             if not cardUrl:
                 self.estimatedCardsCount -= 1
                 yield None
                 continue
 
-            cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
-            itemName = cardHtml.cssselect('#product-description .product-title')[0].text
-            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы']):
+            itemName = entry.cssselect('.product-name-wrapper a.info')[0].attrib['title']
+            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы', 'кубик']):
                 self.estimatedCardsCount -= 1
                 yield None
                 continue
+
+            cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
+            itemName = cardHtml.cssselect('#product-description .product-title')[0].text
             cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', itemName).group(1)
 
             condition = None
@@ -693,7 +712,8 @@ class EasyBoosters(CardSource):
                 if caption in ('Покрытие', 'Finish'):
                     foil = value != 'Regular'
                 elif caption in ('Состояние', 'Condition'):
-                    condition = _CONDITIONS[value]
+                    if value in _CONDITIONS:
+                        condition = _CONDITIONS[value]
                 elif caption in ('Язык', 'Language'):
                     language = core.language.getAbbreviation(value)
                 elif caption in ('Сет', 'Set'):
