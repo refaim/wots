@@ -1,4 +1,5 @@
 import codecs
+import io
 import json
 import multiprocessing
 import os
@@ -120,7 +121,10 @@ class HypelinkItemDelegate(QtWidgets.QStyledItemDelegate):
 
 
 def getResourcePath(resourceId):
-    return os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'resources', resourceId))
+    root = os.path.dirname(sys.executable)
+    if not getattr(sys, 'frozen', False):
+        root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+    return os.path.normpath(os.path.join(root, 'resources', resourceId))
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -505,6 +509,9 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
 
 
 if __name__ == '__main__':
+    if getattr(sys, 'frozen', False):
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
     multiprocessing.freeze_support()
     currencyConverter = core.currency.Converter()
     currencyConverter.update()
