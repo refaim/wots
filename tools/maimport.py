@@ -34,7 +34,7 @@ def main(args):
         fp.readline()  # skip header
         reader = unicode_csv_reader(fp, dialect=csv.excel_tab, fieldnames=['set', 'name', 'original', 'lang', 'number'])
         for row in reader:
-            row['name'] = row['name'].replace(nameSeparator, u'|')
+            row['name'] = card.utils.escape(row['name']).replace(nameSeparator, u'|')
             row['original'] = row['original'].replace(nameSeparator, u'|')
             for key in (card.utils.getNameKey(cardName) for cardName in (row['name'], row['original']) if row['lang'] in ('RUS', 'ENG')):
                 values = autocomplete.setdefault(key, [])

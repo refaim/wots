@@ -21,7 +21,7 @@ _LANGUAGES_SOURCE = {
 }
 _LANGUAGES = tools.dict.expandMapping(_LANGUAGES_SOURCE)
 
-LOWERCASE_LETTERS_RUSSIAN = set('абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
+LOWERCASE_LETTERS_RUSSIAN = set(u'абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
 LOWERCASE_LETTERS_ENGLISH = set(string.ascii_lowercase)
 
 LANGUAGES_TO_LOWERCASE_LETTERS = {

@@ -6,12 +6,13 @@ import core.language
 def _processCard(cardname, rules):
     result = cardname
     for k, v in rules.items():
-        result = cardname.replace(k, v)
+        result = result.replace(k, v)
     return result
 
 
 _STRINGS_TO_ESCAPE = {
     u'Æ': u'AE',
+    u'\u2019': u"'",
 }
 _STRINGS_TO_UNESCAPE = {}
 for k, v in _STRINGS_TO_ESCAPE.items():
