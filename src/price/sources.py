@@ -43,12 +43,11 @@ def tcgProcessRequests(priceRequests, priceResults, setsRequests, setsResults, s
             pricesCache[setAbbrv][cardKey] = priceInfo
 
         while not priceRequests.empty():
-            cardName, setName, cardLang, foil, cookie = priceRequests.get_nowait()
+            cardName, setAbbrv, setName, cardLang, foil, cookie = priceRequests.get_nowait()
             if not foil:
                 cardLang = 'en'
             cardLang = core.language.getAbbreviation(cardLang)
             cardKey = getCardKey(cardName, cardLang, foil)
-            setAbbrv = card.sets.getAbbreviation(setName)
             if setAbbrv not in pricesCache or cardKey not in pricesCache[setAbbrv]:
                 if not foil and setAbbrv not in requestedSets:
                     setsRequests.put(setName)
@@ -141,6 +140,7 @@ class TcgPlayer(object):
         self.fullSetNames = {
             '10E': '10th Edition',
             '9ED': '9th Edition',
+            'FNM': 'FNM Promos',
             'M10': 'Magic 2010 (M10)',
             'M11': 'Magic 2011 (M11)',
             'M12': 'Magic 2012 (M12)',
@@ -148,6 +148,7 @@ class TcgPlayer(object):
             'M14': 'Magic 2014 (M14)',
             'M15': 'Magic 2015 (M15)',
             'MD1': 'Magic Modern Event Deck',
+            'MGD': 'Game Day Promos',
             'RAV': 'Ravnica',
             'TST': 'Timeshifted',
         }
@@ -161,7 +162,7 @@ class TcgPlayer(object):
         return self.fullSetNames.get(setId, card.sets.getFullName(setId))
 
     def queryPrice(self, cardName, setId, language, foil, cookie):
-        self.requestsPrice.put((cardName, self.getFullSetName(setId), language, foil, cookie))
+        self.requestsPrice.put((cardName, setId, self.getFullSetName(setId), language, foil, cookie))
 
     def terminate(self):
         self.exitEvent.set()
