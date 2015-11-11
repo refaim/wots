@@ -452,12 +452,38 @@ class Untap(CardSource):
         sourceSpecificSets = {
             'New Phyrxia': 'New Phyrexia',
         }
-        super().__init__('http://untap.ru', '/search?controller=search&search_query={}', 'utf-8', sourceSpecificSets)
+        super().__init__('http://untap.ru', '/search?search_query={}&p={}&n=60', 'utf-8', sourceSpecificSets)
+        self.cardsPerPage = 12
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText).cssselect('.product-container .right-block')
-        self.estimatedCardsCount = len(searchResults)
-        for entry in searchResults:
+        index = self.makeRequest(queryText, pageIndex=1)
+        self.estimatedCardsCount = self.cardsPerPage
+        pagesCount = 0
+        pagesLinks = index.cssselect('ul.pagination li a')
+        if len(pagesLinks) > 0:
+            pagesCount = int(pagesLinks[-2].cssselect('span')[0].text)
+            self.estimatedCardsCount = pagesCount * self.cardsPerPage
+
+        for cardInfo in self.processSearchResults(index):
+            yield cardInfo
+        for i in range(2, pagesCount + 1):
+            for cardInfo in self.processSearchResults(self.makeRequest(queryText, pageIndex=i)):
+                yield cardInfo
+
+    def processSearchResults(self, html):
+        products = html.cssselect('.product-container .right-block')
+        if len(products) < self.cardsPerPage:
+            self.estimatedCardsCount -= self.cardsPerPage - len(products)
+            if self.estimatedCardsCount < 0:
+                self.estimatedCardsCount = 0
+            yield None
+
+        for entry in products:
+            if len(entry.cssselect('.out-of-stock')) > 0:
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
             nameSource = entry.cssselect('.product-name')[0].text.strip()
             detailsParts = nameSource.strip().split('\t')
 
