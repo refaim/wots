@@ -212,25 +212,43 @@ class MagicMaze(MtgRuShop):
 # class AmbersonPromo(MtgRuPromoShop):
 #     def __init__(self):
 #         super().__init__('http://amberson.mtg.ru', '/3.html')
+#         self.patterns = [
+#             (re.compile(r'Oversized - (?P<name>.+)(, foil)?'), 'Oversized Cards'),
+#         ]
 
 #     def query(self, queryText):
+#         foundCardsCount = 0
+#         self.estimatedCardsCount = 10
 #         searchResults = self.makeRequest(queryText)
 #         for resultsEntry in searchResults.cssselect('table.Catalog tr'):
 #             cells = resultsEntry.cssselect('td')
 #             nameString = cells[0].text
-#             result = {
-#                 'name': self.packName('...', nameString),
-#                 # 'name': self.packName(dataCells[2].cssselect(nameSelector)[0].text), TODO
-#                 # 'set': self.getSetAbbrv(dataCells[0].cssselect('img')[0].attrib['alt']), TODO
-#                 # 'language': language, TODO
-#                 # 'foilness': bool(dataCells[3].text), TODO
-#                 'count': int(re.match(r'(\d+)', cells[1].text).group(1)),
-#                 'price': decimal.Decimal(re.match(r'(\d+)', cells[2].text.replace('`', '')).group(1)),
-#                 'currency': core.currency.RUR,
-#                 'source': self.packSource(self.getTitle(), self.fullPromoUrl)
-#             }
-#             # TODO compare with query text
-#             yield self.fillCardInfo(result)
+#             foundNameKey = card.utils.getNameKey(nameString)
+#             queryNameKey = card.utils.getNameKey(queryText)
+#             if queryNameKey in foundNameKey:
+#                 cardName = nameString
+#                 cardSetId = None
+#                 foilness = False
+#                 for (pattern, patternSetId) in self.patterns:
+#                     match = pattern.match(nameString)
+#                     if match:
+#                         groups = match.groupdict()
+#                         print(groups)
+#                         cardName = groups['name']
+#                         cardSetId = self.getSetAbbrv(patternSetId)
+#                         foilness = 'foil' in groups
+#                         break
+#                 result = {
+#                     'name': self.packName(cardName, nameString),
+#                     'set': cardSetId,
+#                     # 'language': language, TODO
+#                     'foilness': foilness,
+#                     'count': int(re.match(r'(\d+)', cells[1].text).group(1)),
+#                     'price': decimal.Decimal(re.match(r'(\d+)', cells[2].text.replace('`', '')).group(1)),
+#                     'currency': core.currency.RUR,
+#                     'source': self.packSource(self.getTitle(), self.fullPromoUrl)
+#                 }
+#                 yield self.fillCardInfo(result)
 
 
 class MtgSale(CardSource):
@@ -802,7 +820,7 @@ class MtgTrade(CardSource):
 
 class OfflineTestSource(CardSource):
     def __init__(self):
-        super(OfflineTestSource, self).__init__('http://offline.shop', '?query={}', 'utf-8', {})
+        super().__init__('http://offline.shop', '?query={}', 'utf-8', {})
 
     def query(self, queryText):
         self.estimatedCardsCount = random.randint(1, 10)
