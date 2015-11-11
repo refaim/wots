@@ -1,6 +1,7 @@
 import codecs
 import io
 import json
+import math
 import multiprocessing
 import os
 import queue
@@ -235,7 +236,12 @@ class MainWindow(QtWidgets.QMainWindow):
         #     pprint.pprint(self.searchProgressStats)
 
     def updateSearchProgress(self):
-        if len(self.searchWorkers) == 0 or self.searchProgress.value() == 100:
+        currentProgress = self.searchProgress.value()
+        newEnabledState = currentProgress != 0 and currentProgress != 100
+        if self.searchProgress.isEnabled() != newEnabledState:
+            self.searchProgress.setEnabled(newEnabledState)
+
+        if len(self.searchWorkers) == 0 or currentProgress == 100:
             return
 
         while not self.searchProgressQueue.empty():
@@ -243,7 +249,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchProgressStats[engineId] = (foundCount, estimCount)
 
         weightMultiplier = 1.0 / len(self.searchWorkers)
-        currentProgress = 0
+        newProgress = 0
         for engineId, worker in self.searchWorkers.items():
             engineProgress = 0
             if engineId in self.searchProgressStats:
@@ -256,10 +262,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 engineProgress = 100
 
             if engineProgress > 0:
-                currentProgress += min(100, engineProgress) * weightMultiplier
+                newProgress += min(100, engineProgress) * weightMultiplier
 
-        if currentProgress > self.searchProgress.value():
-            self.searchProgress.setValue(currentProgress)
+        newProgress = math.ceil(newProgress)
+        if newProgress > currentProgress:
+            self.searchProgress.setValue(newProgress)
 
     def searchCards(self):
         queryString = self.searchField.text()

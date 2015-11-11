@@ -685,6 +685,7 @@ class EasyBoosters(CardSource):
 
     def query(self, queryText):
         index = self.makeRequest(queryText, pageIndex=1)
+        self.estimatedCardsCount = 0
         pagesCount = 0
         pagesLinks = index.cssselect('.pagination li a')
         if len(pagesLinks) > 0:
@@ -699,8 +700,11 @@ class EasyBoosters(CardSource):
 
     def processSearchResults(self, html):
         products = html.cssselect('#products .product-list-item')
-        self.estimatedCardsCount -= self.cardsPerPage - len(products)
-        yield None
+        if len(products) < self.cardsPerPage:
+            self.estimatedCardsCount -= self.cardsPerPage - len(products)
+            if self.estimatedCardsCount < 0:
+                self.estimatedCardsCount = 0
+            yield None
 
         for entry in products:
             cardUrl = entry.cssselect('a')[0].attrib['href']
