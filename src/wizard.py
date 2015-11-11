@@ -134,6 +134,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         uic.loadUi('wizard.ui', self)
 
+        self.foundCardsCount = 0
+        self.wasSearchInProgress = False
         self.searchVersion = 0
         self.searchProgressQueue = queue.Queue()
         self.searchResults = multiprocessing.Queue()
@@ -226,8 +228,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateSearchProgress()
         self.updateSearchControlsStatus()
 
+    def isSearchInProgress(self):
+        return any(process.is_alive() for process in self.searchWorkers.values())
+
     def updateSearchControlsStatus(self):
-        searchInProgress = any(process.is_alive() for process in self.searchWorkers.values())
+        searchInProgress = self.isSearchInProgress()
         self.searchField.setEnabled(not searchInProgress)
         self.searchStartButton.setVisible(not searchInProgress)
         self.searchStopButton.setVisible(searchInProgress)
@@ -240,6 +245,15 @@ class MainWindow(QtWidgets.QMainWindow):
         newEnabledState = currentProgress != 0 and currentProgress != 100
         if self.searchProgress.isEnabled() != newEnabledState:
             self.searchProgress.setEnabled(newEnabledState)
+
+        searchInProgress = self.isSearchInProgress()
+        if self.foundCardsCount != self.searchResultsModel.cardCount or searchInProgress != self.wasSearchInProgress:
+            message = '{} cards found.'.format(self.searchResultsModel.cardCount)
+            if searchInProgress:
+                message = '{} Searching for more...'.format(message)
+            self.foundCardsCount = self.searchResultsModel.cardCount
+            self.wasSearchInProgress = searchInProgress
+            self.statusBar.showMessage(message)
 
         if len(self.searchWorkers) == 0 or currentProgress == 100:
             return
@@ -281,6 +295,8 @@ class MainWindow(QtWidgets.QMainWindow):
         while not self.searchProgressQueue.empty():
             self.searchProgressQueue.get_nowait()
 
+        self.wasSearchInProgress = False
+        self.foundCardsCount = 0
         self.searchVersion += 1
         self.searchWorkers = {}
         self.searchProgressStats = {}
