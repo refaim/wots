@@ -269,13 +269,13 @@ class MtgSale(CardSource):
         if pagesLinks:
             pagesCount = int(pagesLinks[-1].text)
 
-        for cardInfo in self.processSearchResults(html):
+        for cardInfo in self.parse(html):
             yield cardInfo
         for i in range(2, pagesCount + 1):
-            for cardInfo in self.processSearchResults(self.makeRequest(queryText, pageIndex=i)):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
                 yield cardInfo
 
-    def processSearchResults(self, html):
+    def parse(self, html):
         for resultsEntry in html.cssselect('.tab_container div.ctclass'):
             count = int(re.match(r'(\d+)', resultsEntry.cssselect('p.colvo')[0].text).group(0))
             if count <= 0:
@@ -464,13 +464,13 @@ class Untap(CardSource):
             pagesCount = int(pagesLinks[-2].cssselect('span')[0].text)
             self.estimatedCardsCount = pagesCount * self.cardsPerPage
 
-        for cardInfo in self.processSearchResults(index):
+        for cardInfo in self.parse(index):
             yield cardInfo
         for i in range(2, pagesCount + 1):
-            for cardInfo in self.processSearchResults(self.makeRequest(queryText, pageIndex=i)):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
                 yield cardInfo
 
-    def processSearchResults(self, html):
+    def parse(self, html):
         products = html.cssselect('.product-container .right-block')
         if len(products) < self.cardsPerPage:
             self.estimatedCardsCount -= self.cardsPerPage - len(products)
@@ -543,13 +543,34 @@ class CenterOfHobby(CardSource):
             'LE': 'Legions',
             'MI': 'Mirrodin',
         }
-        super().__init__('http://www.centerofhobby.ru', '/catalog/mtgcards/search/?card_name={}', 'utf-8', sourceSpecificSets)
+        super().__init__('http://www.centerofhobby.ru', '/catalog/mtgcards/search/?card_name={}&curPos={}', 'utf-8', sourceSpecificSets)
+        self.cardsPerPage = 100
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText).cssselect('.mtg_table tr')[1:]
-        self.estimatedCardsCount = len(searchResults)
+        self.estimatedCardsCount = self.cardsPerPage
+        index = self.makeRequest(queryText, 0)
+        pagesCount = 0
+        pagesLinks = index.cssselect('.nc_pagination')[-1].cssselect('a')
+        if len(pagesLinks) > 0 and pagesLinks[-1].text.isdigit():
+            pagesCount = int(pagesLinks[-1].text)
+            self.estimatedCardsCount = pagesCount * self.cardsPerPage
+
+        for cardInfo in self.parse(index):
+            yield cardInfo
+        for i in range(1, pagesCount):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i * self.cardsPerPage)):
+                yield cardInfo
+
+    def parse(self, html):
+        products = html.cssselect('.mtg_table tr')[1:]
+        if len(products) < self.cardsPerPage:
+            self.estimatedCardsCount -= self.cardsPerPage - len(products)
+            if self.estimatedCardsCount < 0:
+                self.estimatedCardsCount = 0
+            yield None
+
         prevResult = None
-        for entry in searchResults:
+        for entry in products:
             cells = entry.cssselect('td')
 
             foil = False
@@ -588,7 +609,7 @@ class CenterOfHobby(CardSource):
                 'price': cardPrice,
                 'currency': core.currency.RUR,
                 'count': cardCount,
-                'source': self.packSource(self.getTitle(), cardUrl),
+                'source': self.packSource(self.getTitle(), self.url + cardUrl),
                 'url': cardUrl,
             }
             prevResult = result.copy()
@@ -719,13 +740,13 @@ class EasyBoosters(CardSource):
             pagesCount = int(re.match(r'.+?page=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
             self.estimatedCardsCount = self.cardsPerPage * pagesCount
 
-        for cardInfo in self.processSearchResults(index):
+        for cardInfo in self.parse(index):
             yield cardInfo
         for i in range(2, pagesCount + 1):
-            for cardInfo in self.processSearchResults(self.makeRequest(queryText, pageIndex=i)):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
                 yield cardInfo
 
-    def processSearchResults(self, html):
+    def parse(self, html):
         products = html.cssselect('#products .product-list-item')
         if len(products) < self.cardsPerPage:
             self.estimatedCardsCount -= self.cardsPerPage - len(products)
