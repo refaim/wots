@@ -317,6 +317,7 @@ class CardPlace(CardSource):
             "OverSize Cards": 'Oversized Cards',
             'Premium deck: Graveborn': 'Premium Deck Series: Graveborn',
             'Release & Prerelease cards': 'Prerelease & Release Cards',
+            "Commander's Aresnal": "Commander's Arsenal",
         }
         super().__init__('http://cardplace.ru', '/directory/new_search/{}/singlemtg', 'utf-8', sourceSpecificSets)
 
@@ -685,7 +686,7 @@ class EasyBoosters(CardSource):
 
     def query(self, queryText):
         index = self.makeRequest(queryText, pageIndex=1)
-        self.estimatedCardsCount = 0
+        self.estimatedCardsCount = self.cardsPerPage
         pagesCount = 0
         pagesLinks = index.cssselect('.pagination li a')
         if len(pagesLinks) > 0:
