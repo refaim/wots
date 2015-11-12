@@ -39,6 +39,8 @@ MTG_RU_SPECIFIC_SETS = {
     'P1': 'Portal',
     'P2': 'Portal: Second Age',
     'P3': 'Portal: Three Kingdoms',
+    'PC': 'Planar Chaos',
+    'PCH': 'Planechase',
     'ST': 'Starter 1999',
 }
 
@@ -73,7 +75,7 @@ class CardSource(object):
         return re.sub(r'^www\.', '', location)
 
     def getSetAbbrv(self, setId):
-        return card.sets.getAbbreviation(self.sourceSpecificSets.get(setId, setId))
+        return card.sets.tryGetAbbreviation(self.sourceSpecificSets.get(setId, setId))
 
     def makeRequest(self, queryText, pageIndex=1):
         queryText = queryText.replace(u'`', "'").replace(u'’', "'")
@@ -615,7 +617,9 @@ class CenterOfHobby(CardSource):
             cardCount = int(cells[5].text) if cells[5].text.isdigit() else 0
             cardPrice = None
             if cardCount > 0:
-                cardPrice = decimal.Decimal(''.join(re.match(r'([\d\s]+).*', cells[6].text).group(1).split()))
+                priceMatch = re.match(r'([\d\s]+).*', cells[6].text)
+                if priceMatch:
+                    cardPrice = decimal.Decimal(''.join(priceMatch.group(1).split()))
 
             # Эвристика для обхода бага на сайте.
             if cardLanguage == '$card_lang':
@@ -704,7 +708,7 @@ class TtTopdeck(CardSource):
                     letterClusters = tools.string.splitByNonLetters(detailsStringLw)
 
                     for cluster in letterClusters:
-                        cardSet = card.sets.tryGetAbbreviationCaseInsensitive(cluster)
+                        cardSet = card.sets.tryGetAbbreviation(cluster, quiet=True)
                         if cardSet is not None:
                             break
 
@@ -810,7 +814,7 @@ class EasyBoosters(CardSource):
                 elif caption in ('Язык', 'Language'):
                     language = core.language.getAbbreviation(value)
                 elif caption in ('Сет', 'Set'):
-                    cardSet = card.sets.getAbbreviation(value)
+                    cardSet = card.sets.tryGetAbbreviation(value)
                 elif caption in ('Номер', 'Number'):
                     cardId = int(value)
 
@@ -883,7 +887,7 @@ class MtgTrade(CardSource):
                     yield self.fillCardInfo({
                         'name': self.packName(' '.join(anchor.text_content().split())),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
-                        'set': card.sets.getAbbreviation(cardEntry.cssselect('.choose-set')[0].attrib['title']),
+                        'set': self.getSetAbbrv(cardEntry.cssselect('.choose-set')[0].attrib['title']),
                         'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|')),
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"')),
                         'currency': core.currency.RUR,

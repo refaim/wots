@@ -82,7 +82,7 @@ def tcgObtainSets(requests, results, exitEvent):
             return
 
         setFullName = requests.get()
-        setAbbrv = card.sets.getAbbreviation(setFullName)
+        setAbbrv = card.sets.tryGetAbbreviation(setFullName)
         if setAbbrv not in setsPrices:
             html = lxml.html.document_fromstring(core.network.getUrl(setQueryUrlTemplate.format(urllib.parse.quote(setFullName))))
             tables = html.cssselect('table')
@@ -120,7 +120,7 @@ def tcgObtainSingles(requests, results, exitEvent):
                 'price': decimal.Decimal(re.match(r'.*?\$([\d\.]+).*', priceBlock.cssselect('.priceRange .median')[0].text).group(1)),
                 'currency': core.currency.USD,
             }
-            results.put((card.sets.getAbbreviation(setName), getCardKey(cardName, cardLang, foil), priceInfo,))
+            results.put((card.sets.tryGetAbbreviation(setName), getCardKey(cardName, cardLang, foil), priceInfo,))
 
 
 def tcgMakeUrlPart(rawString):

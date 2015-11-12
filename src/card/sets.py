@@ -1,5 +1,10 @@
+import string
+
+import core.language
+import core.logger
 import tools.dict
 
+_logger = core.logger.Logger('Sets')
 _SET_ABBREVIATIONS_SOURCE = {
     '10E': ('Tenth Edition', '10th Edition',),
     '2ED': ('Unlimited Edition', '2E', 'Unlimited',),
@@ -59,6 +64,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'DDM': ('Duel Decks: Jace vs. Vraska', 'Jace vs. Vraska',),
     'DDN': ('Duel Decks: Speed vs. Cunning', 'Speed vs. Cunning',),
     'DDO': ('Duel Decks: Elspeth vs. Kiora', 'Elspeth vs. Kiora',),
+    'DDP': ('Duel Decks: Zendikar vs. Eldrazi', 'Zendikar vs. Eldrazi',),
     'DGM': ("Dragon's Maze",),
     'DIS': ('Dissension', 'DI',),
     'DKA': ('Dark Ascension',),
@@ -107,7 +113,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'M15': ('Magic 2015', '2015 Core Set', 'Magic 2015 Core Set', 'Magic 2015 (M15)',),
     'MBP': ('Media Inserts',),
     'MBS': ('Mirrodin Besieged',),
-    'MD1': ('Modern Event Deck', 'Modern Event Deck 2014',),
+    'MD1': ('Modern Event Deck', 'Modern Event Deck 2014', 'Magic Modern Event Deck',),
     'MGB': ('Multiverse Gift Box',),
     'MGD': ('Magic Game Day Cards', 'Game Day', 'Game Day Promos', 'pMGD',),
     'MIR': ('Mirage',),
@@ -154,7 +160,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'TMP': ('Tempest', 'TE',),
     'TOR': ('Torment', 'TO', 'TR',),
     'TSP': ('Time Spiral', 'TS',),
-    'TST': ('Time Spiral Timeshifted', 'TSTS'),
+    'TST': ('Time Spiral Timeshifted', 'TSTS', 'Timeshifted',),
     'UDS': ("Urza's Destiny", 'UD',),
     'UGF': ('Ugin\'s Fate Promos',),
     'UGL': ('Unglued',),
@@ -177,11 +183,6 @@ _SET_ABBREVIATIONS_SOURCE = {
     'WWK': ('Worldwake',),
     'ZEN': ('Zendikar',),
 }
-
-_SETS = tools.dict.expandMapping(_SET_ABBREVIATIONS_SOURCE)
-_CASE_INSENSITIVE_SET_STRINGS = {}
-for key in _SETS:
-    _CASE_INSENSITIVE_SET_STRINGS[key.lower()] = key
 
 _SINGLE_LANGUAGE_SETS_DATA = {
     'jp': (
@@ -246,27 +247,30 @@ _SINGLE_LANGUAGE_SETS_DATA = {
     )
 }
 
+NAME_CHARACTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LETTERS_RUSSIAN | set(string.digits)
 
-def getAbbreviation(setNameString):
-    return _SETS[setNameString.strip()]
+
+def _getNameKey(setNameString):
+    return ''.join(c for c in setNameString.lower() if c in NAME_CHARACTERS)
+
+_SETS = tools.dict.expandMapping(_SET_ABBREVIATIONS_SOURCE, _getNameKey)
 
 
 def getFullName(setAbbrv):
     return _SET_ABBREVIATIONS_SOURCE[setAbbrv][0]
 
 
-def tryGetAbbreviationCaseInsensitive(setNameString):
-    setAbbreviation = None
-    caseSensitiveSetString = _CASE_INSENSITIVE_SET_STRINGS.get(setNameString.lower())
-    if caseSensitiveSetString is not None:
-        setAbbreviation = getAbbreviation(caseSensitiveSetString)
-    return setAbbreviation
+def tryGetAbbreviation(setNameString, quiet=False):
+    result = _SETS.get(_getNameKey(setNameString), None)
+    if result is None and not quiet:
+        _logger.warning('Unable to recognize set "{}"'.format(setNameString))
+    return result
 
 
 SINGLE_LANGUAGE_SETS = {}
 for language, setStrings in _SINGLE_LANGUAGE_SETS_DATA.items():
     for setId in setStrings:
-        abbrv = tryGetAbbreviationCaseInsensitive(setId)
+        abbrv = tryGetAbbreviation(setId)
         if abbrv is None:
             print('Unknown card set "{}"'.format(setId))
         SINGLE_LANGUAGE_SETS[abbrv] = language
