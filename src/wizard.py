@@ -220,10 +220,15 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.searchResultsModel.canFetchMore(None):
             self.searchResultsModel.fetchMore(None)
 
-        while not self.obtainedPrices.empty():
+        batchLength = 0
+        self.searchResultsModel.beginUpdateCells()
+        while not self.obtainedPrices.empty() and batchLength <= 10:
             row, column, priceInfo, searchVersion = self.obtainedPrices.get()
             if priceInfo and searchVersion == self.searchVersion:
+                batchLength += 1
                 self.searchResultsModel.updateCell(row, column, convertPrice(priceInfo))
+        if batchLength > 0:
+            self.searchResultsModel.endUpdateCells()
 
         self.updateSearchProgress()
         self.updateSearchControlsStatus()
@@ -477,9 +482,17 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         self.cardCount += batchLength
         self.endInsertRows()
 
+    def beginUpdateCells(self):
+        self.updatedCells = []
+
     def updateCell(self, row, column, value):
         self.dataTable[row][column] = value
-        self.dataChanged.emit(self.index(row, column), self.index(row, column))
+        self.updatedCells.append((row, column))
+
+    def endUpdateCells(self):
+        # TODO Optimize
+        for row, column in self.updatedCells:
+            self.dataChanged.emit(self.index(row, column), self.index(row, column))
 
 
 class CardsSortProxy(QtCore.QSortFilterProxyModel):
