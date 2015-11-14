@@ -192,11 +192,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # header.setMouseTracking(True)
         # header.entered.connect(self.onSearchResultsCellMouseEnter)
 
-    def abort(self):
-        self.priceStopEvent.set()
-        for process in list(self.searchWorkers.values()) + self.priceWorkers:
+    def killWorkers(self, workers):
+        for process in workers:
             if process.is_alive():
                 os.kill(process.pid, signal.SIGTERM)
+
+    def abort(self):
+        self.priceStopEvent.set()
+        self.killWorkers(self.searchWorkers.values())
+        self.killWorkers(self.priceWorkers)
 
     def onSearchResultsCellMouseEnter(self, index):
         pass
@@ -213,6 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchStopEvent.set()
         self.searchStopButton.setEnabled(False)
         self.searchProgress.setValue(0)
+        self.killWorkers(self.searchWorkers.values())
         self.searchWorkers = {}
         self.searchProgressStats = {}
 
