@@ -789,7 +789,7 @@ class EasyBoosters(CardSource):
                 continue
 
             itemName = entry.cssselect('.product-name-wrapper a.info')[0].attrib['title']
-            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы', 'кубик']):
+            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы', 'кубик', 'альбом']):
                 self.estimatedCardsCount -= 1
                 yield None
                 continue
