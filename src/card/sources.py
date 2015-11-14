@@ -69,6 +69,7 @@ class CardSource(object):
         self.encoding = encoding
         self.foundCardsCount = 0
         self.estimatedCardsCount = None
+        self.requestCache = {}
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
@@ -79,7 +80,10 @@ class CardSource(object):
 
     def makeRequest(self, queryText, pageIndex=1):
         queryText = queryText.replace(u'`', "'").replace(u'’', "'")
-        return lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.parse.quote(queryText), pageIndex)).decode(self.encoding))
+        cacheKey = queryText + ';' + str(pageIndex)
+        if cacheKey not in self.requestCache:
+            self.requestCache[cacheKey] = lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.parse.quote(queryText), pageIndex)).decode(self.encoding))
+        return self.requestCache[cacheKey]
 
     def packName(self, caption, description=None):
         result = {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
@@ -169,10 +173,8 @@ class MtgRuShop(CardSource):
             pagesCount = int(re.match(r'.+page=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
             self.estimatedCardsCount = pagesCount * self.cardsPerPage
 
-        for cardInfo in self.parse(index):
-            yield cardInfo
-        for i in range(2, pagesCount + 1):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
+        for i in range(pagesCount):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
                 yield cardInfo
 
     def parse(self, html):
@@ -294,10 +296,8 @@ class MtgSale(CardSource):
         if pagesLinks:
             pagesCount = int(pagesLinks[-1].text)
 
-        for cardInfo in self.parse(html):
-            yield cardInfo
-        for i in range(2, pagesCount + 1):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
+        for i in range(pagesCount):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
                 yield cardInfo
 
     def parse(self, html):
@@ -489,10 +489,8 @@ class Untap(CardSource):
             pagesCount = int(pagesLinks[-2].cssselect('span')[0].text)
             self.estimatedCardsCount = pagesCount * self.cardsPerPage
 
-        for cardInfo in self.parse(index):
-            yield cardInfo
-        for i in range(2, pagesCount + 1):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
+        for i in range(pagesCount):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
                 yield cardInfo
 
     def parse(self, html):
@@ -580,9 +578,7 @@ class CenterOfHobby(CardSource):
             pagesCount = int(pagesLinks[-1].text)
             self.estimatedCardsCount = pagesCount * self.cardsPerPage
 
-        for cardInfo in self.parse(index):
-            yield cardInfo
-        for i in range(1, pagesCount):
+        for i in range(pagesCount):
             for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i * self.cardsPerPage)):
                 yield cardInfo
 
@@ -767,11 +763,13 @@ class EasyBoosters(CardSource):
             pagesCount = int(re.match(r'.+?page=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
             self.estimatedCardsCount = self.cardsPerPage * pagesCount
 
-        for cardInfo in self.parse(index):
-            yield cardInfo
-        for i in range(2, pagesCount + 1):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i)):
-                yield cardInfo
+        for i in range(pagesCount):
+            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
+                if cardInfo == 'STOP':  # TODO GOVNO
+                    self.estimatedCardsCount = self.foundCardsCount
+                    return
+                else:
+                    yield cardInfo
 
     def parse(self, html):
         products = html.cssselect('#products .product-list-item')
@@ -780,6 +778,9 @@ class EasyBoosters(CardSource):
             if self.estimatedCardsCount < 0:
                 self.estimatedCardsCount = 0
             yield None
+
+        if len(products) == 0:  # TODO GOVNO
+            yield 'STOP'
 
         for entry in products:
             cardUrl = entry.cssselect('a')[0].attrib['href']
