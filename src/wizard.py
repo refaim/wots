@@ -258,7 +258,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         searchInProgress = self.isSearchInProgress()
         if self.foundCardsCount != self.searchResultsModel.cardCount or searchInProgress != self.wasSearchInProgress:
-            message = '{} cards found.'.format(self.searchResultsModel.cardCount)
+            message = '{} entries found.'.format(self.searchResultsModel.cardCount)
             if searchInProgress:
                 message = '{} Searching for more...'.format(message)
             self.foundCardsCount = self.searchResultsModel.cardCount
