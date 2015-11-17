@@ -78,18 +78,24 @@ class CardSource(object):
     def getSetAbbrv(self, setId):
         return card.sets.tryGetAbbreviation(self.sourceSpecificSets.get(setId, setId))
 
-    def makeRequest(self, queryText, pageIndex=1):
-        queryText = queryText.replace(u'`', "'").replace(u'’', "'")
-        cacheKey = queryText + ';' + str(pageIndex)
-        if cacheKey not in self.requestCache:
-            self.requestCache[cacheKey] = lxml.html.document_fromstring(core.network.getUrl(self.cardQueryUrlTemplate.format(urllib.parse.quote(queryText), pageIndex)).decode(self.encoding))
-        return self.requestCache[cacheKey]
+    def _escapeQueryText(self, queryText):
+        return queryText.replace(u'`', "'").replace(u'’', "'")
+
+    def makeUrl(self, queryText, pageIndex):
+        return self.cardQueryUrlTemplate.format(urllib.parse.quote(self._escapeQueryText(queryText)), pageIndex)
+
+    def makeRequest(self, url):
+        if url not in self.requestCache:
+            self.requestCache[url] = lxml.html.document_fromstring(core.network.getUrl(url).decode(self.encoding))
+        return self.requestCache[url]
 
     def packName(self, caption, description=None):
         result = {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
         return result
 
     def packSource(self, caption, cardUrl=None):
+        if cardUrl is not None:
+            cardUrl = urllib.parse.urljoin(self.url, cardUrl)
         result = {'caption': caption, 'url': cardUrl or caption}
         return result
 
@@ -130,7 +136,7 @@ class AngryBottleGnome(CardSource):
         </table>
         </div>
         '''
-        searchResults = self.makeRequest(queryText).cssselect('#search-results tbody tr')
+        searchResults = self.makeRequest(self.makeUrl(queryText, 1)).cssselect('#search-results tbody tr')
         self.estimatedCardsCount = len(searchResults)
         for resultsEntry in searchResults:
             dataCells = resultsEntry.cssselect('td')
@@ -165,8 +171,8 @@ class MtgRuShop(CardSource):
 
     def query(self, queryText):
         self.estimatedCardsCount = self.cardsPerPage
-        index = self.makeRequest(queryText, pageIndex=1)
-        pagesCount = 0
+        index = self.makeRequest(self.makeUrl(queryText, 1))
+        pagesCount = 1
 
         pagesLinks = index.cssselect('.split-pages a')
         if len(pagesLinks) > 0:
@@ -174,10 +180,11 @@ class MtgRuShop(CardSource):
             self.estimatedCardsCount = pagesCount * self.cardsPerPage
 
         for i in range(pagesCount):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
+            resultsUrl = self.makeUrl(queryText, i + 1)
+            for cardInfo in self.parse(self.makeRequest(resultsUrl), resultsUrl):
                 yield cardInfo
 
-    def parse(self, html):
+    def parse(self, html, url):
         '''
         <table id="Catalog">
         <tr class="ui-state-highlight ui-widget" id="2941159-eng-Y">
@@ -211,7 +218,7 @@ class MtgRuShop(CardSource):
                 'count': int(re.match(r'(\d+)', dataCells[5].text).group(0)),
                 'price': decimal.Decimal(re.match(r'(\d+)', dataCells[6].text.replace('`', '')).group(0)),
                 'currency': core.currency.RUR,
-                'source': self.packSource(self.getTitle())
+                'source': self.packSource(self.getTitle(), url)
             })
 
 
@@ -288,7 +295,7 @@ class MtgSale(CardSource):
         super().__init__('http://mtgsale.ru', '/home/search-results?Name={}&Page={}', 'utf-8', sourceSpecificSets)
 
     def query(self, queryText):
-        html = self.makeRequest(queryText, pageIndex=1)
+        html = self.makeRequest(self.makeUrl(queryText, 1))
         self.estimatedCardsCount = int(re.match(r'\D*(\d+)\D*', html.cssselect('span.search-number')[0].text).group(1))
 
         pagesCount = 1
@@ -297,10 +304,11 @@ class MtgSale(CardSource):
             pagesCount = int(pagesLinks[-1].text)
 
         for i in range(pagesCount):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
+            resultsUrl = self.makeUrl(queryText, i + 1)
+            for cardInfo in self.parse(self.makeRequest(resultsUrl), resultsUrl):
                 yield cardInfo
 
-    def parse(self, html):
+    def parse(self, html, url):
         for resultsEntry in html.cssselect('.tab_container div.ctclass'):
             count = int(re.match(r'(\d+)', resultsEntry.cssselect('p.colvo')[0].text).group(0))
             if count <= 0:
@@ -330,7 +338,7 @@ class MtgSale(CardSource):
                 'count': count,
                 'price': price,
                 'currency': core.currency.RUR,
-                'source': self.packSource(self.getTitle()),
+                'source': self.packSource(self.getTitle(), url),
             })
 
 
@@ -364,7 +372,7 @@ class CardPlace(CardSource):
         return contents
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText).cssselect('#mtgksingles tbody tr')
+        searchResults = self.makeRequest(self.makeUrl(queryText, 1)).cssselect('#mtgksingles tbody tr')
         self.estimatedCardsCount = len(searchResults)
         for resultsEntry in searchResults:
             dataCells = resultsEntry.cssselect('td')
@@ -416,7 +424,7 @@ class MtgRu(CardSource):
         super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={}&Amount=1', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText).cssselect('table.NoteDivWidth')
+        searchResults = self.makeRequest(self.makeUrl(queryText, 1)).cssselect('table.NoteDivWidth')
         self.estimatedCardsCount = len(searchResults)
         for userEntry in searchResults:
             userInfo = userEntry.cssselect('tr table')[0]
@@ -468,7 +476,7 @@ class MtgRu(CardSource):
                         'price': price,
                         'currency': core.currency.RUR,
                         'count': int(cardInfo.cssselect('td.txt15 b')[0].text.split()[0]),
-                        'source': self.packSource(cardSource, urllib.parse.urljoin(self.url, exchangeUrl)),
+                        'source': self.packSource(cardSource, exchangeUrl),
                     })
 
 
@@ -481,7 +489,7 @@ class Untap(CardSource):
         self.cardsPerPage = 12
 
     def query(self, queryText):
-        index = self.makeRequest(queryText, pageIndex=1)
+        index = self.makeRequest(self.makeUrl(queryText, 1))
         self.estimatedCardsCount = self.cardsPerPage
         pagesCount = 0
         pagesLinks = index.cssselect('ul.pagination li a')
@@ -490,7 +498,7 @@ class Untap(CardSource):
             self.estimatedCardsCount = pagesCount * self.cardsPerPage
 
         for i in range(pagesCount):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
+            for cardInfo in self.parse(self.makeRequest(self.makeUrl(queryText, i + 1))):
                 yield cardInfo
 
     def parse(self, html):
@@ -571,7 +579,7 @@ class CenterOfHobby(CardSource):
 
     def query(self, queryText):
         self.estimatedCardsCount = self.cardsPerPage
-        index = self.makeRequest(queryText, 0)
+        index = self.makeRequest(self.makeUrl(queryText, 0))
         pagesCount = 0
         pagesLinks = index.cssselect('.nc_pagination')[-1].cssselect('a')
         if len(pagesLinks) > 0 and pagesLinks[-1].text.isdigit():
@@ -579,7 +587,7 @@ class CenterOfHobby(CardSource):
             self.estimatedCardsCount = pagesCount * self.cardsPerPage
 
         for i in range(pagesCount):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i * self.cardsPerPage)):
+            for cardInfo in self.parse(self.makeRequest(self.makeUrl(queryText, i * self.cardsPerPage))):
                 yield cardInfo
 
     def parse(self, html):
@@ -632,7 +640,7 @@ class CenterOfHobby(CardSource):
                 'price': cardPrice,
                 'currency': core.currency.RUR,
                 'count': cardCount,
-                'source': self.packSource(self.getTitle(), self.url + cardUrl),
+                'source': self.packSource(self.getTitle(), cardUrl),
                 'url': cardUrl,
             }
             prevResult = result.copy()
@@ -656,7 +664,7 @@ class TtTopdeck(CardSource):
         ]
 
     def query(self, queryText):
-        searchResults = self.makeRequest(queryText).cssselect('table table tr')[1:]
+        searchResults = self.makeRequest(self.makeUrl(queryText, 1)).cssselect('table table tr')[1:]
         self.estimatedCardsCount = len(searchResults)
         for entry in searchResults:
             cells = entry.cssselect('td')
@@ -755,7 +763,7 @@ class EasyBoosters(CardSource):
         self.cardsPerPage = 12
 
     def query(self, queryText):
-        index = self.makeRequest(queryText, pageIndex=1)
+        index = self.makeRequest(self.makeUrl(queryText, 1))
         self.estimatedCardsCount = self.cardsPerPage
         pagesCount = 0
         pagesLinks = index.cssselect('.pagination li a')
@@ -764,7 +772,7 @@ class EasyBoosters(CardSource):
             self.estimatedCardsCount = self.cardsPerPage * pagesCount
 
         for i in range(pagesCount):
-            for cardInfo in self.parse(self.makeRequest(queryText, pageIndex=i + 1)):
+            for cardInfo in self.parse(self.makeRequest(self.makeUrl(queryText, i + 1))):
                 if cardInfo == 'STOP':  # TODO GOVNO
                     self.estimatedCardsCount = self.foundCardsCount
                     return
@@ -852,10 +860,10 @@ class MtgTrade(CardSource):
     def __init__(self):
         super().__init__('http://mtgtrade.net', '/search/?query={}', 'utf-8', {})
 
-    def makeRequest(self, queryText, pageIndex=1):
+    def makeRequest(self, url):
         result = lxml.html.document_fromstring('<html/>')
         try:
-            result = super().makeRequest(queryText, pageIndex)
+            result = super().makeRequest(url)
         except urllib.error.HTTPError as ex:
             if ex.code != http.client.INTERNAL_SERVER_ERROR:
                 raise
@@ -863,7 +871,7 @@ class MtgTrade(CardSource):
 
     def query(self, queryText):
         cardSelector = 'table.search-card tbody tr'
-        response = self.makeRequest(queryText)
+        response = self.makeRequest(self.makeUrl(queryText, 1))
         foundCards = response.cssselect(cardSelector)
         self.estimatedCardsCount = len(foundCards)
 
@@ -894,7 +902,7 @@ class MtgTrade(CardSource):
                         'currency': core.currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
-                        'source': self.packSource(self.getTitle() + '/' + sellerNickname, self.url + sellerUrl)
+                        'source': self.packSource(self.getTitle() + '/' + sellerNickname, sellerUrl)
                     })
 
 
