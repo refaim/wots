@@ -119,8 +119,15 @@ class CardSource(object):
             self.estimatedCardsCount = self._getCardsPerPageCount(html) * pagesCount
         for i in range(pagesCount):
             resultsUrl = self.makeUrl(queryText, self._makePageIndex(i))
+            pageCards = 0
             for cardInfo in self.parse(self.makeRequest(resultsUrl), resultsUrl):
+                if cardInfo is not None:
+                    pageCards += 1
                 yield cardInfo
+            if pageCards == 0:
+                self.estimatedCardsCount = self.foundCardsCount
+                yield None
+                break
 
     def _makePageIndex(self, i):
         return i + 1
@@ -793,18 +800,12 @@ class EasyBoosters(CardSource):
 
     def parse(self, html, url):
         products = html.cssselect('#products .product-list-item')
-        if len(products) < self._getCardsPerPageCount(html):
-            self.estimatedCardsCount -= self._getCardsPerPageCount(html) - len(products)
-            if self.estimatedCardsCount < 0:
-                self.estimatedCardsCount = 0
+
+        if len(products) == 0:
+            return
+
+        if self._refineEstimatedCardsCount(html, len(products)):
             yield None
-
-        # вынесено из бывшего query
-        # if cardInfo == 'STOP':  # TODO GOVNO
-        #     self.estimatedCardsCount = self.foundCardsCount
-
-        if len(products) == 0:  # TODO GOVNO
-            yield 'STOP'
 
         for entry in products:
             cardUrl = entry.cssselect('a')[0].attrib['href']
