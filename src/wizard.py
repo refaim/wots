@@ -296,6 +296,8 @@ class MainWindow(QtWidgets.QMainWindow):
         queryString = self.searchField.text()
         if not queryString:
             return
+        queryString = queryString.strip()
+        self.searchField.setText(queryString)
         queryString = card.utils.escape(queryString)
 
         while not self.priceRequests.empty():
