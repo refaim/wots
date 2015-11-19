@@ -97,7 +97,7 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
 VISITED_URLS = set()
 
 
-class HypelinkItemDelegate(QtWidgets.QStyledItemDelegate):
+class HyperlinkItemDelegate(QtWidgets.QStyledItemDelegate):
     def paint(self, painter, option, index):
         color = option.palette.link().color()
         if index.data(QtCore.Qt.ToolTipRole) in VISITED_URLS:
@@ -180,7 +180,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
-        self.searchResultsView.setItemDelegateForColumn(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO) - 1, HypelinkItemDelegate())
+        self.searchResultsView.setItemDelegateForColumn(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO) - 1, HyperlinkItemDelegate())
         self.searchResultsView.entered.connect(self.onSearchResultsCellMouseEnter)
 
         self.searchCompleter = QtWidgets.QCompleter(sorted(cardNames))
