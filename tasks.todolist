@@ -30,10 +30,23 @@
  - shop.mymagic.ru (и убрать соответствующую залепу в мтгрушном поиске)
  - topdeck.ru
  - wubrg.ru
+ Поиск русских карт по английским названиям:
+ - Amberson
+ - AngryBottleGnome
+ - CardPlace (поюзать http://www.cardplace.ru/advancedsearch/mtg/)
+ - CenterOfHobby
+ - EasyBoosters
+ - MagicMaze
+ - ManaPoint
+ - MtgRu
+ - MtgSale
+ - MtgTrade
+ - TtTopdeck
+ - Untap
  Ссылки на карты:
  - TtTopdeck
  Поддержка многостраничных результатов:
- - MtgRu
+ √ MtgRu @done (15-11-18 03:51)
  Эвристики:
   - Определять сет по карте
   - Определять номер по карте и сету
