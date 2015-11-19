@@ -373,7 +373,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         super().__init__()
         self.cardsInfo = cardsInfo
         self.columnsInfo = columnsInfo
-        self.colunmCount = len(columnsInfo)
+        self.columnCount = len(columnsInfo)
         self.dataQueue = dataQueue
         self.statQueue = statQueue
         self.priceRequests = priceRequests
@@ -393,7 +393,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         return self.cardCount
 
     def columnCount(self, parent):
-        return self.colunmCount
+        return self.columnCount
 
     def data(self, index, role):
         if index.isValid():
