@@ -43,6 +43,7 @@ class Logger(object):
                 _LEVEL_STRING[level],
                 message,
             )
-            with STDERR_LOCK:
-                sys.stderr.write(logEntry + '\n')
-                sys.stderr.flush()
+            if not getattr(sys, 'frozen', False):
+                with STDERR_LOCK:
+                    sys.stderr.write(logEntry + '\n')
+                    sys.stderr.flush()
