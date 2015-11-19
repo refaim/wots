@@ -43,6 +43,6 @@ class Logger(object):
                 _LEVEL_STRING[level],
                 message,
             )
-            # with STDERR_LOCK:
-            #     sys.stderr.write(logEntry + '\n')
-            #     sys.stderr.flush()
+            with STDERR_LOCK:
+                sys.stderr.write(logEntry + '\n')
+                sys.stderr.flush()
