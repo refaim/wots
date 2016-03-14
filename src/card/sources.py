@@ -134,6 +134,7 @@ class CardSource(object):
                 break
 
             loopIndex += 1
+            pageIndex = self.getPageIndex(loopIndex)
 
         # self.estimatedCardsCount = self._getFoundCardsCount(html)
         # if self.estimatedCardsCount <= 0:
