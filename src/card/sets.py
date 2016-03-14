@@ -128,6 +128,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'MRD': ('Mirrodin',),
     'NEM': ('Nemesis', 'NE',),
     'NPH': ('New Phyrexia',),
+    'OGW': ('Oath of the Gatewatch',),
     'ODY': ('Odyssey', 'OD',),
     'ONS': ('Onslaught', 'ON',),
     'ORI': ('Magic Origins', 'Origins',),
