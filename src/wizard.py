@@ -555,6 +555,10 @@ if __name__ == '__main__':
     if getattr(sys, 'frozen', False):
         sys.stdout = io.StringIO()
         sys.stderr = io.StringIO()
+
+    # workaround for creating instances of QApplication in the child processes created by multiprocessing on Linux
+    multiprocessing.set_start_method('spawn')
+
     multiprocessing.freeze_support()
     currencyConverter = core.currency.Converter()
     currencyConverter.update()
