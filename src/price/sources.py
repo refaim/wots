@@ -3,8 +3,13 @@ import lxml.html
 import queue
 import re
 import string
+import sys
 import threading
 import urllib.parse
+
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtWebKitWidgets
 
 import card.sets
 import card.utils
@@ -75,8 +80,11 @@ def tcgProcessRequests(priceRequests, priceResults, setsRequests, setsResults, s
 
 
 def tcgObtainSets(requests, results, exitEvent):
-    setQueryUrlTemplate = 'http://magic.tcgplayer.com/db/price_guide.asp?setname={}'
+    setQueryUrlTemplate = 'http://shop.tcgplayer.com/price-guide/magic/{}'
     setsPrices = {}
+    app = QtWidgets.QApplication(sys.argv)
+    browser = QtWebKitWidgets.QWebView()
+    app.exec_()
     while True:
         if exitEvent.is_set():
             return
@@ -84,23 +92,42 @@ def tcgObtainSets(requests, results, exitEvent):
         setFullName = requests.get()
         setAbbrv = card.sets.tryGetAbbreviation(setFullName)
         if setAbbrv not in setsPrices:
-            html = lxml.html.document_fromstring(core.network.getUrl(setQueryUrlTemplate.format(urllib.parse.quote(setFullName))))
-            tables = html.cssselect('table')
-            if tables:
-                setsPrices[setAbbrv] = {}
-                for resultsEntry in tables[-1].cssselect('tr'):
-                    cells = resultsEntry.cssselect('td')
-                    if cells and len(cells) >= 5:
-                        cellCardNameString = cells[0].cssselect('font')[0].text
-                        if cellCardNameString.startswith('&nbsp;'):
-                            cellCardNameString = cellCardNameString[6:]
-                        cellCardKey = getCardKey(cellCardNameString, 'EN', False)
-                        priceString = cells[6].cssselect('font')[0].text
-                        if priceString and priceString.startswith('$'):
-                            setsPrices[setAbbrv][cellCardKey] = {
-                                'price': decimal.Decimal(re.match(r'\$([\d\.]+).*', priceString).group(1)),
-                                'currency': core.currency.USD,
-                            }
+            browser.load(QtCore.QUrl(setQueryUrlTemplate.format(urllib.parse.quote(setFullName.lower()))))
+            print(browser.page())
+            exit()
+            # html = lxml.html.document_fromstring(core.network.getUrl(setQueryUrlTemplate.format(urllib.parse.quote(setFullName.lower()))))
+            setsPrices[setAbbrv] = {}
+            for row in html.cssselect('table.priceGuideTable tr'):
+                cardName = row.cssselect('td.product div.productDetail a')[0].text
+                print(cardName)
+                # cells = row.cssselect('td')
+                # if cells and len(cells) >= 5:
+                #     cellCardNameString = cells[0].cssselect('font')[0].text
+                #     if cellCardNameString.startswith('&nbsp;'):
+                #         cellCardNameString = cellCardNameString[6:]
+                #     cellCardKey = getCardKey(cellCardNameString, 'EN', False)
+                #     priceString = cells[6].cssselect('font')[0].text
+                #     if priceString and priceString.startswith('$'):
+                #         setsPrices[setAbbrv][cellCardKey] = {
+                #             'price': decimal.Decimal(re.match(r'\$([\d\.]+).*', priceString).group(1)),
+                #             'currency': core.currency.USD,
+                #         }
+            # tables = html.cssselect('table')
+            # if tables:
+            #     setsPrices[setAbbrv] = {}
+            #     for resultsEntry in tables[-1].cssselect('tr'):
+            #         cells = resultsEntry.cssselect('td')
+            #         if cells and len(cells) >= 5:
+            #             cellCardNameString = cells[0].cssselect('font')[0].text
+            #             if cellCardNameString.startswith('&nbsp;'):
+            #                 cellCardNameString = cellCardNameString[6:]
+            #             cellCardKey = getCardKey(cellCardNameString, 'EN', False)
+            #             priceString = cells[6].cssselect('font')[0].text
+            #             if priceString and priceString.startswith('$'):
+            #                 setsPrices[setAbbrv][cellCardKey] = {
+            #                     'price': decimal.Decimal(re.match(r'\$([\d\.]+).*', priceString).group(1)),
+            #                     'currency': core.currency.USD,
+            #                 }
         results.put((setAbbrv, setsPrices[setAbbrv]))
 
 
@@ -152,7 +179,7 @@ class TcgPlayer(object):
             'RAV': 'Ravnica',
             'TST': 'Timeshifted',
         }
-        self.resultsPrice = resultsQueue
+        self.priceResults = resultsQueue
         self.restart()
 
     def getTitle(self):
@@ -162,7 +189,7 @@ class TcgPlayer(object):
         return self.fullSetNames.get(setId, card.sets.getFullName(setId))
 
     def queryPrice(self, cardName, setId, language, foil, cookie):
-        self.requestsPrice.put((cardName, setId, self.getFullSetName(setId), language, foil, cookie))
+        self.priceRequests.put((cardName, setId, self.getFullSetName(setId), language, foil, cookie))
 
     def terminate(self):
         self.exitEvent.set()
@@ -171,21 +198,19 @@ class TcgPlayer(object):
         if hasattr(self, 'exitEvent'):
             self.exitEvent.set()
         self.exitEvent = threading.Event()
+        self.priceRequests = queue.Queue()
+        self.singlesRequests = queue.Queue()
+        self.singlesResults = queue.Queue()
+        self.setsRequests = queue.Queue()
+        self.setsResults = queue.Queue()
 
-        self.requestsPrice = queue.Queue()
-
-        self.requestsSingles = queue.Queue()
-        self.resultsSingles = queue.Queue()
-
-        self.requestsSet = queue.Queue()
-        self.resultsSet = queue.Queue()
-
-        # self.singlesObtainer = threading.Thread(name='TCG-Singles', target=tcgObtainSingles, args=(self.requestsSingles, self.resultsSingles, self.exitEvent,), daemon=True)
-        self.setsObtainer = threading.Thread(name='TCG-Sets', target=tcgObtainSets, args=(self.requestsSet, self.resultsSet, self.exitEvent,), daemon=True)
+        self.htmlObtainer = threading.Thread
+        # self.singlesObtainer = threading.Thread(name='TCG-Singles', target=tcgObtainSingles, args=(self.singlesRequests, self.singlesResults, self.exitEvent,), daemon=True)
+        self.setsObtainer = threading.Thread(name='TCG-Sets', target=tcgObtainSets, args=(self.setsRequests, self.setsResults, self.exitEvent,), daemon=True)
         self.priceRequestsProcessor = threading.Thread(
             name='TCG-Main',
             target=tcgProcessRequests,
-            args=(self.requestsPrice, self.resultsPrice, self.requestsSet, self.resultsSet, self.requestsSingles, self.resultsSingles, self.exitEvent,),
+            args=(self.priceRequests, self.priceResults, self.setsRequests, self.setsResults, self.singlesRequests, self.singlesResults, self.exitEvent,),
             daemon=True)
         # self.singlesObtainer.start()
         self.setsObtainer.start()
