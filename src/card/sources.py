@@ -610,85 +610,6 @@ class Untap(CardSource):
             })
 
 
-class CenterOfHobby(CardSource):
-    def __init__(self):
-        sourceSpecificSets = {
-            'LE': 'Legions',
-            'MI': 'Mirrodin',
-        }
-        super().__init__('http://www.centerofhobby.ru', '/catalog/mtgcards/search/?card_name={query}&curPos={page}', 'utf-8', sourceSpecificSets)
-
-    def estimatePagesCount(self, html):
-        pagesCount = 1
-        pagesLinks = html.cssselect('.nc_pagination')[-1].cssselect('a')
-        if len(pagesLinks) > 0 and pagesLinks[-1].text.isdigit():
-            pagesCount = int(pagesLinks[-1].text)
-        return pagesCount
-
-    def getPageCardsCount(self, html):
-        return 100
-
-    def getPageIndex(self, loopIndex):
-        return loopIndex * self.getPageCardsCount('')
-
-    def parse(self, html, url):
-        products = html.cssselect('.mtg_table tr')[1:]
-        if self.refineEstimatedCardsCount(html, len(products)):
-            yield None
-
-        prevResult = None
-        for entry in products:
-            cells = entry.cssselect('td')
-
-            foil = False
-            isChildEntry = len(entry.cssselect('.child_card')) > 0
-            if isChildEntry:
-                cardId = prevResult['id']
-                cardName = cells[2].cssselect('div')[0].text
-                foil = cardName.endswith('(foil)')
-                cardName = cardName.replace('(foil)', '')
-                cardSet = prevResult['set']
-                cardUrl = prevResult['url']
-            else:
-                cardId = cells[0].text
-                cardName = cells[2].cssselect('a')[0].cssselect('b')[0].text
-                cardSet = re.match(r'r_([^_]+)_.+', os.path.basename(cells[1].cssselect('img')[0].attrib['src'])).group(1)
-                cardUrl = cells[2].cssselect('a')[0].attrib['href']
-
-            cardLanguage = re.match(r'^lang_(.+)$', cells[2].attrib['class']).group(1)
-            cardCount = int(cells[5].text) if cells[5].text.isdigit() else 0
-            cardPrice = None
-            if cardCount > 0:
-                priceMatch = re.match(r'([\d\s]+).*', cells[6].text)
-                if priceMatch:
-                    cardPrice = decimal.Decimal(''.join(priceMatch.group(1).split()))
-
-            # Эвристика для обхода бага на сайте.
-            if cardLanguage == '$card_lang':
-                cardLanguage = guessCardLanguage(cardName)
-            if cardLanguage is not None:
-                cardLanguage = core.language.getAbbreviation(cardLanguage)
-
-            result = {
-                'id': int(cardId),
-                'name': self.packName(cardName),
-                'foilness': foil,
-                'set': self.getSetAbbrv(cardSet.upper()),
-                'language': cardLanguage,
-                'price': cardPrice,
-                'currency': core.currency.RUR,
-                'count': cardCount,
-                'source': self.packSource(self.getTitle(), cardUrl),
-                'url': cardUrl,
-            }
-            prevResult = result.copy()
-            if cardCount > 0:
-                yield self.fillCardInfo(result)
-            else:
-                self.estimatedCardsCount -= 1
-                yield None
-
-
 class TtTopdeck(CardSource):
     def __init__(self):
         super().__init__('http://tt.topdeck.ru', '/?req={query}&mode=sell&group=card', 'utf-8', {})
@@ -963,7 +884,6 @@ def getCardSourceClasses():
         Amberson,
         AngryBottleGnome,
         CardPlace,
-        CenterOfHobby,
         EasyBoosters,
         MagicMaze,
         ManaPoint,
