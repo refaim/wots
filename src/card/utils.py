@@ -29,13 +29,13 @@ _LETTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LET
 
 
 def escape(cardname):
-    if not cardname in _CACHE_ESCAPE:
+    if cardname not in _CACHE_ESCAPE:
         _CACHE_ESCAPE[cardname] = _processCard(cardname, _STRINGS_TO_ESCAPE)
     return _CACHE_ESCAPE[cardname]
 
 
 def unescape(cardname):
-    if not cardname in _CACHE_UNESCAPE:
+    if cardname not in _CACHE_UNESCAPE:
         _CACHE_UNESCAPE[cardname] = _processCard(cardname, _STRINGS_TO_UNESCAPE)
     return _CACHE_UNESCAPE[cardname]
 

@@ -185,16 +185,6 @@ class AngryBottleGnome(CardSource):
         return len(html.cssselect('#search-results tbody tr'))
 
     def parse(self, html, url):
-        '''
-        <div id="search-results"><table class="tablesorter sticky-enabled" id="search-list">
-         <thead><tr><th>Название</th><th>Сет</th><th>В наличии</th><th>Цена</th> </tr></thead>
-        <tbody>
-         <tr class="odd"><td><a href="/shop/card/14443" class = "tooltipCard" name = "Sowing+Salt">Sowing Salt</a></td><td><a href="/shop/set/29">Betrayers of Kamigawa</a></td><td>1</td><td>от 150р.</td> </tr>
-         <tr class="even"><td><a href="/shop/card/17977" class = "tooltipCard" name = "Sowing+Salt">Sowing Salt</a></td><td><a href="/shop/set/45">Urza's Destiny</a></td><td>8</td><td>от 150р.</td> </tr>
-        </tbody>
-        </table>
-        </div>
-        '''
         searchResults = html.cssselect('#search-results tbody tr')
         for resultsEntry in searchResults:
             dataCells = resultsEntry.cssselect('td')
@@ -282,54 +272,6 @@ class ManaPoint(MtgRuShop):
 class MagicMaze(MtgRuShop):
     def __init__(self):
         super().__init__('http://magicmaze.mtg.ru')
-
-
-# class MtgRuPromoShop(CardSource):
-#     def __init__(self, siteUrl, promoUrl):
-#         super().__init__(siteUrl, promoUrl, 'cp1251', {})
-#         self.fullPromoUrl = urllib.parse.urljoin(siteUrl, promoUrl)
-
-
-# class AmbersonPromo(MtgRuPromoShop):
-#     def __init__(self):
-#         super().__init__('http://amberson.mtg.ru', '/3.html')
-#         self.patterns = [
-#             (re.compile(r'Oversized - (?P<name>.+)(, foil)?'), 'Oversized Cards'),
-#         ]
-
-#     def query(self, queryText):
-#         foundCardsCount = 0
-#         self.estimatedCardsCount = 10
-#         searchResults = self.makeRequest(queryText)
-#         for resultsEntry in searchResults.cssselect('table.Catalog tr'):
-#             cells = resultsEntry.cssselect('td')
-#             nameString = cells[0].text
-#             foundNameKey = card.utils.getNameKey(nameString)
-#             queryNameKey = card.utils.getNameKey(queryText)
-#             if queryNameKey in foundNameKey:
-#                 cardName = nameString
-#                 cardSetId = None
-#                 foilness = False
-#                 for (pattern, patternSetId) in self.patterns:
-#                     match = pattern.match(nameString)
-#                     if match:
-#                         groups = match.groupdict()
-#                         print(groups)
-#                         cardName = groups['name']
-#                         cardSetId = self.getSetAbbrv(patternSetId)
-#                         foilness = 'foil' in groups
-#                         break
-#                 result = {
-#                     'name': self.packName(cardName, nameString),
-#                     'set': cardSetId,
-#                     # 'language': language, TODO
-#                     'foilness': foilness,
-#                     'count': int(re.match(r'(\d+)', cells[1].text).group(1)),
-#                     'price': decimal.Decimal(re.match(r'(\d+)', cells[2].text.replace('`', '')).group(1)),
-#                     'currency': core.currency.RUR,
-#                     'source': self.packSource(self.getTitle(), self.fullPromoUrl)
-#                 }
-#                 yield self.fillCardInfo(result)
 
 
 class MtgSale(CardSource):
@@ -855,6 +797,46 @@ class MtgTrade(CardSource):
                     })
 
 
+class AutumnsMagic(CardSource):
+    def __init__(self):
+        super().__init__('http://autumnsmagic.com', '/catalog?search={query}', 'utf-8', {})
+
+    def estimatePagesCount(self, html):
+        result = 1
+        pagesElements = html.cssselect('.allPages')
+        if pagesElements:
+            result = int(re.match(r'.*(\d+).*', pagesElements[-1].text).group(1))
+        return result
+
+    def getPageCardsCount(self, html):
+        return len(html.cssselect('.product-wrapper'))
+
+    def parse(self, html, url):
+        for entry in html.cssselect('.product-wrapper'):
+            cardUrl = entry.cssselect('a')[0].attrib['href']
+            cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
+            cardName, cardFoilString = re.match(r'^(.+?)\s*(\((?:фойловая|foil)\))?$', cardHtml.cssselect('.product-title')[0].text.strip()).groups()
+
+            cells = cardHtml.cssselect('.buy-block table tr td')
+            setCellIdx = -1
+            for i, cell in enumerate(cells):
+                if cell.text == 'Block':
+                    setCellIdx = i + 1
+            cardSet = None
+            if setCellIdx >= 0:
+                cardSet = self.getSetAbbrv(list(cells)[setCellIdx].cssselect('a')[0].text)
+
+            yield self.fillCardInfo({
+                'name': self.packName(cardName),
+                'set': cardSet,
+                'language': core.language.getAbbreviation(guessCardLanguage(cardName)),
+                'foilness': bool(cardFoilString is not None),
+                'count': int(cardHtml.cssselect('span.count')[0].text),
+                'price': decimal.Decimal(re.match(r'.*?(\d+).*', cardHtml.cssselect('span.price')[0].text).group(1)),
+                'currency': core.currency.RUR,
+                'source': self.packSource(self.getTitle(), cardUrl),
+            })
+
 class OfflineTestSource(CardSource):
     def __init__(self):
         super().__init__('http://offline.shop', '?query={query}', 'utf-8', {})
@@ -880,9 +862,9 @@ class OfflineTestSource(CardSource):
 
 def getCardSourceClasses():
     classes = [
-        # AmbersonPromo,
         Amberson,
         AngryBottleGnome,
+        AutumnsMagic,
         CardPlace,
         EasyBoosters,
         MagicMaze,
