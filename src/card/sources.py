@@ -890,7 +890,7 @@ def getCardSourceClasses():
         MtgRu,
         MtgSale,
         MtgTrade,
-        # TtTopdeck,
+        TtTopdeck,
         Untap,
     ]
     random.shuffle(classes)

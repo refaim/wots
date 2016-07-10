@@ -153,6 +153,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'S00': ('Starter 2000',),
     'SCG': ('Scourge', 'SC',),
     'SHM': ('Shadowmoor', 'SM',),
+    'SOI': ('Shadows of Innistrad',),
     'SOK': ('Saviors of Kamigawa', 'SK',),
     'SOM': ('Scars of Mirrodin',),
     'STH': ('Stronghold', 'SH',),
