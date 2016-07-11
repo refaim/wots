@@ -789,7 +789,7 @@ class MtgTrade(CardSource):
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': self.getSetAbbrv(cardEntry.cssselect('.choose-set')[0].attrib['title']),
                         'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|')),
-                        'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"')),
+                        'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"').replace('руб', '')),
                         'currency': core.currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
