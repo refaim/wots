@@ -1,11 +1,14 @@
 import decimal
 import functools
+import json
 import lxml.html
 import queue
 import re
+import sqlite3
 import string
 import sys
 import threading
+import time
 import urllib.parse
 
 from PyQt5 import QtWidgets
@@ -18,6 +21,9 @@ import core.currency
 import core.language
 import core.logger
 import core.network
+
+
+PRICE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 
 
 def getCardKey(cardName, language, foil):
@@ -122,13 +128,16 @@ def tcgObtainHtmlWaitData(browser, browserLock, results, exitEvent, logger):
     htmlString = browser.page().mainFrame().toHtml()
     if len(htmlString) > 30 * 1024:
         results.put(htmlString)
-        logger.info('Finished [GET] {}'.format(str(browser.url())))
+        logger.info('Finished [GET] {}'.format(browser.url().toString()))
         browser.setUrl(QtCore.QUrl(''))
         browserLock.release()
 
 
-def tcgObtainSets(priceRequests, priceResults, htmlRequests, htmlResults, exitEvent, logger):
-    setsPrices = {}
+def tcgObtainSets(priceRequests, priceResults, cachePath, htmlRequests, htmlResults, exitEvent, logger):
+    pricesCache = sqlite3.connect(cachePath)
+    cacheCursor = pricesCache.cursor()
+    cacheCursor.execute('CREATE TABLE IF NOT EXISTS sets (abbrv TEXT PRIMARY KEY, prices BLOB, unixtime INTEGER)')
+
     setQueryUrlTemplate = 'http://shop.tcgplayer.com/price-guide/magic/{}'
     while True:
         if exitEvent.is_set():
@@ -143,27 +152,38 @@ def tcgObtainSets(priceRequests, priceResults, htmlRequests, htmlResults, exitEv
             html = lxml.html.document_fromstring(htmlString)
             setNameString = re.match(r'Magic: The Gathering - (.+?)Price Guide', html.cssselect('title')[0].text).group(1).strip()
             setAbbrv = card.sets.tryGetAbbreviation(setNameString)
-            setsPrices[setAbbrv] = {}
+            setPrices = {}
             for row in html.cssselect('table.priceGuideTable tr'):
                 cardUrls = row.cssselect('.productDetail a')
                 if cardUrls:
                     cellCardKey = getCardKey(cardUrls[0].text, 'EN', False)
                     priceString = row.cssselect('.medianPrice .cellWrapper')[0].text
-                    setsPrices[setAbbrv][cellCardKey] = {
+                    setPrices[cellCardKey] = {
                         'price': decimal.Decimal(re.match(r'\s*\$([\d\.]+).*', priceString).group(1)),
                         'currency': core.currency.USD,
                     }
-            priceResults.put((setAbbrv, setsPrices[setAbbrv]))
+            priceResults.put((setAbbrv, setPrices))
+            cacheCursor.execute('DELETE FROM sets WHERE abbrv = ?', (setAbbrv,))
+            cacheCursor.execute('INSERT INTO sets VALUES (?, ?, ?)', (setAbbrv, json.dumps(setPrices, cls=core.currency.JSONEncoder), int(time.time())))
+            pricesCache.commit()
 
         try:
             setFullName = priceRequests.get_nowait()
         except queue.Empty:
             continue
         setAbbrv = card.sets.tryGetAbbreviation(setFullName)
-        if setAbbrv not in setsPrices:
+        setPrices = None
+        setPricesCached = cacheCursor.execute('SELECT prices, unixtime FROM sets WHERE abbrv = ?', (setAbbrv,)).fetchone()
+        if setPricesCached is not None:
+            setPricesJson, snapshotTime = setPricesCached
+            if int(time.time()) - snapshotTime <= PRICE_CACHE_TTL_SECONDS:
+                setPrices = json.loads(setPricesJson, parse_float=decimal.Decimal)
+            logger.info('{} cached prices: {}'.format('Found' if setPrices else 'Discarding', setFullName))
+        if setPrices:
+            priceResults.put((setAbbrv, setPrices))
+        else:
             qualifiedUrl = setQueryUrlTemplate.format(urllib.parse.quote(setFullName.lower()))
             htmlRequests.put(qualifiedUrl)
-
 
 # def tcgObtainSingles(requests, results, exitEvent):
 #     cardQueryUrlTemplate = 'http://shop.tcgplayer.com/magic/{}/{}'
@@ -197,7 +217,7 @@ def tcgMakeUrlPart(rawString):
 
 
 class TcgPlayer(object):
-    def __init__(self, resultsQueue):
+    def __init__(self, resultsQueue, storagePath):
         self.fullSetNames = {
             '10E': '10th Edition',
             '9ED': '9th Edition',
@@ -215,6 +235,7 @@ class TcgPlayer(object):
         }
         self.priceResults = resultsQueue
         self.logger = core.logger.Logger('TcgPlayer')
+        self.storagePath = storagePath
         self.restart()
 
     def getTitle(self):
@@ -241,9 +262,9 @@ class TcgPlayer(object):
         self.htmlRequests = queue.Queue()
         self.htmlResults = queue.Queue()
 
-        self.htmlObtainer = threading.Thread(name='TCG-Html', target=tcgObtainHtml, args=(self.htmlRequests, self.htmlResults, self.exitEvent, self.logger,))
+        self.htmlObtainer = threading.Thread(name='TCG-Html', target=tcgObtainHtml, args=(self.htmlRequests, self.htmlResults, self.exitEvent, self.logger,), daemon=True)
         # self.singlesObtainer = threading.Thread(name='TCG-Singles', target=tcgObtainSingles, args=(self.singlesRequests, self.singlesResults, self.exitEvent,), daemon=True)
-        self.setsObtainer = threading.Thread(name='TCG-Sets', target=tcgObtainSets, args=(self.setsRequests, self.setsResults, self.htmlRequests, self.htmlResults, self.exitEvent, self.logger,), daemon=True)
+        self.setsObtainer = threading.Thread(name='TCG-Sets', target=tcgObtainSets, args=(self.setsRequests, self.setsResults, self.storagePath, self.htmlRequests, self.htmlResults, self.exitEvent, self.logger,), daemon=True)
         self.priceRequestsProcessor = threading.Thread(
             name='TCG-Main',
             target=tcgProcessRequests,

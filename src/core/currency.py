@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import decimal
+import json
 import lxml
 import sys
 import threading
@@ -70,3 +71,10 @@ def formatPrice(amount, currency):
     if currency not in __formatPriceCache[amount]:
         __formatPriceCache[amount][currency] = FORMAT_STRINGS[currency].format(amount)
     return __formatPriceCache[amount][currency]
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            return str(o)
+        return super().default(o)

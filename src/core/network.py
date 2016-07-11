@@ -18,7 +18,7 @@ CHUNK_SIZE_BYTES = 1024 * 100
 _logger = core.logger.Logger('Network')
 
 
-def getUrl(url, parametersDict=None):
+def getUrl(url, parametersDict=None, verbose=False):
     parametersBytes = None
     representation = '[{}] {}'.format('POST' if parametersDict else 'GET', url)
     if parametersDict:
@@ -27,7 +27,8 @@ def getUrl(url, parametersDict=None):
         representation += '?{}'.format(parametersString)
 
     attempt = 0
-    _logger.info('Loading {}'.format(representation))
+    if verbose:
+        _logger.info('Loading {}'.format(representation))
     while True:
         try:
             attempt += 1
@@ -41,7 +42,8 @@ def getUrl(url, parametersDict=None):
                 dstObj.write(chunk)
             dstObj.seek(0)
             srcObj.close()
-            _logger.info('Finished {}'.format(representation))
+            if verbose:
+                _logger.info('Finished {}'.format(representation))
             return dstObj.read()
         except urllib.error.HTTPError as ex:
             if ex.code in (http.client.NOT_FOUND, http.client.REQUESTED_RANGE_NOT_SATISFIABLE, http.client.INTERNAL_SERVER_ERROR):

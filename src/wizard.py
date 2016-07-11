@@ -84,6 +84,7 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'sources': tuple(),
         'align': QtCore.Qt.AlignRight,
         'class': price.sources.TcgPlayer,
+        'storage_id': 'tcg.prices',
         'default_value': None,
     },
     {
@@ -152,10 +153,11 @@ class MainWindow(QtWidgets.QMainWindow):
         for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
             if columnInfo['id'].endswith('price') and 'class' in columnInfo:
                 sourceClass = columnInfo['class']
+                storagePath = os.path.join(os.path.expanduser('~'), '.wots.{}.db'.format(columnInfo['storage_id']))
                 process = multiprocessing.Process(
                     name=columnInfo['id'],
                     target=queryPriceSource,
-                    args=(sourceClass, i, self.priceRequests, self.obtainedPrices, self.priceStopEvent,),
+                    args=(sourceClass, i, storagePath, self.priceRequests, self.obtainedPrices, self.priceStopEvent,),
                     daemon=True)
                 self.priceWorkers.append(process)
                 process.start()
@@ -344,9 +346,9 @@ def queryCardSource(cardSourceId, cardSourceClass, queryString, resultsQueue, ex
         resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
 
 
-def queryPriceSource(priceSourceClass, sourceId, requestsQueue, resultsQueue, exitEvent):
+def queryPriceSource(priceSourceClass, sourceId, storagePath, requestsQueue, resultsQueue, exitEvent):
     pricesQueue = multiprocessing.Queue()
-    priceSource = priceSourceClass(pricesQueue)
+    priceSource = priceSourceClass(pricesQueue, storagePath)
     while True:
         if exitEvent.is_set():
             priceSource.terminate()
