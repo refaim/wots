@@ -402,6 +402,8 @@ class MtgRu(CardSource):
             'amberson.mtg.ru',
             'autumnsmagic.com',
             'cardplace.ru',
+            'centerofhobby.ru',
+            'easyboosters.com',
             'magicmaze.mtg.ru',
             'manapoint.mtg.ru',
             'mckru.mtg.ru',
