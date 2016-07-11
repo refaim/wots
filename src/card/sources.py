@@ -400,8 +400,8 @@ class MtgRu(CardSource):
     def __init__(self):
         self.sourceSubstringsToExclude = [
             'amberson.mtg.ru',
+            'autumnsmagic.com',
             'cardplace.ru',
-            'centerofhobby.ru',
             'magicmaze.mtg.ru',
             'manapoint.mtg.ru',
             'mckru.mtg.ru',
