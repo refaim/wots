@@ -89,18 +89,17 @@ def tcgProcessRequests(priceRequests, priceResults, setsRequests, setsResults, s
 
 def tcgObtainHtml(requests, results, exitEvent, logger):
     application = QtWidgets.QApplication(sys.argv)
-    browser = QtWebKitWidgets.QWebView()
+    browserStorage = { 'instance': QtWebKitWidgets.QWebView() }
     browserLock = threading.Lock()
     browserTimer = QtCore.QTimer()
-    browserTimer.timeout.connect(functools.partial(tcgObtainHtmlWaitData, browser, browserLock, results, exitEvent, logger))
+    browserTimer.timeout.connect(functools.partial(tcgObtainHtmlWaitData, browserStorage, browserLock, results, exitEvent, logger))
     browserTimer.start(100)
     workTimer = QtCore.QTimer()
-    workTimer.timeout.connect(functools.partial(tcgObtainHtmlProcessRequests, workTimer, browser, browserLock, requests, exitEvent, logger))
+    workTimer.timeout.connect(functools.partial(tcgObtainHtmlProcessRequests, workTimer, browserStorage, browserLock, requests, exitEvent, logger))
     workTimer.start(100)
     application.exec_()
 
-
-def tcgObtainHtmlProcessRequests(timer, browser, browserLock, requests, exitEvent, logger):
+def tcgObtainHtmlProcessRequests(timer, browserStorage, browserLock, requests, exitEvent, logger):
     if exitEvent.is_set():
         QtWidgets.QApplication.quit()
         # TODO stop timer?
@@ -116,21 +115,31 @@ def tcgObtainHtmlProcessRequests(timer, browser, browserLock, requests, exitEven
         return
 
     logger.info('Loading [GET] {}'.format(qualifiedUrl))
-    browser.load(QtCore.QUrl(qualifiedUrl))
+    browserStorage['instance'].load(QtCore.QUrl(qualifiedUrl))
 
 
-def tcgObtainHtmlWaitData(browser, browserLock, results, exitEvent, logger):
+def tcgObtainHtmlWaitData(storage, browserLock, results, exitEvent, logger):
     if exitEvent.is_set():
         QtWidgets.QApplication.quit()
         # TODO stop timer?
         # TODO send signal to application object
 
+    browser = storage['instance']
     htmlString = browser.page().mainFrame().toHtml()
-    if len(htmlString) > 30 * 1024:
-        results.put(htmlString)
-        logger.info('Finished [GET] {}'.format(browser.url().toString()))
-        browser.setUrl(QtCore.QUrl(''))
-        browserLock.release()
+    if 'priceGuideTable tablesorter' in htmlString:
+        sizeEquals = storage.get('last_size', -1) == len(htmlString)
+        timePassed = time.time() - storage.get('last_time', time.time()) > 5
+        if sizeEquals and timePassed:
+            results.put(htmlString)
+            logger.info('Finished [GET] {}'.format(browser.url().toString()))
+            browser.setUrl(QtCore.QUrl(''))
+            storage['instance'] = QtWebKitWidgets.QWebView()
+            del storage['last_size']
+            del storage['last_time']
+            browserLock.release()
+        elif not sizeEquals:
+            storage['last_size'] = len(htmlString)
+            storage['last_time'] = time.time()
 
 
 def tcgObtainSets(priceRequests, priceResults, cachePath, htmlRequests, htmlResults, exitEvent, logger):
@@ -152,20 +161,34 @@ def tcgObtainSets(priceRequests, priceResults, cachePath, htmlRequests, htmlResu
             html = lxml.html.document_fromstring(htmlString)
             setNameString = re.match(r'Magic: The Gathering - (.+?)Price Guide', html.cssselect('title')[0].text).group(1).strip()
             setAbbrv = card.sets.tryGetAbbreviation(setNameString)
+            logger.info('Caching set {}'.format(setNameString))
             setPrices = {}
+            # with open('{}.html'.format(setAbbrv), 'w') as fobj:
+            #     fobj.write(htmlString)
             for row in html.cssselect('table.priceGuideTable tr'):
                 cardUrls = row.cssselect('.productDetail a')
                 if cardUrls:
                     cellCardKey = getCardKey(cardUrls[0].text, 'EN', False)
-                    priceString = row.cssselect('.medianPrice .cellWrapper')[0].text
+                    cardPrice = None
+                    for selector in ['.marketPrice', '.medianPrice']:
+                        elements = row.cssselect('{} .cellWrapper'.format(selector))
+                        if elements:
+                            match = re.match(r'\s*\$([\d\.]+).*', elements[0].text)
+                            if match:
+                                cardPrice = decimal.Decimal(match.group(1))
+                                break
                     setPrices[cellCardKey] = {
-                        'price': decimal.Decimal(re.match(r'\s*\$([\d\.]+).*', priceString).group(1)),
+                        'price': cardPrice,
                         'currency': core.currency.USD,
                     }
             priceResults.put((setAbbrv, setPrices))
-            cacheCursor.execute('DELETE FROM sets WHERE abbrv = ?', (setAbbrv,))
-            cacheCursor.execute('INSERT INTO sets VALUES (?, ?, ?)', (setAbbrv, json.dumps(setPrices, cls=core.currency.JSONEncoder), int(time.time())))
-            pricesCache.commit()
+            if setPrices:
+                cacheCursor.execute('DELETE FROM sets WHERE abbrv = ?', (setAbbrv,))
+                cacheCursor.execute('INSERT INTO sets VALUES (?, ?, ?)', (setAbbrv, json.dumps(setPrices, cls=core.currency.JSONEncoder), int(time.time())))
+                pricesCache.commit()
+                logger.info('Finished set {}'.format(setNameString))
+            else:
+                logger.warning('Got empty set {}'.format(setNameString))
 
         try:
             setFullName = priceRequests.get_nowait()
