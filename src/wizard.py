@@ -5,6 +5,7 @@ import math
 import multiprocessing
 import os
 import platform
+import psutil
 import queue
 import signal
 import sys
@@ -553,21 +554,29 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
 
 
 if __name__ == '__main__':
-    if getattr(sys, 'frozen', False):
-        sys.stdout = io.StringIO()
-        sys.stderr = io.StringIO()
-
-    if platform.system() == 'Linux':
-        # workaround for creating instances of QApplication in the child processes created by multiprocessing on Linux
-        multiprocessing.set_start_method('spawn')
-
-    multiprocessing.freeze_support()
-    currencyConverter = core.currency.Converter()
-    currencyConverter.update()
-    application = QtWidgets.QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
     try:
-        sys.exit(application.exec_())
+        if getattr(sys, 'frozen', False):
+            sys.stdout = io.StringIO()
+            sys.stderr = io.StringIO()
+
+        if platform.system() == 'Linux':
+            # workaround for creating instances of QApplication in the child processes created by multiprocessing on Linux
+            multiprocessing.set_start_method('spawn')
+
+        multiprocessing.freeze_support()
+        currencyConverter = core.currency.Converter()
+        currencyConverter.update()
+        application = QtWidgets.QApplication(sys.argv)
+        window = MainWindow()
+        window.show()
+        try:
+            sys.exit(application.exec_())
+        finally:
+            window.abort()
+    except KeyboardInterrupt:
+        pass
     finally:
-        window.abort()
+        process = psutil.Process(os.getpid())
+        for child in process.children(recursive=True):
+            child.kill()
+        process.kill()
