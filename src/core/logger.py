@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import math
 import multiprocessing
 import os
 import sys
@@ -16,7 +17,6 @@ _LEVEL_STRING = {
     LEVEL_INFO: '',
 }
 
-_BASE_TIME = time.time()
 STDERR_LOCK = multiprocessing.Lock()
 
 
@@ -24,6 +24,7 @@ class Logger(object):
     def __init__(self, loggerId):
         self.id = loggerId
         self.level = LEVEL_ALL
+        self.baseTime = time.time()
 
     def info(self, message):
         self.write(message, LEVEL_INFO)
@@ -36,9 +37,10 @@ class Logger(object):
 
     def write(self, message, level):
         if self.level >= level:
-            logEntry = '[{:0>4}] [{:0>7}] {: <10}{: >10} {}'.format(
+            timeDiff = time.time() - self.baseTime
+            logEntry = '[{:0>8}] [{}] {: <10}{: >10} {}'.format(
                 os.getpid(),
-                int((time.time() - _BASE_TIME) * 1000.0),
+                '{}.{:0>3}'.format(time.strftime('%H:%M:%S', time.gmtime(timeDiff)), str(round(math.modf(timeDiff % 1000)[0], 3)).replace('0.', '')),
                 self.id,
                 _LEVEL_STRING[level],
                 message,
