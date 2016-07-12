@@ -76,6 +76,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'DRK': ('The Dark', 'DK',),
     'DST': ('Darksteel', 'DS',),
     'DTK': ('Dragons of Tarkir',),
+    'EMA': ('Eternal Masters',),
     'EVE': ('Eventide', 'ET',),
     'EVG': ('Duel Decks: Elves vs. Goblins', 'EVG2', 'Elves vs. Goblins'),
     'EXO': ('Exodus', 'EX',),
