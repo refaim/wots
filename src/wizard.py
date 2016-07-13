@@ -173,21 +173,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.textChanged.connect(self.onSearchFieldTextChanged)
         self.searchField.returnPressed.connect(self.searchCards)
 
-        cardNames = set()
-        with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as data:
-            self.cardsInfo = json.load(data)
-            for namesList in self.cardsInfo.values():
+        cardsNamesSet = set()
+        with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as fobj:
+            cardsNamesMap = json.load(fobj)
+            for namesList in cardsNamesMap.values():
                 for name in namesList:
-                    cardNames.add(name)
+                    cardsNamesSet.add(name)
 
-        self.searchResultsModel = CardsTableModel(self.cardsInfo, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
+        with codecs.open(getResourcePath('database.json'), 'r', 'utf-8') as fobj:
+            cardsInfo = json.load(fobj)
+
+        self.searchResultsModel = CardsTableModel(cardsInfo, cardsNamesMap, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
         self.searchResultsView.setItemDelegateForColumn(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO) - 1, HyperlinkItemDelegate())
         self.searchResultsView.entered.connect(self.onSearchResultsCellMouseEnter)
 
-        self.searchCompleter = QtWidgets.QCompleter(sorted(cardNames))
+        self.searchCompleter = QtWidgets.QCompleter(sorted(cardsNamesSet))
         self.searchCompleter.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.searchField.setCompleter(self.searchCompleter)
 
@@ -373,9 +376,9 @@ def convertPrice(priceInfo):
 
 
 class CardsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, cardsInfo, columnsInfo, dataQueue, statQueue, priceRequests):
+    def __init__(self, cardsInfo, cardsNames, columnsInfo, dataQueue, statQueue, priceRequests):
         super().__init__()
-        self.cardsInfo = cardsInfo
+        self.cardsNames = cardsNames
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
         self.dataQueue = dataQueue
@@ -383,6 +386,17 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         self.priceRequests = priceRequests
         self.dataTable = []
         self.cardCount = 0
+
+        self.cardIds = {}
+        self.cardSets = {}
+        for setId, setInfo in cardsInfo.items():
+            setKey = card.sets.tryGetAbbreviation(setId)
+            if setKey is not None:
+                for cardKey, cardInfo in setInfo['cards'].items():
+                    cardSets = self.cardSets.setdefault(cardKey, set())
+                    cardSets.add(setKey)
+                    if cardInfo[0] is not None:
+                        self.cardIds.setdefault(setKey, {})[cardKey] = cardInfo[0]
 
     def setCookie(self, cookie):
         self.cookie = cookie
@@ -471,9 +485,24 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                 self.statQueue.put(statInfo)
         self.beginInsertRows(QtCore.QModelIndex(), self.cardCount, self.cardCount + batchLength - 1)
         for cardInfo in batch:
-            cardNameKey = card.utils.getNameKey(cardInfo['name']['caption'])
-            if cardNameKey in self.cardsInfo:
-                cardInfo['name']['caption'] = self.cardsInfo[cardNameKey][0]
+            cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
+            if cardKey in self.cardsNames:
+                newCardName = self.cardsNames[cardKey][0]
+                cardInfo['name']['caption'] = newCardName
+                cardKey = card.utils.getNameKey(newCardName)
+
+            cardSets = self.cardSets.get(cardKey, None)
+            if cardSets is not None and len(cardSets) == 1:
+                newCardSet = card.sets.tryGetAbbreviation(list(cardSets)[0])
+                if newCardSet is not None:
+                    cardInfo['set'] = newCardSet
+
+            if cardInfo['set']:
+                setKey = card.sets.tryGetAbbreviation(cardInfo['set'])
+                if setKey in self.cardIds:
+                    newCardId = self.cardIds[setKey].get(cardKey, None)
+                    if newCardId is not None:
+                        cardInfo['id'] = newCardId
 
             rowData = []
             for columnInfo in self.columnsInfo:

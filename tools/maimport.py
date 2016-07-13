@@ -4,6 +4,7 @@ import codecs
 import csv
 import json
 import os
+import re
 import sys
 
 sys.path.append(os.path.abspath(os.path.join('..', 'src')))
@@ -28,22 +29,50 @@ def unicode_csv_reader(unicode_csv_data, dialect=csv.excel, **kwargs):
 
 def main(args):
     autocomplete = {}
+    database = {}
 
     nameSeparator = u'\u2502'
-    with codecs.open(args[0], encoding='utf_16_le') as fp:
-        fp.readline()  # skip header
-        reader = unicode_csv_reader(fp, dialect=csv.excel_tab, fieldnames=['set', 'name', 'original', 'lang', 'number'])
+    with codecs.open(args[0], encoding='utf_16_le') as fobj:
+        fobj.readline()  # skip header
+        reader = unicode_csv_reader(fobj, dialect=csv.excel_tab, fieldnames=['set', 'name', 'original', 'lang', 'foil', 'number'])
         for row in reader:
             row['name'] = card.utils.escape(row['name']).replace(nameSeparator, u'|')
+            if row['original'] is None:
+                print(row)
             row['original'] = row['original'].replace(nameSeparator, u'|')
             for key in (card.utils.getNameKey(cardName) for cardName in (row['name'], row['original']) if row['lang'] in ('RUS', 'ENG')):
                 values = autocomplete.setdefault(key, [])
                 if not row['name'] in values:
                     values.append(row['name'])
 
+            # workaround for some sort of csv parse bug
+            if row['foil'] in ('POR', 'FRA'):
+                row['lang'] = row['foil']
+                row['foil'] = row['number']
+                row['number'] = row[None]
+                del row[None]
+
+            numberValue = None
+            numberString = row['number']
+            if '*' not in numberString and all(s not in row['set'].lower() for s in ('promos', 'game day')):
+                match = re.match(r'\s*(\d+)\/.*', numberString)
+                if match:
+                    numberValue = int(match.group(1))
+
+            cardKey = card.utils.getNameKey(row['name'])
+            setInfo = database.setdefault(row['set'], { 'cards': {}, 'foil': set(), 'languages': set() })
+            setInfo['cards'][cardKey] = (numberValue, row['foil'])
+            setInfo['foil'].add(row['foil'])
+            setInfo['languages'].add(row['lang'])
+
+    for setId, entry in database.iteritems():
+        entry['languages'] = list(entry['languages'])
+        entry['foil'] = list(entry['foil'])
+
     del autocomplete['']
-    with codecs.open('autocomplete.json', 'w', 'utf-8') as output:
-        output.write(json.dumps(autocomplete, ensure_ascii=False, encoding='utf-8'))
+    for variable, filepath in ((autocomplete, 'autocomplete.json'), (database, 'database.json')):
+        with codecs.open(filepath, 'w', 'utf-8') as fobj:
+            fobj.write(json.dumps(variable, ensure_ascii=False, encoding='utf-8'))
 
     return 0
 
