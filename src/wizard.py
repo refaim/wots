@@ -127,6 +127,7 @@ class HyperlinkItemDelegate(QtWidgets.QStyledItemDelegate):
         if event.type() == QtCore.QEvent.MouseButtonRelease:
             url = index.data(QtCore.Qt.ToolTipRole)
             VISITED_URLS.add(url)
+            url = url.replace('https://', 'http://')
             if not url.startswith('http://'):
                 url = 'http://{0}'.format(url)
             webbrowser.open(url)
