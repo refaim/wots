@@ -99,8 +99,6 @@ class CardSource(object):
         return result
 
     def fillCardInfo(self, cardInfo):
-        if not cardInfo.get('language') and cardInfo.get('set'):
-            cardInfo['language'] = core.language.getAbbreviation(card.sets.SINGLE_LANGUAGE_SETS.get(cardInfo['set'], ''))
         self.foundCardsCount += 1
         return cardInfo
 

@@ -18,6 +18,7 @@ from PyQt5 import uic
 import card.sources
 import card.utils
 import core.currency
+import core.logger
 import price.sources
 
 
@@ -382,6 +383,7 @@ def convertPrice(priceInfo):
 class CardsTableModel(QtCore.QAbstractTableModel):
     def __init__(self, cardsInfo, cardsNames, columnsInfo, dataQueue, statQueue, priceRequests):
         super().__init__()
+        self.logger = core.logger.Logger('CardsTableModel')
         self.cardsNames = cardsNames
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
@@ -392,12 +394,21 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         self.cardCount = 0
 
         self.setsLanguages = {}
+        self.setsFoilness = {}
         self.cardIds = {}
         self.cardSets = {}
         for setId, setInfo in cardsInfo.items():
             setKey = card.sets.tryGetAbbreviation(setId)
             if setKey is not None:
                 self.setsLanguages[setKey] = setInfo['languages']
+
+                # Possible values: Yes (foil and non-foil), No (non-foil only), Only (foil only)
+                rawSetFoilness = setInfo['foil']
+                finSetFoilness = None
+                if len(rawSetFoilness) == 1:
+                    finSetFoilness = rawSetFoilness[0] == 'Only'
+                self.setsFoilness[setKey] = finSetFoilness
+
                 for cardKey, cardInfo in setInfo['cards'].items():
                     cardSets = self.cardSets.setdefault(cardKey, set())
                     cardSets.add(setKey)
@@ -512,6 +523,12 @@ class CardsTableModel(QtCore.QAbstractTableModel):
 
                 if setKey in self.setsLanguages and len(self.setsLanguages[setKey]) == 1:
                     cardInfo['language'] = core.language.tryGetAbbreviation(self.setsLanguages[setKey][0])
+
+                setFoilness = self.setsFoilness.get(setKey, None)
+                if setFoilness is not None:
+                    if 'foilness' in cardInfo and cardInfo['foilness'] != setFoilness:
+                        self.logger.warning('Foilness data conflict: card {} says {}, set {} says {}'.format(cardInfo['name']['caption'], cardInfo['foilness'], setKey, setFoilness))
+                    cardInfo['foilness'] = setFoilness
 
             rowData = []
             for columnInfo in self.columnsInfo:
