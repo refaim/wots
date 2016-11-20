@@ -834,7 +834,7 @@ class AutumnsMagic(CardSource):
                 'language': core.language.getAbbreviation(guessCardLanguage(cardName)),
                 'foilness': bool(cardFoilString is not None),
                 'count': int(cardHtml.cssselect('span.count')[0].text),
-                'price': decimal.Decimal(re.match(r'.*?(\d+).*', cardHtml.cssselect('span.price')[0].text).group(1)),
+                'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', cardHtml.cssselect('span.price')[0].text).group(1).replace(' ', '')),
                 'currency': core.currency.RUR,
                 'source': self.packSource(self.getTitle(), cardUrl),
             })
