@@ -21,6 +21,13 @@ import core.currency
 import price.sources
 
 
+def getResourcePath(resourceId):
+    root = os.path.dirname(sys.executable)
+    if not getattr(sys, 'frozen', False):
+        root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+    return os.path.normpath(os.path.join(root, 'resources', resourceId))
+
+
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {
         'id': 'number',
@@ -85,6 +92,9 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'align': QtCore.Qt.AlignRight,
         'class': price.sources.TcgPlayer,
         'storage_id': 'tcg.prices',
+        'resources': {
+            'sets': getResourcePath('tcg-sets.json'),
+        },
         'default_value': None,
     },
     {
@@ -124,13 +134,6 @@ class HyperlinkItemDelegate(QtWidgets.QStyledItemDelegate):
         return False
 
 
-def getResourcePath(resourceId):
-    root = os.path.dirname(sys.executable)
-    if not getattr(sys, 'frozen', False):
-        root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-    return os.path.normpath(os.path.join(root, 'resources', resourceId))
-
-
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -157,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 process = multiprocessing.Process(
                     name=columnInfo['id'],
                     target=queryPriceSource,
-                    args=(sourceClass, i, storagePath, self.priceRequests, self.obtainedPrices, self.priceStopEvent,),
+                    args=(sourceClass, i, storagePath, columnInfo['resources'], self.priceRequests, self.obtainedPrices, self.priceStopEvent,),
                     daemon=True)
                 self.priceWorkers.append(process)
                 process.start()
@@ -349,9 +352,9 @@ def queryCardSource(cardSourceId, cardSourceClass, queryString, resultsQueue, ex
         resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
 
 
-def queryPriceSource(priceSourceClass, sourceId, storagePath, requestsQueue, resultsQueue, exitEvent):
+def queryPriceSource(priceSourceClass, sourceId, storagePath, resources, requestsQueue, resultsQueue, exitEvent):
     pricesQueue = multiprocessing.Queue()
-    priceSource = priceSourceClass(pricesQueue, storagePath)
+    priceSource = priceSourceClass(pricesQueue, storagePath, resources)
     while True:
         if exitEvent.is_set():
             priceSource.terminate()
