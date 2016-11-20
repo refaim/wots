@@ -387,11 +387,13 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         self.dataTable = []
         self.cardCount = 0
 
+        self.setsLanguages = {}
         self.cardIds = {}
         self.cardSets = {}
         for setId, setInfo in cardsInfo.items():
             setKey = card.sets.tryGetAbbreviation(setId)
             if setKey is not None:
+                self.setsLanguages[setKey] = setInfo['languages']
                 for cardKey, cardInfo in setInfo['cards'].items():
                     cardSets = self.cardSets.setdefault(cardKey, set())
                     cardSets.add(setKey)
@@ -503,6 +505,9 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     newCardId = self.cardIds[setKey].get(cardKey, None)
                     if newCardId is not None:
                         cardInfo['id'] = newCardId
+
+                if setKey in self.setsLanguages and len(self.setsLanguages[setKey]) == 1:
+                    cardInfo['language'] = core.language.tryGetAbbreviation(self.setsLanguages[setKey][0])
 
             rowData = []
             for columnInfo in self.columnsInfo:
