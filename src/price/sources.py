@@ -10,14 +10,11 @@ import sys
 import threading
 import time
 import traceback
-import urllib.parse
 
-from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import QtWebKitWidgets
+from PyQt5 import QtWidgets
 
-import card.sets
-import card.utils
 import core.currency
 import core.language
 import core.logger
@@ -61,24 +58,24 @@ def tcgProcessRequests(priceRequests, priceResults, setsRequests, setsResults, s
             cardName, setAbbrv, cardLang, foil, cookie = priceRequests.get_nowait()
             if not foil:
                 cardLang = 'en'
-            cardLang = core.language.getAbbreviation(cardLang)
-            cardKey = getCardKey(cardName, cardLang, foil)
-
-            for queryString in setAbbrvsToQueryStrings.get(setAbbrv, []):
-                if queryString not in pricesCache or cardKey not in pricesCache[queryString]:
-                    if not foil and queryString not in requestedSets:
-                        setsRequests.put(queryString)
-                        requestedSets.add(queryString)
-                    # elif foil and cardKey not in requestedSingles and cardLang == 'EN':
-                    #     pass
-                    # # TODO
-                    # # singlesRequests.put((cardName, setName, cardLang))
-                    # # requestedSingles.add(cardKey)
-            if setAbbrv not in postponedRequests:
-                postponedRequests[setAbbrv] = {}
-            if cardKey not in postponedRequests[setAbbrv]:
-                postponedRequests[setAbbrv][cardKey] = []
-            postponedRequests[setAbbrv][cardKey].append(cookie)
+            if cardLang is not None and not foil: # TODO foil cards
+                cardLang = core.language.getAbbreviation(cardLang)
+                cardKey = getCardKey(cardName, cardLang, foil)
+                for queryString in setAbbrvsToQueryStrings.get(setAbbrv, []):
+                    if queryString not in pricesCache or cardKey not in pricesCache[queryString]:
+                        if not foil and queryString not in requestedSets:
+                            setsRequests.put(queryString)
+                            requestedSets.add(queryString)
+                        # elif foil and cardKey not in requestedSingles and cardLang == 'EN':
+                        #     pass
+                        # # TODO
+                        # # singlesRequests.put((cardName, setName, cardLang))
+                        # # requestedSingles.add(cardKey)
+                if setAbbrv not in postponedRequests:
+                    postponedRequests[setAbbrv] = {}
+                if cardKey not in postponedRequests[setAbbrv]:
+                    postponedRequests[setAbbrv][cardKey] = []
+                postponedRequests[setAbbrv][cardKey].append(cookie)
 
         for setAbbrv, cardsDict in postponedRequests.items():
             for queryString in setAbbrvsToQueryStrings.get(setAbbrv, []):
