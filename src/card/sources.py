@@ -267,11 +267,6 @@ class ManaPoint(MtgRuShop):
         super().__init__('http://manapoint.mtg.ru')
 
 
-class MagicMaze(MtgRuShop):
-    def __init__(self):
-        super().__init__('http://magicmaze.mtg.ru')
-
-
 class MtgSale(CardSource):
     def __init__(self):
         sourceSpecificSets = {
@@ -867,7 +862,6 @@ def getCardSourceClasses():
         AutumnsMagic,
         CardPlace,
         EasyBoosters,
-        MagicMaze,
         ManaPoint,
         MtgRu,
         MtgSale,
