@@ -267,6 +267,10 @@ class ManaPoint(MtgRuShop):
         super().__init__('http://manapoint.mtg.ru')
 
 
+class UpKeep(MtgRuShop):
+    def __init__(self):
+        super().__init__('http://upkeep.mtg.ru')
+
 class MtgSale(CardSource):
     def __init__(self):
         sourceSpecificSets = {
@@ -397,11 +401,11 @@ class MtgRu(CardSource):
             'cardplace.ru',
             'centerofhobby.ru',
             'easyboosters.com',
-            'magicmaze.mtg.ru',
             'manapoint.mtg.ru',
             'mckru.mtg.ru',
             'mtgsale.ru',
             'mtgtrade.net',
+            'upkeep.mtg.ru',
         ]
         self.knownShopSourceSubstrings = [
             'shop.mymagic.ru',
@@ -769,7 +773,7 @@ class MtgTrade(CardSource):
                 continue
 
             for cardsGroup in sellerCardsGroups:
-                sellerBlock = cardsGroup.cssselect('td.center')[0]
+                sellerBlock = cardsGroup.cssselect('td.user-name-td')[0]
                 sellerNickname = sellerBlock.cssselect('a')[0].text.lower()
                 sellerUrl = list(sellerBlock.cssselect('a'))[-1].attrib['href']
 
@@ -783,7 +787,7 @@ class MtgTrade(CardSource):
                         'name': self.packName(' '.join(anchor.text_content().split())),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': self.getSetAbbrv(cardEntry.cssselect('.choose-set')[0].attrib['title']),
-                        'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|')),
+                        'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"')),
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"').replace('руб', '')),
                         'currency': core.currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
@@ -867,7 +871,8 @@ def getCardSourceClasses():
         MtgSale,
         MtgTrade,
         TtTopdeck,
-        Untap,
+        # Untap,
+        UpKeep,
     ]
     random.shuffle(classes)
     return classes
