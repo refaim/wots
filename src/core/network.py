@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import errno
 import http.client
 import io
 import time
@@ -31,6 +32,8 @@ def getUrl(url, parametersDict=None, verbose=False):
         _logger.info('Loading {}'.format(representation))
     while True:
         try:
+            retry = False
+            lastException = None
             attempt += 1
             opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor)
             srcObj = opener.open(url, parametersBytes)
@@ -46,11 +49,24 @@ def getUrl(url, parametersDict=None, verbose=False):
                 _logger.info('Finished {}'.format(representation))
             return dstObj.read()
         except urllib.error.HTTPError as ex:
-            if ex.code in (http.client.NOT_FOUND, http.client.REQUESTED_RANGE_NOT_SATISFIABLE, http.client.INTERNAL_SERVER_ERROR):
+            if ex.code == http.client.INTERNAL_SERVER_ERROR:
+                retry = attempt <= 3
+            elif ex.code in (http.client.NOT_FOUND, http.client.REQUESTED_RANGE_NOT_SATISFIABLE):
                 raise
-        except Exception:
-            if attempt <= MAX_ATTEMPTS:
-                _logger.info('Restarting ({}/{}) {}'.format(attempt, MAX_ATTEMPTS, representation))
-                time.sleep(attempt * HTTP_DELAY_SECONDS_MULTIPLIER)
-                continue
-            raise
+            lastException = ex
+        except urllib.error.URLError as ex:
+            try:
+                errorCode = ex.args[0].errno
+                if errorCode == errno.ECONNREFUSED:
+                    retry = attempt <= 3
+            except:
+                pass
+            lastException = ex
+        except Exception as ex:
+            retry = True
+            lastException = ex
+        if retry and attempt <= MAX_ATTEMPTS:
+            _logger.info('Restarting ({}/{}) {}'.format(attempt, MAX_ATTEMPTS, representation))
+            time.sleep(attempt * HTTP_DELAY_SECONDS_MULTIPLIER)
+            continue
+        raise lastException

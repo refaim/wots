@@ -16,6 +16,7 @@ import card.sets
 import card.utils
 import core.currency
 import core.language
+import core.logger
 import core.network
 import tools.dict
 import tools.string
@@ -71,6 +72,7 @@ class CardSource(object):
         self.foundCardsCount = 0
         self.estimatedCardsCount = None
         self.requestCache = {}
+        self.logger = core.logger.Logger(self.__class__.__name__)
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
@@ -87,8 +89,12 @@ class CardSource(object):
         if data:
             cacheKey += ';' + urllib.parse.urlencode(data)
         if cacheKey not in self.requestCache:
-            self.requestCache[cacheKey] = lxml.html.document_fromstring(core.network.getUrl(url, data).decode(self.encoding))
-        return self.requestCache[cacheKey]
+            try:
+                byteString = core.network.getUrl(url, data)
+                self.requestCache[cacheKey] = lxml.html.document_fromstring(byteString.decode(self.encoding))
+            except Exception as ex:
+                self.logger.warning(str(ex))
+        return self.requestCache.get(cacheKey)
 
     def packName(self, caption, description=None):
         return {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
@@ -117,6 +123,8 @@ class CardSource(object):
             pageIndex = self.getPageIndex(loopIndex)
             requestUrl = self.queryUrlTemplate.format(**{'query': urllib.parse.quote(self.escapeQueryText(queryText)), 'page': pageIndex})
             response = self.makeRequest(requestUrl, self.prepareRequest(queryText, pageIndex))
+            if response is None:
+                continue
 
             if not pageCount:
                 pageCount = max(1, self.estimatePagesCount(response))
@@ -274,6 +282,9 @@ class ManaPoint(MtgRuShop):
         }
 
     def searchPreloaded(self, queryText):
+        if self.promoHtml is None:
+            return []
+
         results = []
         for resultsEntry in self.promoHtml.cssselect('table.Catalog tr'):
             dataCells = resultsEntry.cssselect('td')

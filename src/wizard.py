@@ -512,7 +512,6 @@ class CardsTableModel(QtCore.QAbstractTableModel):
             if cardSets is not None and len(cardSets) == 1:
                 newCardSet = card.sets.tryGetAbbreviation(list(cardSets)[0])
                 if newCardSet is not None:
-                    print(cardKey, newCardSet)
                     cardInfo['set'] = newCardSet
 
             if cardInfo['set']:
