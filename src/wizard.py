@@ -406,7 +406,10 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                 rawSetFoilness = setInfo['foil']
                 finSetFoilness = None
                 if len(rawSetFoilness) == 1:
-                    finSetFoilness = rawSetFoilness[0] == 'Only'
+                    if rawSetFoilness[0] == 'No':
+                        finSetFoilness = False
+                    elif rawSetFoilness[0] == 'Only':
+                        finSetFoilness = True
                 self.setsFoilness[setKey] = finSetFoilness
 
                 for cardKey, cardInfo in setInfo['cards'].items():
@@ -526,8 +529,8 @@ class CardsTableModel(QtCore.QAbstractTableModel):
 
                 setFoilness = self.setsFoilness.get(setKey, None)
                 if setFoilness is not None:
-                    if 'foilness' in cardInfo and cardInfo['foilness'] != setFoilness:
-                        self.logger.warning('Foilness data conflict: card {} says {}, set {} says {}'.format(cardInfo['name']['caption'], cardInfo['foilness'], setKey, setFoilness))
+                    # if 'foilness' in cardInfo and cardInfo['foilness'] != setFoilness:
+                    #     self.logger.warning('Foilness data conflict: card {} says {}, set {} says {}'.format(cardInfo['name']['caption'], cardInfo['foilness'], setKey, setFoilness))
                     cardInfo['foilness'] = setFoilness
 
             rowData = []

@@ -28,7 +28,7 @@
 Языки:
   ☐ Добавить поддержку строк типа "русские", "английские", "рус", "англ", вот это всё
 Источники карт:
- ☐ На фойловом Trostani's Summoner эвристики ломаются, считая, что в DGM её фойловой быть не может
+ ✔ На фойловом Trostani's Summoner эвристики ломаются, считая, что в DGM её фойловой быть не может @done (17-01-28 11:57)
  ☐ Оверсайзед-карты из коммандера теряют фойловость и сет становится CMD, если пустой был
  ☐ Придумать, что делать с упавшими магазинами, из-за которых прогресс до ста не доходит очень долго
  ☐ На easyboosters через несколько скачанных страниц Heroku блокирует качалку
@@ -37,11 +37,11 @@
  ☐ shop.mymagic.ru (и убрать соответствующую залепу в мтгрушном поиске)
  ☐ topdeck.ru
  ☐ wubrg.ru
- Поиск русских карт по английским названиям:
+ Поиск русских карт по английским названиям (test -- Torrential Gearhulk from Inventions):
    ☐ Amberson
    ☐ AngryBottleGnome
    ☐ AutumnsMagic
-   ☐ CardPlace (поюзать http://www.cardplace.ru/advancedsearch/mtg/)
+   ☐ CardPlace (поюзать http://www.cardplace.ru/advancedsearch/mtg/) [тест -- Lightning Bolt/Удар молнии]
    ☐ EasyBoosters
    ☐ ManaPoint
    ☐ MtgRu
