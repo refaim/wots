@@ -405,6 +405,7 @@ class CardPlace(CardSource):
             'Premium deck: Graveborn': 'Premium Deck Series: Graveborn',
             'Release & Prerelease cards': 'Prerelease & Release Cards',
             "Commander's Aresnal": "Commander's Arsenal",
+            'Kaladesh (PR)': 'Prerelease & Release Cards',
         }
         super().__init__('http://cardplace.ru', '/directory/new_search/{query}/singlemtg', 'utf-8', sourceSpecificSets)
 
@@ -904,6 +905,7 @@ class AutumnsMagic(CardSource):
                 'currency': core.currency.RUR,
                 'source': self.packSource(self.getTitle(), cardUrl),
             })
+
 
 class OfflineTestSource(CardSource):
     def __init__(self):

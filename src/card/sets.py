@@ -1,4 +1,5 @@
 import string
+import traceback
 
 import core.language
 import core.logger
@@ -301,6 +302,7 @@ def tryGetAbbreviation(setNameString, quiet=False):
     result = _SETS.get(getNameKey(setNameString), None)
     if result is None and not quiet:
         _logger.warning('Unable to recognize set "{}"'.format(setNameString))
+        _logger.warning(''.join(traceback.format_stack()))
     return result
 
 
