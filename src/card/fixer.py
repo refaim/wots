@@ -2,13 +2,15 @@ import copy
 
 import card.sets
 import core.language
+import core.logger
 
 class CardsFixer(object):
     def __init__(self, cardsInfo, cardsNames):
+        self.logger = core.logger.Logger('CardsFixer')
         self.cardsNames = cardsNames
         self.setsLanguages = {}
         self.setsFoilness = {}
-        self.cardIds = {}
+        self.cardsIds = {}
         self.cardSets = {}
         for setId, setInfo in cardsInfo.items():
             setKey = card.sets.tryGetAbbreviation(setId)
@@ -29,12 +31,12 @@ class CardsFixer(object):
                 cardSets = self.cardSets.setdefault(cardKey, set())
                 cardSets.add(setKey)
                 if cardInfo[0] is not None:
-                    self.cardIds.setdefault(setKey, {})[cardKey] = cardInfo[0]
+                    self.cardsIds.setdefault(setKey, {})[cardKey] = cardInfo[0]
 
     def fixCardInfo(self, cardInfo):
         cardInfo = copy.deepcopy(cardInfo)
         cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
-        cardSets = self.cardSets.get(cardKey, None)
+        cardSets = self.cardSets.get(cardKey, set())
 
         if cardKey in self.cardsNames:
             newCardName = self.cardsNames[cardKey][0]
@@ -44,18 +46,29 @@ class CardsFixer(object):
         oldCardSet = cardInfo.get('set')
         if oldCardSet is not None:
             oldCardSetKey = card.sets.tryGetAbbreviation(oldCardSet)
-            if oldCardSetKey is not None and cardSets is not None and oldCardSetKey not in cardSets:
+            if oldCardSetKey is None:
+                self.logger.warning('Unknown set {} on card {}'.format(oldCardSet, cardKey))
+            if oldCardSetKey is None or oldCardSetKey not in cardSets:
                 del cardInfo['set']
 
-        newCardSetKey = None
-        if cardSets is not None and len(cardSets) == 1:
-            newCardSetKey = card.sets.tryGetAbbreviation(list(cardSets)[0])
-            if newCardSetKey is not None:
-                cardInfo['set'] = newCardSetKey
+        matchedSets = []
+        for possibleSet in cardSets:
+            possibleSetKey = card.sets.tryGetAbbreviation(possibleSet)
+            if possibleSetKey is None:
+                self.logger.warning('Unknown internal set {}'.format(possibleSet))
+            if possibleSetKey is not None:
+                cardFoilness = cardInfo.get('foilness')
+                setFoilness = self.setsFoilness.get(possibleSetKey)
+                if setFoilness is None or cardFoilness is None or setFoilness == cardFoilness:
+                    matchedSets.append(possibleSetKey)
+        if len(matchedSets) == 1:
+            cardInfo['set'] = matchedSets[0]
 
-        if newCardSetKey is not None:
-            if newCardSetKey in self.cardIds:
-                newCardId = self.cardIds[newCardSetKey].get(cardKey, None)
+        newCardSet = cardInfo.get('set')
+        if newCardSet is not None:
+            newCardSetKey = card.sets.tryGetAbbreviation(newCardSet)
+            if newCardSetKey in self.cardsIds:
+                newCardId = self.cardsIds[newCardSetKey].get(cardKey, None)
                 if newCardId is not None:
                     cardInfo['id'] = newCardId
 
