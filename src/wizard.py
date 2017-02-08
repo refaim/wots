@@ -1,4 +1,5 @@
 import codecs
+import functools
 import io
 import json
 import math
@@ -579,7 +580,21 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
         return a < b
 
 
+def killChildrenProcesses():
+    process = psutil.Process(os.getpid())
+    for child in process.children(recursive=True):
+        try:
+            child.kill()
+        except psutil.NoSuchProcess:
+            pass
+
+def catchExceptions(systemHook, type_, value, traceback):
+    killChildrenProcesses()
+    sys.excepthook = systemHook
+    sys.excepthook(type_, value, traceback)
+
 if __name__ == '__main__':
+    sys.excepthook = functools.partial(catchExceptions, sys.excepthook)
     try:
         if getattr(sys, 'frozen', False):
             sys.stdout = io.StringIO()
@@ -599,10 +614,5 @@ if __name__ == '__main__':
             sys.exit(application.exec_())
         finally:
             window.abort()
-    except KeyboardInterrupt:
-        pass
     finally:
-        process = psutil.Process(os.getpid())
-        for child in process.children(recursive=True):
-            child.kill()
-        process.kill()
+        killChildrenProcesses()
