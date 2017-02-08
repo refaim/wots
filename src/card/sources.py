@@ -469,17 +469,13 @@ class MtgRu(CardSource):
             'amberson.mtg.ru',
             'autumnsmagic.com',
             'cardplace.ru',
-            'centerofhobby.ru',
             'easyboosters.com',
             'manapoint.mtg.ru',
-            'mckru.mtg.ru',
             'mtgsale.ru',
             'mtgtrade.net',
             'upkeep.mtg.ru',
         ]
-        self.knownShopSourceSubstrings = [
-            'shop.mymagic.ru',
-        ]
+        self.knownShopSourceSubstrings = []
         super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def getPageCardsCount(self, html):

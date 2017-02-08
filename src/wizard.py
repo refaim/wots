@@ -15,6 +15,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import uic
 
+import card.fixer
 import card.sources
 import card.utils
 import core.currency
@@ -188,7 +189,8 @@ class MainWindow(QtWidgets.QMainWindow):
         with codecs.open(getResourcePath('database.json'), 'r', 'utf-8') as fobj:
             cardsInfo = json.load(fobj)
 
-        self.searchResultsModel = CardsTableModel(cardsInfo, cardsNamesMap, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
+        cardsFixer = card.fixer.CardsFixer(cardsInfo, cardsNamesMap)
+        self.searchResultsModel = CardsTableModel(cardsFixer, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
@@ -381,10 +383,10 @@ def convertPrice(priceInfo):
 
 
 class CardsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, cardsInfo, cardsNames, columnsInfo, dataQueue, statQueue, priceRequests):
+    def __init__(self, cardsFixer, columnsInfo, dataQueue, statQueue, priceRequests):
         super().__init__()
         self.logger = core.logger.Logger('CardsTableModel')
-        self.cardsNames = cardsNames
+        self.cardsFixer = cardsFixer
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
         self.dataQueue = dataQueue
@@ -392,31 +394,6 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         self.priceRequests = priceRequests
         self.dataTable = []
         self.cardCount = 0
-
-        self.setsLanguages = {}
-        self.setsFoilness = {}
-        self.cardIds = {}
-        self.cardSets = {}
-        for setId, setInfo in cardsInfo.items():
-            setKey = card.sets.tryGetAbbreviation(setId)
-            if setKey is not None:
-                self.setsLanguages[setKey] = setInfo['languages']
-
-                # Possible values: Yes (foil and non-foil), No (non-foil only), Only (foil only)
-                rawSetFoilness = setInfo['foil']
-                finSetFoilness = None
-                if len(rawSetFoilness) == 1:
-                    if rawSetFoilness[0] == 'No':
-                        finSetFoilness = False
-                    elif rawSetFoilness[0] == 'Only':
-                        finSetFoilness = True
-                self.setsFoilness[setKey] = finSetFoilness
-
-                for cardKey, cardInfo in setInfo['cards'].items():
-                    cardSets = self.cardSets.setdefault(cardKey, set())
-                    cardSets.add(setKey)
-                    if cardInfo[0] is not None:
-                        self.cardIds.setdefault(setKey, {})[cardKey] = cardInfo[0]
 
     def setCookie(self, cookie):
         self.cookie = cookie
@@ -504,34 +481,8 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     batchLength += 1
                 self.statQueue.put(statInfo)
         self.beginInsertRows(QtCore.QModelIndex(), self.cardCount, self.cardCount + batchLength - 1)
-        for cardInfo in batch:
-            cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
-            if cardKey in self.cardsNames:
-                newCardName = self.cardsNames[cardKey][0]
-                cardInfo['name']['caption'] = newCardName
-                cardKey = card.utils.getNameKey(newCardName)
-
-            cardSets = self.cardSets.get(cardKey, None)
-            if cardSets is not None and len(cardSets) == 1:
-                newCardSet = card.sets.tryGetAbbreviation(list(cardSets)[0])
-                if newCardSet is not None:
-                    cardInfo['set'] = newCardSet
-
-            if cardInfo['set']:
-                setKey = card.sets.tryGetAbbreviation(cardInfo['set'])
-                if setKey in self.cardIds:
-                    newCardId = self.cardIds[setKey].get(cardKey, None)
-                    if newCardId is not None:
-                        cardInfo['id'] = newCardId
-
-                if setKey in self.setsLanguages and len(self.setsLanguages[setKey]) == 1:
-                    cardInfo['language'] = core.language.tryGetAbbreviation(self.setsLanguages[setKey][0])
-
-                setFoilness = self.setsFoilness.get(setKey, None)
-                if setFoilness is not None:
-                    # if 'foilness' in cardInfo and cardInfo['foilness'] != setFoilness:
-                    #     self.logger.warning('Foilness data conflict: card {} says {}, set {} says {}'.format(cardInfo['name']['caption'], cardInfo['foilness'], setKey, setFoilness))
-                    cardInfo['foilness'] = setFoilness
+        for rawCardInfo in batch:
+            cardInfo = self.cardsFixer.fixCardInfo(rawCardInfo)
 
             rowData = []
             for columnInfo in self.columnsInfo:
