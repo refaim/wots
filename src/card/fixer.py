@@ -38,6 +38,9 @@ class CardsFixer(object):
         cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
         cardSets = self.cardSets.get(cardKey, set())
 
+        if 'description' not in cardInfo['name'] or cardInfo['name']['description'] is None:
+            cardInfo['name']['description'] = ''
+
         if cardKey in self.cardsNames:
             newCardName = self.cardsNames[cardKey][0]
             cardInfo['name']['caption'] = newCardName

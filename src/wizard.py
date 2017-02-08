@@ -105,6 +105,14 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'sources': ('source',),
         'align': QtCore.Qt.AlignLeft,
         'cursor': QtCore.Qt.PointingHandCursor,
+        'hyperlink': True,
+        'default_value': '',
+    },
+    {
+        'id': 'description',
+        'label': 'Description',
+        'sources': ('name',),
+        'align': QtCore.Qt.AlignLeft,
         'default_value': '',
     },
 ]
@@ -194,7 +202,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
-        self.searchResultsView.setItemDelegateForColumn(len(SEARCH_RESULTS_TABLE_COLUMNS_INFO) - 1, HyperlinkItemDelegate())
+
+        for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
+            if columnInfo.get('hyperlink'):
+                self.searchResultsView.setItemDelegateForColumn(i, HyperlinkItemDelegate())
+
         self.searchResultsView.entered.connect(self.onSearchResultsCellMouseEnter)
 
         self.searchCompleter = QtWidgets.QCompleter(sorted(cardsNamesSet))
@@ -435,8 +447,6 @@ class CardsTableModel(QtCore.QAbstractTableModel):
             elif columnId == 'name':
                 if role == QtCore.Qt.DisplayRole:
                     return card.utils.unescape(data['name']['caption'])
-                elif role == QtCore.Qt.ToolTipRole:
-                    return data['name']['description']
             elif columnId == 'condition':
                 if role == QtCore.Qt.DisplayRole:
                     return data['condition']
@@ -458,6 +468,9 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     return data['source']['caption']
                 elif role == QtCore.Qt.ToolTipRole:
                     return data['source']['url']
+            elif columnId == 'description':
+                if role == QtCore.Qt.DisplayRole:
+                    return data['name']['description']
 
         return QtCore.QVariant()
 
@@ -561,6 +574,8 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
             return am < bm
         elif columnId == 'source':
             return a['source']['caption'] < b['source']['caption']
+        elif columnId == 'description':
+            return a['name']['description'] < b['name']['description']
         return a < b
 
 
