@@ -48,8 +48,13 @@ class CardsFixer(object):
             oldCardSetKey = card.sets.tryGetAbbreviation(oldCardSet)
             if oldCardSetKey is None:
                 self.logger.warning('Unknown set {} on card {}'.format(oldCardSet, cardKey))
-            if oldCardSetKey is None or oldCardSetKey not in cardSets:
+            deleteSet = False
+            deleteSet = deleteSet or (oldCardSetKey is None or oldCardSetKey not in cardSets)
+            deleteSet = deleteSet or (oldCardSetKey is not None and oldCardSetKey in self.cardsIds and cardKey not in self.cardsIds[oldCardSetKey])
+            if deleteSet:
                 del cardInfo['set']
+                if 'id' in cardInfo:
+                    del cardInfo['id']
 
         matchedSets = []
         for possibleSet in cardSets:
