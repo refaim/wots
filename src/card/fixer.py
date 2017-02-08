@@ -33,31 +33,36 @@ class CardsFixer(object):
 
     def fixCardInfo(self, cardInfo):
         cardInfo = copy.deepcopy(cardInfo)
-
         cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
+        cardSets = self.cardSets.get(cardKey, None)
+
         if cardKey in self.cardsNames:
             newCardName = self.cardsNames[cardKey][0]
             cardInfo['name']['caption'] = newCardName
             cardKey = card.utils.getNameKey(newCardName)
 
-        cardSets = self.cardSets.get(cardKey, None)
-        print(cardSets) # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        if cardSets is not None and len(cardSets) == 1:
-            newCardSet = card.sets.tryGetAbbreviation(list(cardSets)[0])
-            if newCardSet is not None:
-                cardInfo['set'] = newCardSet
+        oldCardSet = cardInfo.get('set')
+        if oldCardSet is not None:
+            oldCardSetKey = card.sets.tryGetAbbreviation(oldCardSet)
+            if oldCardSetKey is not None and cardSets is not None and oldCardSetKey not in cardSets:
+                del cardInfo['set']
 
-        if cardInfo.get('set') is not None:
-            setKey = card.sets.tryGetAbbreviation(cardInfo['set'])
-            if setKey in self.cardIds:
-                newCardId = self.cardIds[setKey].get(cardKey, None)
+        newCardSetKey = None
+        if cardSets is not None and len(cardSets) == 1:
+            newCardSetKey = card.sets.tryGetAbbreviation(list(cardSets)[0])
+            if newCardSetKey is not None:
+                cardInfo['set'] = newCardSetKey
+
+        if newCardSetKey is not None:
+            if newCardSetKey in self.cardIds:
+                newCardId = self.cardIds[newCardSetKey].get(cardKey, None)
                 if newCardId is not None:
                     cardInfo['id'] = newCardId
 
-            if setKey in self.setsLanguages and len(self.setsLanguages[setKey]) == 1:
-                cardInfo['language'] = core.language.tryGetAbbreviation(self.setsLanguages[setKey][0])
+            if newCardSetKey in self.setsLanguages and len(self.setsLanguages[newCardSetKey]) == 1:
+                cardInfo['language'] = core.language.tryGetAbbreviation(self.setsLanguages[newCardSetKey][0])
 
-            setFoilness = self.setsFoilness.get(setKey, None)
+            setFoilness = self.setsFoilness.get(newCardSetKey, None)
             if setFoilness is not None:
                 # if 'foilness' in cardInfo and cardInfo['foilness'] != setFoilness:
                 #     self.logger.warning('Foilness data conflict: card {} says {}, set {} says {}'.format(cardInfo['name']['caption'], cardInfo['foilness'], setKey, setFoilness))
