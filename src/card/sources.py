@@ -85,6 +85,7 @@ class CardSource(object):
         return queryText.replace(u'`', "'").replace(u'’', "'")
 
     def makeRequest(self, url, data):
+        url = url.replace('https://', 'http://')
         cacheKey = url
         if data:
             cacheKey += ';' + urllib.parse.urlencode(data)
