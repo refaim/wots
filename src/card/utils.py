@@ -1,5 +1,7 @@
 # coding: utf-8
 
+import re
+
 import core.language
 
 
@@ -27,6 +29,8 @@ _CACHE_UNESCAPE = {}
 
 _LETTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LETTERS_RUSSIAN
 
+_DOUBLE_FACED_CARD_RE = re.compile(r'\|+|\\+|\/+')
+
 
 def escape(cardname):
     if cardname not in _CACHE_ESCAPE:
@@ -46,3 +50,8 @@ def clean(cardname):
 
 def getNameKey(cardname):
     return u''.join(c for c in escape(cardname).lower() if c in _LETTERS)
+
+
+def getPrimaryName(cardname):
+    nameSeparator = u'\u2502'
+    return _DOUBLE_FACED_CARD_RE.split(cardname.replace(nameSeparator, u'|'))[0]

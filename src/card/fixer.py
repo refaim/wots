@@ -1,6 +1,7 @@
 import copy
 
 import card.sets
+import card.utils
 import core.language
 import core.logger
 
@@ -35,6 +36,7 @@ class CardsFixer(object):
 
     def fixCardInfo(self, cardInfo):
         cardInfo = copy.deepcopy(cardInfo)
+        cardInfo['name']['caption'] = card.utils.getPrimaryName(cardInfo['name']['caption'])
         cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
         cardSets = self.cardSets.get(cardKey, set())
 

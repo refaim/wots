@@ -31,15 +31,14 @@ def main(args):
     autocomplete = {}
     database = {}
 
-    nameSeparator = u'\u2502'
     with codecs.open(args[0], encoding='utf_16_le') as fobj:
         fobj.readline()  # skip header
         reader = unicode_csv_reader(fobj, dialect=csv.excel_tab, fieldnames=['set', 'name', 'original', 'lang', 'foil', 'number'])
         for row in reader:
-            row['name'] = card.utils.escape(row['name']).replace(nameSeparator, u'|')
+            row['name'] = card.utils.escape(card.utils.getPrimaryName(row['name']))
             if row['original'] is None:
                 print(row)
-            row['original'] = row['original'].replace(nameSeparator, u'|')
+            row['original'] = card.utils.getPrimaryName(row['original'])
             for key in (card.utils.getNameKey(cardName) for cardName in (row['name'], row['original']) if row['lang'] in ('RUS', 'ENG')):
                 values = autocomplete.setdefault(key, [])
                 if not row['name'] in values:
@@ -72,7 +71,7 @@ def main(args):
     del autocomplete['']
     for variable, filepath in ((autocomplete, 'autocomplete.json'), (database, 'database.json')):
         with codecs.open(filepath, 'w', 'utf-8') as fobj:
-            fobj.write(json.dumps(variable, ensure_ascii=False, encoding='utf-8'))
+            fobj.write(json.dumps(variable, ensure_ascii=False, encoding='utf-8', sort_keys=True))
 
     return 0
 
