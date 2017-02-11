@@ -80,7 +80,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'DDL': ('Duel Decks: Heroes vs. Monsters', 'Heroes vs. Monsters',),
     'DDM': ('Duel Decks: Jace vs. Vraska', 'Jace vs. Vraska',),
     'DDN': ('Duel Decks: Speed vs. Cunning', 'Speed vs. Cunning',),
-    'DDO': ('Duel Decks: Elspeth vs. Kiora', 'Elspeth vs. Kiora',),
+    'DDO': ('Duel Decks: Elspeth vs. Kiora', 'Elspeth vs. Kiora', 'Duel Decks: Kiora vs. Elspeth',),
     'DDP': ('Duel Decks: Zendikar vs. Eldrazi', 'Zendikar vs. Eldrazi',),
     'DDQ': ('Duel Decks: Blessed vs. Cursed', 'Blessed vs. Cursed',),
     'DDR': ('Duel Decks: Nissa vs. Ob Nixilis', 'Nissa vs. Ob Nixilis',),
