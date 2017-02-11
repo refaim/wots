@@ -212,6 +212,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.searchCompleter = QtWidgets.QCompleter(sorted(cardsNamesSet))
         self.searchCompleter.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.searchCompleter.setFilterMode(QtCore.Qt.MatchContains)
         self.searchField.setCompleter(self.searchCompleter)
 
         header = self.searchResultsView.horizontalHeader()
