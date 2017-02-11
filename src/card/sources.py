@@ -726,7 +726,9 @@ class TtTopdeck(CardSource):
 
 class EasyBoosters(CardSource):
     def __init__(self):
-        super().__init__('http://easyboosters.com', '/products?keywords={query}&page={page}', 'utf-8', {})
+        super().__init__('http://easyboosters.com', '/products?keywords={query}&page={page}', 'utf-8', {
+            'TSB': 'TST',
+        })
 
     def estimatePagesCount(self, html):
         pagesCount = 1
@@ -780,7 +782,7 @@ class EasyBoosters(CardSource):
                 elif caption in ('Язык', 'Language'):
                     language = core.language.getAbbreviation(value)
                 elif caption in ('Сет', 'Set'):
-                    cardSet = card.sets.tryGetAbbreviation(value)
+                    cardSet = self.getSetAbbrv(value)
                 elif caption in ('Номер', 'Number'):
                     cardId = int(value)
 
