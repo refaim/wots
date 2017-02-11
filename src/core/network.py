@@ -5,6 +5,7 @@ from __future__ import print_function
 import errno
 import http.client
 import io
+import ssl
 import time
 import urllib.error
 import urllib.parse
@@ -20,6 +21,8 @@ _logger = core.logger.Logger('Network')
 
 
 def getUrl(url, parametersDict=None, verbose=False):
+    url = url.replace('https://', 'http://')
+
     parametersBytes = None
     representation = '[{}] {}'.format('POST' if parametersDict else 'GET', url)
     if parametersDict:
@@ -62,6 +65,8 @@ def getUrl(url, parametersDict=None, verbose=False):
             except:
                 pass
             lastException = ex
+        except ssl.CertificateError:
+            raise
         except Exception as ex:
             retry = True
             lastException = ex
