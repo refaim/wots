@@ -149,7 +149,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'MMA': ('Modern Masters',),
     'MMQ': ('Mercadian Masques', 'MM',),
     'MOR': ('Morningtide', 'MT',),
-    'MPR': ('Magic Player Rewards', 'Reward cards', 'Textless Player Rewards', 'Player Rewards',),
+    'MPR': ('Magic Player Rewards', 'Reward cards', 'Textless Player Rewards', 'Player Rewards', 'pMPR',),
     'MPS': ('Magic Premiere Shop',),
     'MRD': ('Mirrodin',),
     'MS1': ('Masterpiece Series: Kaladesh Inventions', 'Kaladesh Inventions',),

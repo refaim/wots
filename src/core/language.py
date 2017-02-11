@@ -7,14 +7,14 @@ import tools.dict
 
 _LANGUAGES_SOURCE = {
     'cn': ('китайский', 'chinese', 'chi', 'kit',),
-    'de': ('немецкий', 'deutch',),
+    'de': ('немецкий', 'deutch', 'nem',),
     'en': ('английский', 'english', 'eng',),
-    'es': ('испанский', 'isp',),
+    'es': ('испанский', 'isp', 'esp',),
     'fr': ('французский', 'french', 'fre',),
-    'it': ('итальянский',),
+    'it': ('итальянский', 'ita',),
     'jp': ('японский', 'japanese', 'jap',),
     'ko': ('корейский', 'korean', 'kor',),
-    'pt': ('португальский', 'portuguese',),
+    'pt': ('португальский', 'portuguese', 'por', 'port',),
     'ru': ('русский', 'russian', 'rus',),
     'tw': ('тайваньский',),
     '': ('other',),
