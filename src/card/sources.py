@@ -378,6 +378,17 @@ class MtgSale(CardSource):
                 yield None
                 continue
 
+            nameSelector = 'p.tname .tnamec'
+            language = core.language.getAbbreviation(resultsEntry.cssselect('p.lang i')[0].attrib['title'])
+            if language is not None and language != 'EN':
+                nameSelector = 'p.tname .smallfont'
+
+            entrySet = resultsEntry.cssselect('p.nabor span')[0].attrib['title']
+            if not (language or entrySet):
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
             priceString = resultsEntry.cssselect('p.pprice')[0].text
             discountPriceBlocks = resultsEntry.cssselect('p.pprice .discount_price')
             if len(discountPriceBlocks) > 0:
@@ -386,14 +397,9 @@ class MtgSale(CardSource):
             if priceString and not priceString.isspace():
                 price = decimal.Decimal(re.match(r'(\d+)', priceString.strip()).group(0))
 
-            nameSelector = 'p.tname .tnamec'
-            language = core.language.getAbbreviation(resultsEntry.cssselect('p.lang i')[0].attrib['title'])
-            if language != 'EN':
-                nameSelector = 'p.tname .smallfont'
-
             yield self.fillCardInfo({
                 'name': self.packName(resultsEntry.cssselect(nameSelector)[0].text),
-                'set': self.getSetAbbrv(resultsEntry.cssselect('p.nabor span')[0].attrib['title']),
+                'set': self.getSetAbbrv(entrySet),
                 'language': language,
                 'condition': _CONDITIONS[resultsEntry.cssselect('p.sost span')[0].text],
                 'foilness': bool(resultsEntry.cssselect('p.foil')[0].text),
@@ -768,14 +774,12 @@ class EasyBoosters(CardSource):
                 continue
 
             itemName = entry.cssselect('.product-name-wrapper a.info')[0].attrib['title']
-            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы', 'кубик', 'альбом']):
+            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы', 'кубик', 'альбом', 'книга', 'fat pack']):
                 self.estimatedCardsCount -= 1
                 yield None
                 continue
 
             cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
-            itemName = cardHtml.cssselect('#product-description .product-title')[0].text
-            cardName = re.match(r'(.+?)\s*(#\d+)?\s\([^\,]+\,\s.+?\)', itemName).group(1)
 
             condition = None
             foil = False
@@ -796,6 +800,14 @@ class EasyBoosters(CardSource):
                     cardSet = self.getSetAbbrv(value)
                 elif caption in ('Номер', 'Number'):
                     cardId = int(value)
+
+            if cardSet is None and language is None:
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
+            itemName = cardHtml.cssselect('#product-description .product-title')[0].text
+            cardName = re.match(r'(.+?)\s*(#\d+)?\s\(.+', itemName).group(1)
 
             priceBlock = cardHtml.cssselect('#product-price div')[0]
             priceString = priceBlock.cssselect('span.price')[0].text
@@ -862,10 +874,16 @@ class MtgTrade(CardSource):
                     if len(conditionBlocks) > 0:
                         condition = _CONDITIONS[cardEntry.cssselect('.js-card-quality-tooltip')[0].text]
 
+                    cardSet = cardEntry.cssselect('.choose-set')[0].attrib['title']
+                    if 'mtgo' in cardSet.lower():
+                        self.estimatedCardsCount -= 1
+                        yield None
+                        continue
+
                     yield self.fillCardInfo({
                         'name': self.packName(' '.join(anchor.text_content().split())),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
-                        'set': self.getSetAbbrv(cardEntry.cssselect('.choose-set')[0].attrib['title']),
+                        'set': self.getSetAbbrv(),
                         'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"')),
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"').replace('руб', '')),
                         'currency': core.currency.RUR,
@@ -899,16 +917,24 @@ class AutumnsMagic(CardSource):
             cardName = entry.cssselect('.card-name a')[0].text.strip()
             dscBlock = entry.cssselect('.product-description')[0]
             dscImages = dscBlock.cssselect('img')
-            language = [img.attrib['title'] for img in dscImages if 'flags' in img.attrib['src']][0]
             foilness = len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0
             countTag = [tag for tag in dscBlock.cssselect('span') if 'шт' in tag.text][0]
             priceTag = entry.cssselect('.product-footer .product-price .product-default-price')[0]
             setAbbrv = dscBlock.cssselect('i')[0].attrib['class'].split()[1][len('ss-'):]
 
+            language = None
+            lngTitles = [img.attrib['title'] for img in dscImages if 'flags' in img.attrib['src']]
+            if len(lngTitles) > 0:
+                language = lngTitles[0]
+            if not language:
+                language = guessCardLanguage(cardName)
+            if language:
+                language = core.language.getAbbreviation(language)
+
             yield self.fillCardInfo({
                 'name': self.packName(cardName),
                 'set': self.getSetAbbrv(setAbbrv),
-                'language': core.language.getAbbreviation(language),
+                'language': language,
                 'foilness': foilness,
                 'count': int(re.match(r'^([\d]+).*', countTag.text.replace(' ', '')).group(1)),
                 'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', priceTag.text.strip()).group(1).replace(' ', '')),
