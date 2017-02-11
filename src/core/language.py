@@ -11,7 +11,7 @@ _LANGUAGES_SOURCE = {
     'en': ('английский', 'english', 'eng',),
     'es': ('испанский', 'isp', 'esp',),
     'fr': ('французский', 'french', 'fre',),
-    'it': ('итальянский', 'ita',),
+    'it': ('итальянский', 'ita', 'ital',),
     'jp': ('японский', 'japanese', 'jap',),
     'ko': ('корейский', 'korean', 'kor',),
     'pt': ('португальский', 'portuguese', 'por', 'port',),

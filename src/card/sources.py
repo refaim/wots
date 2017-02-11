@@ -34,6 +34,8 @@ for k, v in _CONDITIONS.items():
     _CONDITIONS_CASE_INSENSITIVE[k.lower()] = v
 
 MTG_RU_SPECIFIC_SETS = {
+    'AN': 'Arabian Nights',
+    'AQ': 'Antiquities',
     'LE': 'Legions',
     'LG': 'Legends',
     'MI': 'Mirage',
@@ -44,6 +46,7 @@ MTG_RU_SPECIFIC_SETS = {
     'PC': 'Planar Chaos',
     'PCH': 'Planechase',
     'ST': 'Starter 1999',
+    'UG': 'Unglued',
 }
 
 
@@ -79,7 +82,10 @@ class CardSource(object):
         return re.sub(r'^www\.', '', location)
 
     def getSetAbbrv(self, setId):
-        return card.sets.tryGetAbbreviation(self.sourceSpecificSets.get(setId, setId))
+        result = card.sets.tryGetAbbreviation(self.sourceSpecificSets.get(setId, setId))
+        if result is None:
+            self.logger.warning('Unable to recognize set "{}" for query "{}"'.format(setId, self.currentQuery))
+        return result
 
     def escapeQueryText(self, queryText):
         return queryText.replace(u'`', "'").replace(u'’', "'")
@@ -116,6 +122,8 @@ class CardSource(object):
         return self.estimatedCardsCount
 
     def query(self, queryText):
+        self.currentQuery = queryText
+
         loopIndex = 0
         pageIndex = 0
         pageCount = 0
@@ -433,7 +441,10 @@ class CardPlace(CardSource):
     def parse(self, html, url):
         for resultsEntry in html.cssselect('#mtgksingles tbody tr'):
             dataCells = resultsEntry.cssselect('td')
-            language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(self.url + dataCells[3].cssselect('img')[0].attrib['src']).path))
+            language = None
+            langImages = dataCells[3].cssselect('img')
+            if len(langImages) > 0:
+                language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(self.url + langImages[0].attrib['src']).path))
             cardId = None
             cardNameAnchor = dataCells[2].cssselect('a')[0]
             cardName = cardNameAnchor.text
@@ -881,25 +892,26 @@ class AutumnsMagic(CardSource):
     def parse(self, html, url):
         for entry in html.cssselect('.product-wrapper'):
             cardUrl = entry.cssselect('a')[0].attrib['href']
-            cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
-            cardName, cardFoilString = re.match(r'^(.+?)\s*(\((?:фойловая|foil)\))?$', cardHtml.cssselect('.product-title')[0].text.strip()).groups()
+            if any((c not in string.printable) for c in cardUrl):
+                self.estimatedCardsCount -= 1
+                continue
 
-            cells = cardHtml.cssselect('.buy-block table tr td')
-            setCellIdx = -1
-            for i, cell in enumerate(cells):
-                if cell.text == 'Block':
-                    setCellIdx = i + 1
-            cardSet = None
-            if setCellIdx >= 0:
-                cardSet = self.getSetAbbrv(list(cells)[setCellIdx].cssselect('a')[0].text)
+            cardName = entry.cssselect('.card-name a')[0].text.strip()
+            dscBlock = entry.cssselect('.product-description')[0]
+            dscImages = dscBlock.cssselect('img')
+            language = [img.attrib['title'] for img in dscImages if 'flags' in img.attrib['src']][0]
+            foilness = len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0
+            countTag = [tag for tag in dscBlock.cssselect('span') if 'шт' in tag.text][0]
+            priceTag = entry.cssselect('.product-footer .product-price .product-default-price')[0]
+            setAbbrv = dscBlock.cssselect('i')[0].attrib['class'].split()[1][len('ss-'):]
 
             yield self.fillCardInfo({
                 'name': self.packName(cardName),
-                'set': cardSet,
-                'language': core.language.getAbbreviation(guessCardLanguage(cardName)),
-                'foilness': bool(cardFoilString is not None),
-                'count': int(cardHtml.cssselect('span.count')[0].text),
-                'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', cardHtml.cssselect('span.price')[0].text).group(1).replace(' ', '')),
+                'set': self.getSetAbbrv(setAbbrv),
+                'language': core.language.getAbbreviation(language),
+                'foilness': foilness,
+                'count': int(re.match(r'^([\d]+).*', countTag.text.replace(' ', '')).group(1)),
+                'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', priceTag.text.strip()).group(1).replace(' ', '')),
                 'currency': core.currency.RUR,
                 'source': self.packSource(self.getTitle(), cardUrl),
             })

@@ -37,17 +37,17 @@ class CardsFixer(object):
     def fixCardInfo(self, cardInfo):
         cardInfo = copy.deepcopy(cardInfo)
         cardInfo['name']['caption'] = card.utils.getPrimaryName(cardInfo['name']['caption'])
+
         cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
-        cardSets = self.cardSets.get(cardKey, set())
-
-        if 'description' not in cardInfo['name'] or cardInfo['name']['description'] is None:
-            cardInfo['name']['description'] = ''
-
         if cardKey in self.cardsNames:
             newCardName = self.cardsNames[cardKey][0]
             cardInfo['name']['caption'] = newCardName
             cardKey = card.utils.getNameKey(newCardName)
 
+        if 'description' not in cardInfo['name'] or cardInfo['name']['description'] is None:
+            cardInfo['name']['description'] = ''
+
+        cardSets = self.cardSets.get(cardKey, set())
         oldCardSet = cardInfo.get('set')
         if oldCardSet is not None:
             oldCardSetKey = card.sets.tryGetAbbreviation(oldCardSet)

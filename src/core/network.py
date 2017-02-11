@@ -68,7 +68,7 @@ def getUrl(url, parametersDict=None, verbose=False):
         except ssl.CertificateError:
             raise
         except Exception as ex:
-            retry = True
+            retry = False
             lastException = ex
         if retry and attempt <= MAX_ATTEMPTS:
             _logger.info('Restarting ({}/{}) {}'.format(attempt, MAX_ATTEMPTS, representation))
