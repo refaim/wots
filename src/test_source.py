@@ -1,8 +1,7 @@
 import codecs
-import collections
 import json
-import random
 import sys
+import time
 import traceback
 
 import card.sources
@@ -37,32 +36,40 @@ def main(args):
             cardSource = instance
             break
 
-    numsFound = collections.Counter()
+    queriedCards = {}
     for setId in setsCards.keys():
-        sample = random.sample(setsCards[setId], min(10, len(setsCards[setId])))
+        # sample = random.sample(setsCards[setId], min(10, len(setsCards[setId])))
+        sample = setsCards[setId]
         for cardName in sample:
-            stateString = '[{}] {} >= {}...'.format(setId, card.utils.escape(cardName), sourceId)
-            sys.stdout.write(stateString + ' ')
-            numFound = 0
-            try:
-                for cardInfo in cardSource.query(cardName):
-                    if cardInfo is not None:
-                        numFound += 1
-                sys.stdout.write('{} found'.format(numFound) + '\n')
-            except KeyboardInterrupt:
-                sys.stdout = oldStdout
-                sys.stderr = oldStderr
-                return 1
-            except Exception:
-                sys.stdout.write('<{} FAIL'.format('=' * 20) + '\n')
-                sys.stderr.write(stateString + '\n')
-                traceback.print_exc(file=sys.stderr)
-                sys.stderr.write(('=' * 100) + '\n')
-                cardSource = cardSourceClass()
-            finally:
-                numsFound[sourceId] += numFound
-                sys.stdout.flush()
-                sys.stderr.flush()
+            if cardName not in queriedCards:
+                queriedCards[cardName] = True
+                stateString = '[{}] {} >= {}...'.format(setId, card.utils.escape(cardName), sourceId)
+                sys.stdout.write(stateString + ' ')
+                numFound = 0
+                try:
+                    for cardInfo in cardSource.query(cardName):
+                        if cardInfo is not None:
+                            numFound += 1
+                            del cardInfo
+                        time.sleep(0.1)
+                    sys.stdout.write('{} found'.format(numFound) + '\n')
+                except KeyboardInterrupt:
+                    sys.stdout = oldStdout
+                    sys.stderr = oldStderr
+                    return 1
+                except Exception:
+                    sys.stdout.write('<{} FAIL'.format('=' * 20) + '\n')
+                    sys.stderr.write(stateString + '\n')
+                    traceback.print_exc(file=sys.stderr)
+                    sys.stderr.write(('=' * 100) + '\n')
+                    del cardSource
+                    cardSource = cardSourceClass()
+                finally:
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                    del stateString
+                    del numFound
+        del sample
 
     sys.stdout.write('Finished\n')
 
