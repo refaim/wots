@@ -883,7 +883,7 @@ class MtgTrade(CardSource):
                     yield self.fillCardInfo({
                         'name': self.packName(' '.join(anchor.text_content().split())),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
-                        'set': self.getSetAbbrv(),
+                        'set': self.getSetAbbrv(cardSet),
                         'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"')),
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"').replace('руб', '')),
                         'currency': core.currency.RUR,
