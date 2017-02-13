@@ -172,7 +172,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'PLS': ('Planeshift', 'PS',),
     'PO2': ('Portal: Second Age', 'Portal Second Age',),
     'POR': ('Portal',),
-    'PRL': ('Prerelease, Release & Launch Party Cards', 'Prerelease & Release Cards', 'Prerelease Events', 'Release Events', 'Prerelease Promos', 'Release & Launch Parties Promos', 'Magic: The Gathering Launch Parties', 'PreRelease', 'Release', 'Launch Party', 'pPRE', 'pLPA',),
+    'PRL': ('Prerelease, Release & Launch Party Cards', 'Prerelease & Release Cards', 'Prerelease Events', 'Release Events', 'Prerelease Promos', 'Release & Launch Parties Promos', 'Magic: The Gathering Launch Parties', 'PreRelease', 'Release', 'Launch Party', 'pPRE', 'pLPA', 'pREL',),
     'PRO': ('Pro Tour Promos', 'Pro Tour',),
     'PTK': ('Portal: Three Kingdoms', 'Portal Three Kingdoms',),
     'RAV': ('Ravnica: City of Guilds', 'Ravnica', 'RA',),

@@ -52,7 +52,7 @@ def getUrl(url, parametersDict=None, verbose=False):
                 _logger.info('Finished {}'.format(representation))
             return dstObj.read()
         except urllib.error.HTTPError as ex:
-            if ex.code == http.client.INTERNAL_SERVER_ERROR:
+            if ex.code in (http.client.BAD_GATEWAY, http.client.GATEWAY_TIMEOUT, http.client.INTERNAL_SERVER_ERROR):
                 retry = attempt <= 3
             elif ex.code in (http.client.NOT_FOUND, http.client.REQUESTED_RANGE_NOT_SATISFIABLE):
                 raise
@@ -67,6 +67,12 @@ def getUrl(url, parametersDict=None, verbose=False):
             lastException = ex
         except ssl.CertificateError:
             raise
+        except http.client.BadStatusLine as ex:
+            retry = True
+            lastException = ex
+        except http.client.IncompleteRead as ex:
+            retry = True
+            lastException = ex
         except Exception as ex:
             retry = False
             lastException = ex

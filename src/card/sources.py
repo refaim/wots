@@ -99,7 +99,10 @@ class CardSource(object):
                 byteString = core.network.getUrl(url, data)
                 self.requestCache[cacheKey] = lxml.html.document_fromstring(byteString.decode(self.encoding))
             except Exception as ex:
-                self.logger.warning(str(ex))
+                message = str(ex)
+                if len(message) == 0 or message.isspace():
+                    raise
+                self.logger.warning(message)
         return self.requestCache.get(cacheKey)
 
     def packName(self, caption, description=None):
@@ -204,6 +207,10 @@ class AngryBottleGnome(CardSource):
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Английский, M/NM  (30р., в наличии: 1)</div>
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Итальянский, M/NM  Фойл (180р., в наличии: 1)</div>
         self.cardInfoRegexp = re.compile(r'(?P<language>[^,]+),\s*(?P<condition>[\S]+)\s*(?P<foilness>[^\(]+)?\s*\((?P<price>\d+)[^\d]*(?P<count>\d+)\)')
+
+    def escapeQueryText(self, queryText):
+        # if query url contains & request will fail
+        return super().escapeQueryText(queryText.replace('R&D', '').replace('&', ''))
 
     def getPageCardsCount(self, html):
         return len(html.cssselect('#search-results tbody tr'))
@@ -912,9 +919,16 @@ class AutumnsMagic(CardSource):
             cardUrl = entry.cssselect('a')[0].attrib['href']
             if any((c not in string.printable) for c in cardUrl):
                 self.estimatedCardsCount -= 1
+                yield None
                 continue
 
-            cardName = entry.cssselect('.card-name a')[0].text.strip()
+            nameTags = entry.cssselect('.card-name')
+            if len(nameTags) == 0:
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
+            cardName = nameTags[0].cssselect('a')[0].text.strip()
             dscBlock = entry.cssselect('.product-description')[0]
             dscImages = dscBlock.cssselect('img')
             foilness = len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0
