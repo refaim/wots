@@ -880,6 +880,7 @@ class MtgTrade(CardSource):
             anchor = resultsEntry.cssselect('.search-title')[0]
             if '/single/' not in anchor.attrib['href']:
                 self.estimatedCardsCount -= len(resultsEntry.cssselect(self.cardSelector))
+                yield None
                 continue
 
             for cardsGroup in sellerCardsGroups:
