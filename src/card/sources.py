@@ -429,24 +429,24 @@ class CardPlace(CardSource):
             'Kaladesh (PR)': 'Prerelease & Release Cards',
         }
         super().__init__('http://cardplace.ru', '/directory/new_search/{query}/singlemtg', 'utf-8', sourceSpecificSets)
+        conditions = {
+            'NM': ['NM', 'NM/M', 'M'],
+            'SP': ['VF', 'Very Fine'],
+            'MP': ['F', 'Fine'],
+            'HP': ['Poor'],
+        }
+        self.conditions = {}
+        for key, values in conditions.items():
+            for valueString in values:
+                self.conditions[valueString] = key
 
-    @staticmethod
-    def _extractFirstLevelParenthesesContents(nameString):
-        # Лес (#246) (Forest (#246))
-        contents = []
-        current = []
-        level = 0
-        for c in nameString:
-            if c == '(':
-                level += 1
-            elif c == ')':
-                level -= 1
-            if level > 0 and (level != 1 or c != '('):
-                current.append(c)
-            elif level == 0 and c == ')':
-                contents.append(''.join(current))
-                current = []
-        return contents
+    def extractToken(self, pattern, dataString):
+        token = None
+        match = re.search(pattern, dataString, re.IGNORECASE)
+        if match is not None:
+            token = match.group(1)
+            dataString = re.sub(pattern, '', dataString)
+        return token, dataString
 
     def getPageCardsCount(self, html):
         return len(html.cssselect('#mtgksingles tbody tr'))
@@ -454,36 +454,48 @@ class CardPlace(CardSource):
     def parse(self, html, url):
         for resultsEntry in html.cssselect('#mtgksingles tbody tr'):
             dataCells = resultsEntry.cssselect('td')
+
             language = None
             langImages = dataCells[3].cssselect('img')
             if len(langImages) > 0:
                 language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(self.url + langImages[0].attrib['src']).path))
+
+            conditionString = None
+            for anchor in dataCells[2].cssselect('a'):
+                if 'condition_guide' in anchor.attrib['href']:
+                    conditionString = anchor.text
+            if conditionString is not None:
+                conditionString = _CONDITIONS[self.conditions[conditionString]]
+
             cardId = None
-            cardNameAnchor = dataCells[2].cssselect('a')[0]
-            cardName = cardNameAnchor.text
-            isSpecialPromo = any(string in cardName for string in ['APAC', 'EURO', 'MPS'])
+            cardSet = dataCells[1].cssselect('b')[0].text.strip("'")
+            anchorName = dataCells[2].cssselect('a')[0]
+            nameString = anchorName.text
+            cardName = nameString
+            isSpecialPromo = any(string in nameString for string in ['APAC', 'EURO', 'MPS'])
             if not isSpecialPromo:
-                if not language or language != 'EN':
-                    prn = self._extractFirstLevelParenthesesContents(cardName)
-                    if prn and not prn[-1].strip('#').isdigit():
-                        cardName = prn[-1]
-                prn = self._extractFirstLevelParenthesesContents(cardName)
-                if prn:
-                    cardIdCandidate = prn[0].lstrip('#')
-                    if cardIdCandidate.isdigit():
-                        cardName = cardName[:cardName.index('(')].strip()
-                        cardId = cardIdCandidate
+                cardId, nameString = self.extractToken(r'\s?\(?\#(\d+)\)?', nameString)
+                promoString, nameString = self.extractToken(r'\s?\(((?:Pre)?release)\)', nameString)
+                if promoString is not None:
+                    cardSet = promoString
+                secondaryNameString, primaryNameString = self.extractToken(r'\s?\(([^\)]+)\)', nameString)
+                cardName = primaryNameString
+                if not language or language != 'EN' and secondaryNameString is not None:
+                    cardName = secondaryNameString
+
             nameImages = dataCells[2].cssselect('img')
+
             yield self.fillCardInfo({
-                'id': int(cardId) if cardId else None,
+                'id': cardId,
                 'name': self.packName(cardName),
-                'foilness': len(nameImages) > 0 and nameImages[0].attrib['title'] == 'FOIL',
-                'set': self.getSetAbbrv(dataCells[1].cssselect('b')[0].text.strip("'")),
+                'foilness': len(nameImages) > 0 and nameImages[0].attrib['title'].lower() == 'foil',
+                'set': self.getSetAbbrv(cardSet),
                 'language': language,
+                'condition': conditionString,
                 'price': decimal.Decimal(re.match(r'([\d\.]+)', dataCells[6].text.strip()).group(0)),
                 'currency': core.currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
-                'source': self.packSource(self.getTitle(), cardNameAnchor.attrib['href']),
+                'source': self.packSource(self.getTitle(), anchorName.attrib['href']),
             })
 
 
