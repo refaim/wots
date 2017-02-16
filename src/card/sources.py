@@ -733,7 +733,7 @@ class TtTopdeck(CardSource):
                     countValue, priceValue = int(priceValue), decimal.Decimal(countValue)
 
                 yield self.fillCardInfo({
-                    'name': self.packName(cells[3].text, descriptionString),
+                    'name': self.packName(cardName, descriptionString),
                     'foilness': foil,
                     'set': cardSet,
                     'language': core.language.getAbbreviation(cardLanguage) if cardLanguage else None,
