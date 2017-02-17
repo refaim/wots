@@ -87,6 +87,14 @@ class CardSource(object):
             self.logger.warning('Unable to recognize set "{}" for query "{}"'.format(setId, self.currentQuery))
         return result
 
+    def extractToken(self, pattern, dataString):
+        token = None
+        match = re.search(pattern, dataString, re.IGNORECASE | re.UNICODE)
+        if match is not None:
+            token = match.groupdict()['token']
+            dataString = re.sub(pattern, '', dataString, count=1)
+        return token, dataString
+
     def escapeQueryText(self, queryText):
         return queryText.replace(u'`', "'").replace(u'’', "'")
 
@@ -440,14 +448,6 @@ class CardPlace(CardSource):
             for valueString in values:
                 self.conditions[valueString] = key
 
-    def extractToken(self, pattern, dataString):
-        token = None
-        match = re.search(pattern, dataString, re.IGNORECASE)
-        if match is not None:
-            token = match.group(1)
-            dataString = re.sub(pattern, '', dataString)
-        return token, dataString
-
     def getPageCardsCount(self, html):
         return len(html.cssselect('#mtgksingles tbody tr'))
 
@@ -474,11 +474,11 @@ class CardPlace(CardSource):
             cardName = nameString
             isSpecialPromo = any(string in nameString for string in ['APAC', 'EURO', 'MPS'])
             if not isSpecialPromo:
-                cardId, nameString = self.extractToken(r'\s?\(?\#(\d+)\)?', nameString)
-                promoString, nameString = self.extractToken(r'\s?\(((?:Pre)?release)\)', nameString)
+                cardId, nameString = self.extractToken(r'\s?\(?\#(?P<token>\d+)\)?', nameString)
+                promoString, nameString = self.extractToken(r'\s?\((?P<token>(pre)?release)\)', nameString)
                 if promoString is not None:
                     cardSet = promoString
-                secondaryNameString, primaryNameString = self.extractToken(r'\s?\(([^\)]+)\)', nameString)
+                secondaryNameString, primaryNameString = self.extractToken(r'\s?\((?P<token>[^\)]+)\)', nameString)
                 cardName = primaryNameString
                 if not language or language != 'EN' and secondaryNameString is not None:
                     cardName = secondaryNameString
@@ -660,10 +660,6 @@ class TtTopdeck(CardSource):
             'angrybottlegnome',
             'mtgsale',
         ]
-        self.possiblePriceRegexps = [
-            [re.compile(r'.*?(\d+)\s*\$.*'), core.currency.USD, 1],
-            [re.compile(r'.*?(\d+)\s*[kк][^t]', re.U | re.I), core.currency.RUR, 1000],
-        ]
 
     def getPageCardsCount(self, html):
         return len(html.cssselect('table table tr')[1:])
@@ -674,90 +670,104 @@ class TtTopdeck(CardSource):
             cardName = cells[3].text
             sellerAnchor = cells[5].cssselect('a')[0]
             sellerNickname = sellerAnchor.text
-            if cardName and sellerNickname not in self.excludedSellers:
 
-                priceValue = None
-                priceCurrency = None
-                priceString = cells[1].text
-                if priceString.isdigit():
-                    priceValue = decimal.Decimal(priceString)
-                    priceCurrency = core.currency.RUR
-
-                countValue = None
-                countString = cells[2].text
-                if countString.isdigit():
-                    countValue = int(countString)
-
-                foil = False
-                cardSet = None
-                cardLanguage = None
-                cardCondition = None
-
-                detailsString = cells[6].text
-                if detailsString:
-                    descriptionString = ' '.join(detailsString.split()).strip()
-                    if descriptionString.isdigit():
-                        descriptionString = None
-
-                    detailsStringLw = detailsString.lower()
-
-                    for regexp, currency, valueMultiplier in self.possiblePriceRegexps:
-                        # я не смог написать нормальную регулярку, чтобы ловила 15k, но не ловила 15 ktk, поэтому так
-                        whitespaced = detailsStringLw + ' '
-                        match = regexp.match(whitespaced)
-                        if match:
-                            priceValue = decimal.Decimal(match.group(1)) * valueMultiplier
-                            priceCurrency = currency
-                            break
-
-                    foil = any(foilString in detailsStringLw for foilString in ['foil', 'фойл', 'фоил'])
-
-                    letterClusters = tools.string.splitByNonLetters(detailsStringLw)
-
-                    for cluster in letterClusters:
-                        cardSet = card.sets.tryGetAbbreviation(cluster, quiet=True)
-                        if cardSet is not None:
-                            break
-
-                    foundLangsCount = 0
-                    for cluster in letterClusters:
-                        langAbbrv = core.language.tryGetAbbreviation(cluster)
-                        if langAbbrv is not None:
-                            cardLanguage = langAbbrv
-                            foundLangsCount += 1
-                    if foundLangsCount > 1:
-                        cardLanguage = None
-
-                    foundConditions = set()
-                    for cluster in letterClusters:
-                        lc = cluster.lower()
-                        if lc in _CONDITIONS_CASE_INSENSITIVE:
-                            foundConditions.add(_CONDITIONS_CASE_INSENSITIVE[lc])
-                    if len(foundConditions) > 0:
-                        cardCondition = sorted(foundConditions, key=_CONDITIONS_ORDER.index)[0]
-
-                    countMatch = re.match(r'(\d+)\W.*?{}'.format(cardName), detailsStringLw, re.U | re.I)
-                    if countMatch:
-                        countValue = int(countMatch.group(1))
-
-                # Если цена и количество перепутаны местами
-                if countValue > 50 and priceValue < 50:
-                    countValue, priceValue = int(priceValue), decimal.Decimal(countValue)
-
-                yield self.fillCardInfo({
-                    'name': self.packName(cardName, descriptionString),
-                    'foilness': foil,
-                    'set': cardSet,
-                    'language': core.language.getAbbreviation(cardLanguage) if cardLanguage else None,
-                    'price': priceValue,
-                    'currency': priceCurrency,
-                    'count': countValue,
-                    'condition': cardCondition,
-                    'source': self.packSource('topdeck.ru/' + sellerNickname.lower().replace(' ', '_'), sellerAnchor.attrib['href']),
-                })
-            else:
+            if not cardName or sellerNickname in self.excludedSellers:
                 self.estimatedCardsCount -= 1
                 yield None
+                continue
+
+            ttPriceValue = tools.string.parseSpacedInteger(cells[1].text)
+            ttCountValue = tools.string.parseSpacedInteger(cells[2].text)
+            myPriceValue = None
+            myCountValue = None
+
+            cardFoilness = False
+            cardSet = None
+            cardLanguage = None
+            cardCondition = None
+
+            detailsString = None
+            rawDetailsString = cells[6].text
+            if rawDetailsString:
+                detailsString = ' '.join(rawDetailsString.split()).strip()
+                if detailsString.isdigit():
+                    detailsString = None
+
+            if detailsString is not None:
+                dataString = detailsString.lower().replace(cardName.lower(), '')
+
+                foilString, dataString = self.extractToken(r'(?P<token>foil|фо(и|й)л(а|(ов(ый|ая)?)?)?)', dataString)
+                cardFoilness = foilString is not None
+
+                prPromoString, dataString = self.extractToken(r'(?P<token>((pre)?release)|((пре)?рел(из)?)|(прер))', dataString)
+                if prPromoString is not None:
+                    cardSet = 'Prerelease & Release Cards'
+
+                reserveString, dataString = self.extractToken(r'(?P<token>((за)?резерв(ирован(н)?(о|а|ы)?)?)|(reserv(e(d)?)?)|(отложен(н)?(о|а|ы)?))', dataString)
+                if reserveString is not None:
+                    self.estimatedCardsCount -= 1
+                    yield None
+                    continue
+
+                rawMyCountString, dataString = self.extractToken(r'(x|х)?\s*(?P<token>\d+)(?!(р(уб)?|\d))(\s|-)*(x|х|(шт\.?))?', dataString)
+                rawMyPriceString, dataString = self.extractToken(r'(?P<token>\d{1,2}\s?\d*)(р(уб)?\.*(\/?шт\.?)?)?', dataString)
+                myCountValue = tools.string.parseSpacedInteger(rawMyCountString)
+                myPriceValue = tools.string.parseSpacedInteger(rawMyPriceString)
+
+                if myPriceValue == ttPriceValue and myCountValue is None:
+                    myCountValue = 1
+
+                if myCountValue == ttPriceValue:
+                    myCountValue = ttCountValue
+                    myPriceValue = ttPriceValue
+
+                if myCountValue > 20 and myPriceValue < 20:
+                    myCountValue, myPriceValue = myPriceValue, myCountValue
+
+                foundLangsNum = 0
+                langCluster = None
+                for cluster in tools.string.splitByNonLetters(dataString):
+                    langAbbrv = core.language.tryGetAbbreviation(cluster)
+                    if langAbbrv is not None:
+                        langCluster = cluster
+                        cardLanguage = langAbbrv
+                        foundLangsNum += 1
+                if foundLangsNum == 1:
+                    dataString = dataString.replace(langCluster, '')
+                else:
+                    cardLanguage = None
+
+                foundConditions = set()
+                for cluster in tools.string.splitByNonLetters(dataString):
+                    lc = cluster.lower()
+                    if lc in _CONDITIONS_CASE_INSENSITIVE:
+                        foundConditions.add(_CONDITIONS_CASE_INSENSITIVE[lc])
+                if len(foundConditions) > 0:
+                    cardCondition = sorted(foundConditions, key=_CONDITIONS_ORDER.index)[0]
+
+            if myCountValue is None or myPriceValue is None:
+                myCountValue = ttCountValue
+                myPriceValue = ttPriceValue
+
+            if myCountValue == 0:
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
+            if cardSet is not None:
+                cardSet = self.getSetAbbrv(cardSet)
+
+            yield self.fillCardInfo({
+                'name': self.packName(cardName, detailsString),
+                'foilness': cardFoilness,
+                'set': cardSet,
+                'language': cardLanguage,
+                'price': decimal.Decimal(myPriceValue),
+                'currency': core.currency.RUR,
+                'count': myCountValue,
+                'condition': cardCondition,
+                'source': self.packSource('topdeck.ru/' + sellerNickname.lower().replace(' ', '_'), sellerAnchor.attrib['href']),
+            })
 
 
 class EasyBoosters(CardSource):

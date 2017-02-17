@@ -10,3 +10,12 @@ def splitByNonLetters(stringValue):
         if cluster:
             result.extend(cluster.split(u'_'))
     return result
+
+
+def parseSpacedInteger(stringValue):
+    result = None
+    if stringValue is not None:
+        joined = ''.join(stringValue.split())
+        if joined.isdigit():
+            result = int(joined)
+    return result
