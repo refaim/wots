@@ -188,15 +188,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.textChanged.connect(self.onSearchFieldTextChanged)
         self.searchField.returnPressed.connect(self.searchCards)
 
-        cardsNamesSet = set()
-        with codecs.open(getResourcePath('autocomplete.json'), 'r', 'utf-8') as fobj:
-            cardsNamesMap = json.load(fobj)
-            for namesList in cardsNamesMap.values():
-                for name in namesList:
-                    cardsNamesSet.add(name)
-
         with codecs.open(getResourcePath('database.json'), 'r', 'utf-8') as fobj:
             cardsInfo = json.load(fobj)
+        with codecs.open(getResourcePath('completion_map.json'), 'r', 'utf-8') as fobj:
+            cardsNamesMap = json.load(fobj)
+        with codecs.open(getResourcePath('completion_set.json'), 'r', 'utf-8') as fobj:
+            cardsNamesSet = json.load(fobj)
 
         cardsFixer = card.fixer.CardsFixer(cardsInfo, cardsNamesMap)
         self.searchResultsModel = CardsTableModel(cardsFixer, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)

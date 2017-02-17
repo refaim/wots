@@ -15,7 +15,7 @@ def main(args):
     sys.stdout = codecs.open(stdoutLog, 'a', 'utf-8')
     sys.stderr = codecs.open(stderrLog, 'a', 'utf-8')
 
-    with codecs.open(wizard.getResourcePath('autocomplete.json'), 'r', 'utf-8') as fobj:
+    with codecs.open(wizard.getResourcePath('completion_map.json'), 'r', 'utf-8') as fobj:
         cardsNamesMap = json.load(fobj)
     with codecs.open(wizard.getResourcePath('database.json'), 'r', 'utf-8') as fobj:
         setsInfo = json.load(fobj)

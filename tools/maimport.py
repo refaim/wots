@@ -28,7 +28,8 @@ def unicode_csv_reader(unicode_csv_data, dialect=csv.excel, **kwargs):
 
 
 def main(args):
-    autocomplete = {}
+    complSet = set()
+    complMap = {}
     database = {}
 
     with codecs.open(args[0], encoding='utf_16_le') as fobj:
@@ -40,9 +41,11 @@ def main(args):
                 print(row)
             row['original'] = card.utils.getPrimaryName(row['original'])
             for key in (card.utils.getNameKey(cardName) for cardName in (row['name'], row['original']) if row['lang'] in ('RUS', 'ENG')):
-                values = autocomplete.setdefault(key, [])
-                if not row['name'] in values:
-                    values.append(row['name'])
+                complSet.add(card.utils.escape(row['original']))
+                completionString = card.utils.escape(row['name'])
+                values = complMap.setdefault(key, [])
+                if completionString not in values:
+                    values.append(completionString)
 
             # workaround for some sort of csv parse bug
             if row['foil'] in ('POR', 'FRA'):
@@ -68,8 +71,9 @@ def main(args):
         entry['languages'] = list(entry['languages'])
         entry['foil'] = list(entry['foil'])
 
-    del autocomplete['']
-    for variable, filepath in ((autocomplete, 'autocomplete.json'), (database, 'database.json')):
+    del complMap['']
+    complSet.discard('')
+    for variable, filepath in ((sorted(list(complSet)), 'completion_set.json'), (complMap, 'completion_map.json'), (database, 'database.json')):
         with codecs.open(filepath, 'w', 'utf-8') as fobj:
             fobj.write(json.dumps(variable, ensure_ascii=False, encoding='utf-8', sort_keys=True))
 

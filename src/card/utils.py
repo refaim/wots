@@ -15,10 +15,13 @@ def _processCard(cardname, rules):
 _STRINGS_TO_ESCAPE = {
     u'Æ': u'AE',
     u'\u2019': u"'",
+    u'“': u'',
+    u'”': u'',
 }
 _STRINGS_TO_UNESCAPE = {}
 for k, v in _STRINGS_TO_ESCAPE.items():
-    _STRINGS_TO_UNESCAPE[v] = k
+    if len(v) > 0:
+        _STRINGS_TO_UNESCAPE[v] = k
 
 _STRINGS_TO_CLEAN = {
     u'//': u'/',
