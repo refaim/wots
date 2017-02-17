@@ -67,11 +67,12 @@ def guessCardLanguage(cardName):
 
 
 class CardSource(object):
-    def __init__(self, url, queryUrlTemplate, encoding, sourceSpecificSets):
+    def __init__(self, url, queryUrlTemplate, queryEncoding, responseEncoding, sourceSpecificSets):
         self.url = url
         self.queryUrlTemplate = url + queryUrlTemplate
         self.sourceSpecificSets = sourceSpecificSets
-        self.encoding = encoding
+        self.queryEncoding = queryEncoding
+        self.responseEncoding = responseEncoding
         self.foundCardsCount = 0
         self.estimatedCardsCount = None
         self.requestCache = {}
@@ -105,7 +106,7 @@ class CardSource(object):
         if cacheKey not in self.requestCache:
             try:
                 byteString = core.network.getUrl(url, data)
-                self.requestCache[cacheKey] = lxml.html.document_fromstring(byteString.decode(self.encoding))
+                self.requestCache[cacheKey] = lxml.html.document_fromstring(byteString.decode(self.responseEncoding))
             except Exception as ex:
                 message = str(ex)
                 if len(message) == 0 or message.isspace():
@@ -140,7 +141,7 @@ class CardSource(object):
         pageCount = 0
         while pageIndex <= pageCount:
             pageIndex = self.getPageIndex(loopIndex)
-            requestUrl = self.queryUrlTemplate.format(**{'query': urllib.parse.quote(self.escapeQueryText(queryText)), 'page': pageIndex})
+            requestUrl = self.queryUrlTemplate.format(**{'query': urllib.parse.quote(self.escapeQueryText(queryText).encode(self.queryEncoding)), 'page': pageIndex})
             response = self.makeRequest(requestUrl, self.prepareRequest(queryText, pageIndex))
             if response is None:
                 continue
@@ -211,7 +212,7 @@ class AngryBottleGnome(CardSource):
             'Release Events': 'Prerelease & Release Cards',
             'Launch Party': 'Magic: The Gathering Launch Parties',
         }
-        super().__init__('http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', 'utf-8', sourceSpecificSets)
+        super().__init__('http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', 'utf-8', 'utf-8', sourceSpecificSets)
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Английский, M/NM  (30р., в наличии: 1)</div>
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Итальянский, M/NM  Фойл (180р., в наличии: 1)</div>
         self.cardInfoRegexp = re.compile(r'(?P<language>[^,]+),\s*(?P<condition>[\S]+)\s*(?P<foilness>[^\(]+)?\s*\((?P<price>\d+)[^\d]*(?P<count>\d+)\)')
@@ -252,7 +253,7 @@ class AngryBottleGnome(CardSource):
 
 class MtgRuShop(CardSource):
     def __init__(self, url, promoUrl):
-        super().__init__(url, '/catalog.phtml?Title={query}&page={page}', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__(url, '/catalog.phtml?Title={query}&page={page}', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
         self.promoUrl = promoUrl
         if self.promoUrl is not None:
             self.promoHtml = self.makeRequest(urllib.parse.urljoin(self.url, self.promoUrl), None)
@@ -370,7 +371,7 @@ class MtgSale(CardSource):
             'MR': 'Mirage',
             'TP': 'Tempest',
         }
-        super().__init__('http://mtgsale.ru', '/home/search-results?Name={query}&Page={page}', 'utf-8', sourceSpecificSets)
+        super().__init__('http://mtgsale.ru', '/home/search-results?Name={query}&Page={page}', 'utf-8', 'utf-8', sourceSpecificSets)
 
     def estimatePagesCount(self, html):
         pagesCount = 1
@@ -436,7 +437,7 @@ class CardPlace(CardSource):
             "Commander's Aresnal": "Commander's Arsenal",
             'Kaladesh (PR)': 'Prerelease & Release Cards',
         }
-        super().__init__('http://cardplace.ru', '/directory/new_search/{query}/singlemtg', 'utf-8', sourceSpecificSets)
+        super().__init__('http://cardplace.ru', '/directory/new_search/{query}/singlemtg', 'cp1251', 'utf-8', sourceSpecificSets)
         conditions = {
             'NM': ['NM', 'NM/M', 'M'],
             'SP': ['VF', 'Very Fine'],
@@ -512,7 +513,7 @@ class MtgRu(CardSource):
             'upkeep.mtg.ru',
         ]
         self.knownShopSourceSubstrings = []
-        super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def getPageCardsCount(self, html):
         return len(html.cssselect('table.NoteDivWidth'))
@@ -655,7 +656,7 @@ class Untap(CardSource):
 
 class TtTopdeck(CardSource):
     def __init__(self):
-        super().__init__('http://tt.topdeck.ru', '/?req={query}&mode=sell&group=card', 'utf-8', {})
+        super().__init__('http://tt.topdeck.ru', '/?req={query}&mode=sell&group=card', 'utf-8', 'utf-8', {})
         self.excludedSellers = [
             'angrybottlegnome',
             'mtgsale',
@@ -772,7 +773,7 @@ class TtTopdeck(CardSource):
 
 class EasyBoosters(CardSource):
     def __init__(self):
-        super().__init__('http://easyboosters.com', '/products?keywords={query}&page={page}', 'utf-8', {
+        super().__init__('http://easyboosters.com', '/products?keywords={query}&page={page}', 'utf-8', 'utf-8', {
             'TSB': 'TST',
         })
 
@@ -869,8 +870,11 @@ class EasyBoosters(CardSource):
 
 class MtgTrade(CardSource):
     def __init__(self):
-        super().__init__('http://mtgtrade.net', '/search/?query={query}', 'utf-8', {})
+        super().__init__('http://mtgtrade.net', '/search/?query={query}', 'utf-8', 'utf-8', {})
         self.cardSelector = 'table.search-card tbody tr'
+        self.sourceSubstringsToExclude = [
+            'ambersonmtg',
+        ]
 
     def makeRequest(self, url, data):
         result = lxml.html.document_fromstring('<html/>')
@@ -897,6 +901,11 @@ class MtgTrade(CardSource):
                 sellerBlock = cardsGroup.cssselect('td.user-name-td')[0]
                 sellerNickname = sellerBlock.cssselect('a')[0].text.lower()
                 sellerUrl = list(sellerBlock.cssselect('a'))[-1].attrib['href']
+
+                if any(source in sellerNickname.lower() for source in self.sourceSubstringsToExclude):
+                    self.estimatedCardsCount -= 1
+                    yield None
+                    continue
 
                 for cardEntry in cardsGroup.cssselect('tbody tr'):
                     condition = None
@@ -925,7 +934,7 @@ class MtgTrade(CardSource):
 
 class AutumnsMagic(CardSource):
     def __init__(self):
-        super().__init__('http://autumnsmagic.com', '/catalog?search={query}', 'utf-8', {})
+        super().__init__('http://autumnsmagic.com', '/catalog?search={query}', 'utf-8', 'utf-8', {})
 
     def estimatePagesCount(self, html):
         result = 1
@@ -982,7 +991,7 @@ class AutumnsMagic(CardSource):
 
 class OfflineTestSource(CardSource):
     def __init__(self):
-        super().__init__('http://offline.shop', '?query={query}', 'utf-8', {})
+        super().__init__('http://offline.shop', '?query={query}', 'utf-8', 'utf-8', {})
 
     def query(self, queryText):
         self.estimatedCardsCount = random.randint(1, 10)
@@ -1015,7 +1024,6 @@ def getCardSourceClasses():
         MtgSale,
         MtgTrade,
         TtTopdeck,
-        # Untap,
         UpKeep,
     ]
     random.shuffle(classes)
