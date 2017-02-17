@@ -17,6 +17,10 @@ _STRINGS_TO_ESCAPE = {
     u'\u2019': u"'",
     u'“': u'',
     u'”': u'',
+    u'«': u'',
+    u'»': u'',
+    u'"': u'',
+    u'"': u'',
 }
 _STRINGS_TO_UNESCAPE = {}
 for k, v in _STRINGS_TO_ESCAPE.items():
