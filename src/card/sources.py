@@ -77,6 +77,7 @@ class CardSource(object):
         self.estimatedCardsCount = None
         self.requestCache = {}
         self.logger = core.logger.Logger(self.__class__.__name__)
+        self.verifySsl = True
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
@@ -105,7 +106,7 @@ class CardSource(object):
             cacheKey += ';' + urllib.parse.urlencode(data)
         if cacheKey not in self.requestCache:
             try:
-                byteString = core.network.getUrl(url, data)
+                byteString = core.network.getUrl(url, data, False, self.verifySsl)
                 self.requestCache[cacheKey] = lxml.html.document_fromstring(byteString.decode(self.responseEncoding))
             except Exception as ex:
                 message = str(ex)
@@ -359,11 +360,6 @@ class ManaPoint(MtgRuShop):
                     }))
         return results
 
-class UpKeep(MtgRuShop):
-    def __init__(self):
-        super().__init__('http://upkeep.mtg.ru', None)
-
-
 class MtgSale(CardSource):
     def __init__(self):
         sourceSpecificSets = {
@@ -371,7 +367,8 @@ class MtgSale(CardSource):
             'MR': 'Mirage',
             'TP': 'Tempest',
         }
-        super().__init__('http://mtgsale.ru', '/home/search-results?Name={query}&Page={page}', 'utf-8', 'utf-8', sourceSpecificSets)
+        super().__init__('https://mtgsale.ru', '/home/search-results?Name={query}&Page={page}', 'utf-8', 'utf-8', sourceSpecificSets)
+        self.verifySsl = False
 
     def estimatePagesCount(self, html):
         pagesCount = 1
@@ -837,13 +834,12 @@ class MtgTrade(CardSource):
                         self.estimatedCardsCount -= 1
                         yield None
                         continue
-
                     yield self.fillCardInfo({
                         'name': self.packName(' '.join(anchor.text_content().split())),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': self.getSetAbbrv(cardSet),
                         'language': core.language.getAbbreviation(''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"')),
-                        'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price')[0].text.split()).strip('"').replace('руб', '')),
+                        'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price b')[0].text.split()).strip('" ')),
                         'currency': core.currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
@@ -943,7 +939,6 @@ def getCardSourceClasses():
         MtgSale,
         MtgTrade,
         TtTopdeck,
-        UpKeep,
     ]
     random.shuffle(classes)
     return classes

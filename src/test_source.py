@@ -5,6 +5,7 @@ import time
 import traceback
 
 import card.sources
+import card.utils
 import wizard
 
 def main(args):
@@ -46,6 +47,7 @@ def main(args):
                 stateString = '[{}] {} >= {}...'.format(setId, card.utils.escape(cardName), sourceId)
                 sys.stdout.write(stateString + ' ')
                 numFound = 0
+                # noinspection PyBroadException
                 try:
                     for cardInfo in cardSource.query(cardName):
                         if cardInfo is not None:

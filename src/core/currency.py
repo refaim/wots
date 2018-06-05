@@ -7,6 +7,7 @@ import sys
 import threading
 
 import core.network
+import core.logger
 
 RUR = 'RUR'
 USD = 'USD'

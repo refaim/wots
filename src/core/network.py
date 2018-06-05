@@ -20,7 +20,7 @@ CHUNK_SIZE_BYTES = 1024 * 100
 _logger = core.logger.Logger('Network')
 
 
-def getUrl(url, parametersDict=None, verbose=False):
+def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
     url = url.replace('https://', 'http://')
 
     parametersBytes = None
@@ -34,11 +34,16 @@ def getUrl(url, parametersDict=None, verbose=False):
     if verbose:
         _logger.info('Loading {}'.format(representation))
     while True:
+        retry = False
         try:
-            retry = False
-            lastException = None
             attempt += 1
-            opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor)
+            handlers = [urllib.request.HTTPCookieProcessor]
+            if not verifySsl:
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+                handlers.append(urllib.request.HTTPSHandler(0, context, False))
+            opener = urllib.request.build_opener(*handlers)
             srcObj = opener.open(url, parametersBytes)
             dstObj = io.BytesIO()
             while True:
