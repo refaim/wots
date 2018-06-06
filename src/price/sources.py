@@ -12,7 +12,7 @@ import time
 import traceback
 
 from PyQt5 import QtCore
-from PyQt5 import QtWebKitWidgets
+from PyQt5 import QtWebEngineWidgets
 from PyQt5 import QtWidgets
 
 import core.currency
@@ -92,7 +92,7 @@ def tcgProcessRequests(priceRequests, priceResults, setsRequests, setsResults, s
 
 def tcgObtainHtml(requests, results, exitEvent, logger):
     application = QtWidgets.QApplication(sys.argv)
-    browserStorage = { 'instance': QtWebKitWidgets.QWebView() }
+    browserStorage = { 'instance': QtWebEngineWidgets.QWebEngineView() }
     browserLock = threading.Lock()
     browserTimer = QtCore.QTimer()
     browserTimer.timeout.connect(functools.partial(tcgObtainHtmlWaitData, browserStorage, browserLock, results, exitEvent, logger))
@@ -148,7 +148,7 @@ def tcgObtainHtmlWaitData(storage, browserLock, results, exitEvent, logger):
         strUrl = browser.url().toString()
         results.put((strUrl, htmlString))
         logger.info('Finished [GET] {}'.format(strUrl))
-        storage['instance'] = QtWebKitWidgets.QWebView()
+        storage['instance'] = QtWebEngineWidgets.QWebEngineView()
         if 'start_time' in storage: del storage['start_time']
         if 'last_size' in storage: del storage['last_size']
         if 'last_time' in storage: del storage['last_time']

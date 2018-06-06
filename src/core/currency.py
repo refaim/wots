@@ -2,12 +2,13 @@
 
 import decimal
 import json
-import lxml
 import sys
 import threading
 
-import core.network
+import lxml
+
 import core.logger
+import core.network
 
 RUR = 'RUR'
 USD = 'USD'
@@ -18,6 +19,7 @@ FORMAT_STRINGS = {
     EUR: '€{}',
     USD: '${}',
 }
+# noinspection PyUnresolvedReferences
 if sys.platform.startswith('win32') and sys.getwindowsversion().major <= 5:
     FORMAT_STRINGS[RUR] = '{}р.'
 

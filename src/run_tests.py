@@ -1,11 +1,12 @@
 import os
-import psutil
 import subprocess
-import sys
+
+import psutil
 
 import card.sources
 
-def main(args):
+
+def main():
     logsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'testlogs'))
     processes = []
     for classObject in card.sources.getCardSourceClasses():
@@ -19,14 +20,15 @@ def main(args):
             os.path.join(logsPath, 'out_{}.log'.format(sourceId)),
             os.path.join(logsPath, 'err_{}.log'.format(sourceId)),
         ], shell=True))
-    for process in processes:
-        process.wait()
+    for p in processes:
+        p.wait()
     return 0
 
 if __name__ == '__main__':
+    # noinspection PyBroadException
     try:
-        main(sys.argv[1:])
-    except:
+        main()
+    except Exception:
         process = psutil.Process(os.getpid())
         for child in process.children(recursive=True):
             try:

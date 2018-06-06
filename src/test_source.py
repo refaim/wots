@@ -8,6 +8,7 @@ import card.sources
 import card.utils
 import wizard
 
+
 def main(args):
     sourceId, stdoutLog, stderrLog = args
 

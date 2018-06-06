@@ -7,8 +7,8 @@ import core.language
 
 def _processCard(cardname, rules):
     result = cardname
-    for k, v in rules.items():
-        result = result.replace(k, v)
+    for key, value in rules.items():
+        result = result.replace(key, value)
     return result
 
 
@@ -20,7 +20,7 @@ _STRINGS_TO_ESCAPE = {
     u'«': u'',
     u'»': u'',
     u'"': u'',
-    u'"': u'',
+    u"'": u'',
 }
 _STRINGS_TO_UNESCAPE = {}
 for k, v in _STRINGS_TO_ESCAPE.items():
@@ -36,7 +36,7 @@ _CACHE_UNESCAPE = {}
 
 _LETTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LETTERS_RUSSIAN
 
-_DOUBLE_FACED_CARD_RE = re.compile(r'\|+|\\+|\/+')
+_DOUBLE_FACED_CARD_RE = re.compile(r'\|+|\\+|/+')
 
 
 def escape(cardname):

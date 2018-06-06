@@ -31,7 +31,7 @@ LANGUAGES_TO_LOWERCASE_LETTERS = {
 
 
 def _cleanLangStr(langStr):
-    return re.sub(r'^([^\.]+)(\.[^\.]+)?$', r'\1', langStr.lower(), flags=re.U)
+    return re.sub(r'^([^.]+)(\.[^.]+)?$', r'\1', langStr.lower(), flags=re.U)
 
 
 def tryGetAbbreviation(langStr):

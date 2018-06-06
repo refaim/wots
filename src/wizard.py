@@ -6,17 +6,18 @@ import math
 import multiprocessing
 import os
 import platform
-import psutil
 import queue
 import signal
 import sys
 import webbrowser
 
+import psutil
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import uic
 
 import card.fixer
+import card.sets
 import card.sources
 import card.utils
 import core.currency
@@ -531,7 +532,7 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
     def __init__(self, columnsInfo):
         super().__init__()
         self.columnsInfo = columnsInfo
-        self.conditionsOrder = card.sources._CONDITIONS_ORDER
+        self.conditionsOrder = card.sources.CONDITIONS_ORDER
 
     def lessThan(self, aIndex, bIndex):
         model = self.sourceModel()

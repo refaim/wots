@@ -1,8 +1,7 @@
 # coding: utf-8
 
-from __future__ import print_function
-
 import errno
+import http
 import http.client
 import io
 import ssl
@@ -19,10 +18,13 @@ CHUNK_SIZE_BYTES = 1024 * 100
 
 _logger = core.logger.Logger('Network')
 
+def httpCodeAnyOf(code, statuses):
+    for candidate, _, _ in statuses:
+        if code == candidate:
+            return True
+    return False
 
 def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
-    url = url.replace('https://', 'http://')
-
     parametersBytes = None
     representation = '[{}] {}'.format('POST' if parametersDict else 'GET', url)
     if parametersDict:
@@ -41,7 +43,9 @@ def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
             if not verifySsl:
                 context = ssl.create_default_context()
                 context.check_hostname = False
+                # noinspection PyUnresolvedReferences
                 context.verify_mode = ssl.CERT_NONE
+                # noinspection PyTypeChecker
                 handlers.append(urllib.request.HTTPSHandler(0, context, False))
             opener = urllib.request.build_opener(*handlers)
             srcObj = opener.open(url, parametersBytes)
@@ -57,17 +61,18 @@ def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
                 _logger.info('Finished {}'.format(representation))
             return dstObj.read()
         except urllib.error.HTTPError as ex:
-            if ex.code in (http.client.BAD_GATEWAY, http.client.GATEWAY_TIMEOUT, http.client.INTERNAL_SERVER_ERROR):
+            if httpCodeAnyOf(ex.code, [http.HTTPStatus.BAD_GATEWAY, http.HTTPStatus.GATEWAY_TIMEOUT, http.HTTPStatus.INTERNAL_SERVER_ERROR]):
                 retry = attempt <= 3
-            elif ex.code in (http.client.NOT_FOUND, http.client.REQUESTED_RANGE_NOT_SATISFIABLE):
+            elif httpCodeAnyOf(ex.code, [http.HTTPStatus.NOT_FOUND, http.HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE]):
                 raise
             lastException = ex
         except urllib.error.URLError as ex:
+            # noinspection PyBroadException
             try:
                 errorCode = ex.args[0].errno
                 if errorCode == errno.ECONNREFUSED:
                     retry = attempt <= 3
-            except:
+            except Exception:
                 pass
             lastException = ex
         except ssl.CertificateError:

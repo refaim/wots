@@ -1,8 +1,7 @@
 # coding: utf-8
 
 import decimal
-import http.client
-import lxml.html
+import http
 import os
 import random
 import re
@@ -11,6 +10,8 @@ import time
 import urllib
 import urllib.error
 import urllib.parse
+
+import lxml.html
 
 import card.sets
 import card.utils
@@ -21,13 +22,13 @@ import core.network
 import tools.dict
 import tools.string
 
+CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
 _CONDITIONS_SOURCE = {
     'HP': ('Heavily Played', 'Hardly Played', 'ХП',),
     'MP': ('Moderately Played', 'Played', 'МП',),
     'SP': ('Slightly Played', 'СП',),
     'NM': ('Near Mint', 'M/NM', 'M', 'Mint', 'Excellent', 'great', 'НМ',),
 }
-_CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
 _CONDITIONS = tools.dict.expandMapping(_CONDITIONS_SOURCE)
 _CONDITIONS_CASE_INSENSITIVE = {}
 for k, v in _CONDITIONS.items():
@@ -78,6 +79,7 @@ class CardSource(object):
         self.requestCache = {}
         self.logger = core.logger.Logger(self.__class__.__name__)
         self.verifySsl = True
+        self.currentQuery = None
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
@@ -216,7 +218,7 @@ class AngryBottleGnome(CardSource):
         super().__init__('http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', 'utf-8', 'utf-8', sourceSpecificSets)
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Английский, M/NM  (30р., в наличии: 1)</div>
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Итальянский, M/NM  Фойл (180р., в наличии: 1)</div>
-        self.cardInfoRegexp = re.compile(r'(?P<language>[^,]+),\s*(?P<condition>[\S]+)\s*(?P<foilness>[^\(]+)?\s*\((?P<price>\d+)[^\d]*(?P<count>\d+)\)')
+        self.cardInfoRegexp = re.compile(r'(?P<language>[^,]+),\s*(?P<condition>[\S]+)\s*(?P<foilness>[^(]+)?\s*\((?P<price>\d+)[^\d]*(?P<count>\d+)\)')
 
     def escapeQueryText(self, queryText):
         # if query url contains & request will fail
@@ -315,7 +317,7 @@ class ManaPoint(MtgRuShop):
             dataCells = resultsEntry.cssselect('td')
             cardString = dataCells[0].text
 
-            cardInfo = re.match(r'^(\[.+?\])?(?P<name>[^\[\(]+)\s*(\((?P<lang>[^\)]+)\))?.+$', cardString).groupdict()
+            cardInfo = re.match(r'^(\[.+?\])?(?P<name>[^\[(]+)\s*(\((?P<lang>[^)]+)\))?.+$', cardString).groupdict()
             cardName = cardInfo['name'].split('/')[0].strip()
 
             if queryText.lower() in cardName.lower():
@@ -470,7 +472,7 @@ class CardPlace(CardSource):
             anchorName = dataCells[2].cssselect('a')[0]
             nameString = anchorName.text
             cardName = nameString
-            isSpecialPromo = any(string in nameString for string in ['APAC', 'EURO', 'MPS'])
+            isSpecialPromo = any(s in nameString for s in ['APAC', 'EURO', 'MPS'])
             if not isSpecialPromo:
                 cardId, nameString = self.extractToken(r'\s?\(?\#(?P<token>\d+)\)?', nameString)
                 promoString, nameString = self.extractToken(r'\s?\((?P<token>(pre)?release)\)', nameString)
@@ -490,7 +492,7 @@ class CardPlace(CardSource):
                 'set': self.getSetAbbrv(cardSet),
                 'language': language,
                 'condition': conditionString,
-                'price': decimal.Decimal(re.match(r'([\d\.]+)', dataCells[6].text.strip()).group(0)),
+                'price': decimal.Decimal(re.match(r'([\d.]+)', dataCells[6].text.strip()).group(0)),
                 'currency': core.currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
                 'source': self.packSource(self.getTitle(), anchorName.attrib['href']),
@@ -638,7 +640,7 @@ class TtTopdeck(CardSource):
                     myCountValue = ttCountValue
                     myPriceValue = ttPriceValue
 
-                if myCountValue > 20 and myPriceValue < 20:
+                if myCountValue > 20 > myPriceValue:
                     myCountValue, myPriceValue = myPriceValue, myCountValue
 
                 foundLangsNum = 0
@@ -660,7 +662,7 @@ class TtTopdeck(CardSource):
                     if lc in _CONDITIONS_CASE_INSENSITIVE:
                         foundConditions.add(_CONDITIONS_CASE_INSENSITIVE[lc])
                 if len(foundConditions) > 0:
-                    cardCondition = sorted(foundConditions, key=_CONDITIONS_ORDER.index)[0]
+                    cardCondition = sorted(foundConditions, key=CONDITIONS_ORDER.index)[0]
 
             if myCountValue is None or myPriceValue is None:
                 myCountValue = ttCountValue
@@ -797,7 +799,7 @@ class MtgTrade(CardSource):
         try:
             result = super().makeRequest(url, data)
         except urllib.error.HTTPError as ex:
-            if ex.code != http.client.INTERNAL_SERVER_ERROR:
+            if not core.network.httpCodeAnyOf(ex.code, [http.HTTPStatus.INTERNAL_SERVER_ERROR]):
                 raise
         return result
 
@@ -913,6 +915,7 @@ class OfflineTestSource(CardSource):
         for _ in range(self.estimatedCardsCount):
             if bool(random.randint(0, 1)):
                 time.sleep(random.randint(0, 1))
+            # noinspection PyProtectedMember
             yield self.fillCardInfo({
                 'id': random.randint(1, 300),
                 'name': self.packName(random.choice(string.ascii_letters) * random.randint(10, 25)),
