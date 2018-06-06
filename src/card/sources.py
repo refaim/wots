@@ -144,7 +144,12 @@ class CardSource(object):
         pageCount = 0
         while pageIndex <= pageCount:
             pageIndex = self.getPageIndex(loopIndex)
-            requestUrl = self.queryUrlTemplate.format(**{'query': urllib.parse.quote(self.escapeQueryText(queryText).encode(self.queryEncoding)), 'page': pageIndex})
+            escapedQuery = self.escapeQueryText(queryText)
+            try:
+                encodedQuery = escapedQuery.encode(self.queryEncoding)
+            except UnicodeEncodeError:
+                encodedQuery = escapedQuery
+            requestUrl = self.queryUrlTemplate.format(**{'query': urllib.parse.quote(encodedQuery), 'page': pageIndex})
             response = self.makeRequest(requestUrl, self.prepareRequest(queryText, pageIndex))
             if response is None:
                 continue
@@ -245,7 +250,7 @@ class AngryBottleGnome(CardSource):
                     'name': self.packName(cardName),
                     'set': self.getSetAbbrv(cardSet),
                     'language': core.language.getAbbreviation(rawInfo['language']),
-                    'condition': _CONDITIONS[rawInfo['condition']],
+                    'condition': _CONDITIONS[rawInfo['condition'].rstrip(',')],
                     'foilness': bool(rawInfo['foilness']),
                     'count': int(rawInfo['count']),
                     'price': decimal.Decimal(rawInfo['price']),
@@ -434,14 +439,13 @@ class CardPlace(CardSource):
             'Premium deck: Graveborn': 'Premium Deck Series: Graveborn',
             'Release & Prerelease cards': 'Prerelease & Release Cards',
             "Commander's Aresnal": "Commander's Arsenal",
-            'Kaladesh (PR)': 'Prerelease & Release Cards',
         }
         super().__init__('http://cardplace.ru', '/directory/new_search/{query}/singlemtg', 'cp1251', 'utf-8', sourceSpecificSets)
         conditions = {
-            'NM': ['NM', 'NM/M', 'M'],
-            'SP': ['VF', 'Very Fine'],
-            'MP': ['F', 'Fine'],
-            'HP': ['Poor'],
+            'NM': ['nm', 'nm/m', 'm'],
+            'SP': ['vf', 'very fine'],
+            'MP': ['f', 'fine'],
+            'HP': ['poor'],
         }
         self.conditions = {}
         for key, values in conditions.items():
@@ -465,12 +469,12 @@ class CardPlace(CardSource):
                 if 'condition_guide' in anchor.attrib['href']:
                     conditionString = anchor.text
             if conditionString is not None:
-                conditionString = _CONDITIONS[self.conditions[conditionString]]
+                conditionString = _CONDITIONS[self.conditions[conditionString.lower()]]
 
             cardId = None
             cardSet = dataCells[1].cssselect('b')[0].text.strip("'")
             anchorName = dataCells[2].cssselect('a')[0]
-            nameString = anchorName.text
+            nameString = anchorName.text_content()
             cardName = nameString
             isSpecialPromo = any(s in nameString for s in ['APAC', 'EURO', 'MPS'])
             if not isSpecialPromo:
@@ -480,8 +484,10 @@ class CardPlace(CardSource):
                     cardSet = promoString
                 secondaryNameString, primaryNameString = self.extractToken(r'\s?\((?P<token>[^\)]+)\)', nameString)
                 cardName = primaryNameString
-                if not language or language != 'EN' and secondaryNameString is not None:
+                if (not language or language != 'EN') and secondaryNameString is not None:
                     cardName = secondaryNameString
+                if '(PR)' in cardSet:
+                    cardSet = 'Prerelease & Release Cards'
 
             nameImages = dataCells[2].cssselect('img')
 
@@ -857,7 +863,7 @@ class AutumnsMagic(CardSource):
         result = 1
         pagesElements = html.cssselect('.allPages')
         if pagesElements:
-            result = int(re.match(r'.*(\d+).*', pagesElements[-1].text).group(1))
+            result = int(pagesElements[-1].text_content().split()[-1].strip())
         return result
 
     def getPageCardsCount(self, html):

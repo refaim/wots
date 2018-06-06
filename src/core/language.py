@@ -17,7 +17,7 @@ _LANGUAGES_SOURCE = {
     'pt': ('португальский', 'пор', 'portuguese', 'por', 'port',),
     'ru': ('русский', 'рус', 'russian', 'rus',),
     'tw': ('тайваньский',),
-    '': ('other',),
+    '': ('other', 'неведомый',),
 }
 _LANGUAGES = tools.dict.expandMapping(_LANGUAGES_SOURCE)
 
