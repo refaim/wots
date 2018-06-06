@@ -168,7 +168,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'MPR': ('Magic Player Rewards', 'Reward cards', 'Textless Player Rewards', 'Player Rewards', 'pMPR',),
     'MPS': ('Amonkhet Invocations',),
     'MRD': ('Mirrodin',),
-    'MS1': ('Masterpiece Series: Kaladesh Inventions', 'Kaladesh Inventions',),
+    'MS1': ('Masterpiece Series: Kaladesh Inventions', 'Kaladesh Inventions', 'MPS_KLD',),
     'MSP': ('Misc Promos', 'Stores Promos', 'Convention Promos', 'Comic Inserts', 'Full Box Promotion', 'Box Topper Cards', 'Magazine Inserts', 'Book Inserts', 'Video Game Promos', 'Other Cards', 'WotC Online Store', 'Buy-a-Box Promos', 'Draft Weekend Promos', 'Open House Promos', 'Standard Showdown Promos', 'Store Championship Promos',),
     'NEM': ('Nemesis', 'NE', 'NMS',),
     'NPH': ('New Phyrexia',),
