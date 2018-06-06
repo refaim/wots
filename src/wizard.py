@@ -89,18 +89,18 @@ SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
         'align': QtCore.Qt.AlignRight,
         'default_value': None,
     },
-    {
-        'id': 'tcg_price',
-        'label': 'TCG',
-        'sources': tuple(),
-        'align': QtCore.Qt.AlignRight,
-        'class': price.sources.TcgPlayer,
-        'storage_id': 'tcg.prices',
-        'resources': {
-            'sets': getResourcePath('tcg-sets.json'),
-        },
-        'default_value': None,
-    },
+    # {
+    #     'id': 'tcg_price',
+    #     'label': 'TCG',
+    #     'sources': tuple(),
+    #     'align': QtCore.Qt.AlignRight,
+    #     'class': price.sources.TcgPlayer,
+    #     'storage_id': 'tcg.prices',
+    #     'resources': {
+    #         'sets': getResourcePath('tcg-sets.json'),
+    #     },
+    #     'default_value': None,
+    # },
     {
         'id': 'source',
         'label': 'Source',
