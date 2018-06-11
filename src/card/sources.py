@@ -840,6 +840,15 @@ class BigMagic(MtgTradeShop):
         super().__init__('http://bigmagic.ru', [])
 
 
+class MyUpKeep(MtgTradeShop):
+    def __init__(self):
+        super().__init__('http://myupkeep.ru', [])
+
+
+class MtgShopRu(MtgTradeShop):
+    def __init__(self):
+        super().__init__('http://mtgshop.ru', [])
+
 class AutumnsMagic(CardSource):
     def __init__(self):
         super().__init__('http://autumnsmagic.com', '/catalog?search={query}', 'utf-8', 'utf-8', {})
@@ -933,6 +942,8 @@ def getCardSourceClasses():
         MtgRu,
         MtgSale,
         MtgTrade,
+        MyUpKeep,
+        MtgShopRu,
         TtTopdeck,
     ]
     random.shuffle(classes)
