@@ -86,7 +86,7 @@ class CardSource(object):
         return re.sub(r'^www\.', '', location)
 
     def getSetAbbrv(self, setId):
-        result = card.sets.tryGetAbbreviation(self.sourceSpecificSets.get(setId, setId))
+        result = card.sets.tryGetAbbreviation(self.sourceSpecificSets.get(setId, setId), quiet=True)
         if result is None:
             self.logger.warning('Unable to recognize set "{}" for query "{}"'.format(setId, self.currentQuery))
         return result
