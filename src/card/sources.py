@@ -520,6 +520,9 @@ class MtgRu(CardSource):
         self.knownShopSourceSubstrings = []
         super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
+    def escapeQueryText(self, queryText):
+        return super().escapeQueryText(queryText.replace(' ', '%20'))
+
     def getPageCardsCount(self, html):
         return len(html.cssselect('table.NoteDivWidth'))
 
