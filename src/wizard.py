@@ -23,7 +23,6 @@ import card.sources
 import card.utils
 import core.currency
 import core.logger
-import price.sources
 
 
 def getResourcePath(resourceId):
