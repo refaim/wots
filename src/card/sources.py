@@ -700,99 +700,35 @@ class TtTopdeck(CardSource):
 
 class EasyBoosters(CardSource):
     def __init__(self):
-        super().__init__('http://easyboosters.com', '/products?keywords={query}&page={page}', 'utf-8', 'utf-8', {
-            'TSB': 'TST',
-        })
+        super().__init__('https://easyboosters.com', '/search/?q={query}&how=r&PAGEN_3={page}', 'utf-8', 'utf-8', {})
 
     def estimatePagesCount(self, html):
         pagesCount = 1
-        pagesLinks = html.cssselect('.pagination li a')
+        pagesLinks = html.cssselect('.bx-pagination li a')
         if len(pagesLinks) > 0:
-            pagesCount = int(re.match(r'.+?page=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
+            pagesCount = int(re.match(r'.+PAGEN_3=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
         return pagesCount
 
     def getPageCardsCount(self, html):
-        return 12
+        return 30
 
     def parse(self, html, url):
-        products = html.cssselect('#products .product-list-item')
-
-        if len(products) == 0:
-            return
-
-        if self.refineEstimatedCardsCount(html, len(products)):
-            yield None
-
-        for entry in products:
-            cardUrl = entry.cssselect('a')[0].attrib['href']
-            if not cardUrl:
-                self.estimatedCardsCount -= 1
-                yield None
-                continue
-
-            itemName = entry.cssselect('.product-name-wrapper a.info')[0].attrib['title']
-            if any(substring in itemName.lower() for substring in ['фигурка', 'протекторы', 'кубик', 'альбом', 'книга', 'fat pack']):
-                self.estimatedCardsCount -= 1
-                yield None
-                continue
-
-            cardHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
-
-            condition = None
-            foil = False
-            language = None
-            cardSet = None
-            cardId = None
-            for row in cardHtml.cssselect('#product-properties tr'):
-                caption = row.cssselect('td strong')[0].text
-                value = row.cssselect('td')[1].text
-                if caption in ('Покрытие', 'Finish'):
-                    foil = value != 'Regular'
-                elif caption in ('Состояние', 'Condition'):
-                    if value in _CONDITIONS:
-                        condition = _CONDITIONS[value]
-                elif caption in ('Язык', 'Language'):
-                    language = core.language.getAbbreviation(value)
-                elif caption in ('Сет', 'Set'):
-                    cardSet = self.getSetAbbrv(value)
-                elif caption in ('Номер', 'Number'):
-                    cardId = int(value)
-
-            if cardSet is None and language is None:
-                self.estimatedCardsCount -= 1
-                yield None
-                continue
-
-            itemName = cardHtml.cssselect('#product-description .product-title')[0].text
-            cardName = re.match(r'(.+?)\s*(#\d+)?\s\(.+', itemName).group(1)
-
-            priceBlock = cardHtml.cssselect('#product-price div')[0]
-            priceString = priceBlock.cssselect('span.price')[0].text
-            priceString = ''.join(priceString.replace('&nbsp;', '').split())
-            price = decimal.Decimal(re.match(r'(\d+).*', priceString).group(1))
-            currency = None
-            currencySpan = priceBlock.cssselect('span')[-1]
-            if currencySpan.attrib['itemprop'] == 'priceCurrency' and currencySpan.attrib['content'] == 'RUB':
-                currency = core.currency.RUR
-
-            count = 0
-            countBlock = cardHtml.cssselect('#product-price div')[1]
-            countSpan = countBlock.cssselect('span.lead')[0]
-            if countSpan.attrib['itemprop'] == 'totalOnHand':
-                count = int(countSpan.text)
-
-            yield self.fillCardInfo({
-                'id': cardId,
-                'name': self.packName(cardName),
-                'foilness': foil,
-                'set': cardSet,
-                'language': language,
-                'price': price,
-                'currency': currency,
-                'count': count,
-                'condition': condition,
-                'source': self.packSource(self.getTitle(), cardUrl)
-            })
+        self.refineEstimatedCardsCount(html, len(html.cssselect('.super-offer')))
+        for entry in html.cssselect('.product-item'):
+            if len(entry.cssselect('.super-offer')) > 0:
+                anchor = entry.cssselect('.product-item-title a')[0]
+                cardName, foilString = re.match(r'^(.+?)(\s\(Foil\))?$', anchor.attrib['title']).groups()
+                condition, *language = entry.cssselect('.super-offer-name')[0].text.split()
+                yield self.fillCardInfo({
+                    'name': self.packName(cardName),
+                    'foilness': foilString is not None,
+                    'language': core.language.getAbbreviation(''.join(language)),
+                    'price': decimal.Decimal(re.match(r'(\d+)', entry.cssselect('.offer-price')[0].text.strip()).group(0)),
+                    'currency': core.currency.RUR,
+                    'count': int(re.search(r'(\d+)', entry.cssselect('.super-offer span strong')[0].text).group(0)),
+                    'condition': _CONDITIONS[condition],
+                    'source': self.packSource(self.getTitle(), anchor.attrib['href'])
+                })
 
 
 class MtgTrade(CardSource):
