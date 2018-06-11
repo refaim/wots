@@ -2,6 +2,7 @@
 
 import decimal
 import http
+import json
 import os
 import random
 import re
@@ -906,6 +907,40 @@ class AutumnsMagic(CardSource):
             })
 
 
+class HexproofRu(CardSource):
+    def __init__(self):
+        super().__init__('https://hexproof.ru', '/search?type=product&q={query}', 'utf-8', 'utf-8', {})
+
+    def estimatePagesCount(self, html):
+        return 1
+
+    @staticmethod
+    def _listEntries(html):
+        return html.cssselect('.productgrid--items')[0].cssselect('.productgrid--item')
+
+    def getPageCardsCount(self, html):
+        return len(self._listEntries(html))
+
+    def parse(self, html, url):
+        for entry in self._listEntries(html):
+            product = entry.cssselect('.productitem')[0]
+            cardData = json.loads(entry.cssselect('.productitem-quickshop script')[0].text)['product']
+            cardSet = self.getSetAbbrv(re.match(r'^set_(.+)$', cardData['type']).group(1))
+            for variant in cardData['variants']:
+                if variant['available'] and variant['inventory_quantity'] > 0:
+                    rawCnd, rawLng = variant['title'].split()
+                    yield self.fillCardInfo({
+                        'name': self.packName(cardData['title']),
+                        'set': cardSet,
+                        'language': core.language.getAbbreviation(rawLng),
+                        'price': decimal.Decimal(cardData['price_max'] / 100),
+                        'currency': core.currency.RUR,
+                        'count': int(variant['inventory_quantity']),
+                        'condition': _CONDITIONS[rawCnd],
+                        'source': self.packSource(self.getTitle(), product.cssselect('.productitem--title a')[0].attrib['href']),
+                    })
+
+
 class OfflineTestSource(CardSource):
     def __init__(self):
         super().__init__('http://offline.shop', '?query={query}', 'utf-8', 'utf-8', {})
@@ -938,6 +973,7 @@ def getCardSourceClasses():
         BigMagic,
         CardPlace,
         EasyBoosters,
+        HexproofRu,
         ManaPoint,
         MtgRu,
         MtgSale,
