@@ -120,9 +120,12 @@ class CardSource(object):
     def packName(self, caption, description=None):
         return {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
 
+    def makeAbsUrl(self, path):
+        return urllib.parse.urljoin(self.url, path)
+
     def packSource(self, caption, cardUrl=None):
         if cardUrl is not None:
-            cardUrl = urllib.parse.urljoin(self.url, cardUrl)
+            cardUrl = self.makeAbsUrl(cardUrl)
         result = {'caption': caption, 'url': cardUrl or caption}
         return result
 
@@ -238,8 +241,7 @@ class AngryBottleGnome(CardSource):
             dataCells = resultsEntry.cssselect('td')
             cardName = dataCells[0].cssselect('a')[0].text
             cardSet = dataCells[1].cssselect('a')[0].text
-            cardRelativeUrl = dataCells[0].cssselect('a')[0].attrib['href']
-            cardUrl = urllib.parse.urljoin(self.url, cardRelativeUrl)
+            cardUrl = self.makeAbsUrl(dataCells[0].cssselect('a')[0].attrib['href'])
             cardVersionsHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
             cardVersions = cardVersionsHtml.cssselect('.abg-card-version-instock')
             if len(cardVersions) > 0:
@@ -264,7 +266,7 @@ class MtgRuShop(CardSource):
         super().__init__(url, '/catalog.phtml?Title={query}&page={page}', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
         self.promoUrl = promoUrl
         if self.promoUrl is not None:
-            self.promoHtml = self.makeRequest(urllib.parse.urljoin(self.url, self.promoUrl), None)
+            self.promoHtml = self.makeRequest(self.makeAbsUrl(self.promoUrl), None)
         self.entrySelector = '#Catalog tr'
 
     def estimatePagesCount(self, html):
@@ -715,17 +717,36 @@ class EasyBoosters(CardSource):
     def parse(self, html, url):
         self.refineEstimatedCardsCount(html, len(html.cssselect('.super-offer')))
         for entry in html.cssselect('.product-item'):
-            if len(entry.cssselect('.super-offer')) > 0:
-                anchor = entry.cssselect('.product-item-title a')[0]
-                cardName, foilString = re.match(r'^(.+?)(\s\(Foil\))?$', anchor.attrib['title']).groups()
-                condition, *language = entry.cssselect('.super-offer-name')[0].text.split()
+            offers = entry.cssselect('.super-offer')
+            if len(offers) == 0:
+                continue
+
+            anchor = entry.cssselect('.product-item-title a')[0]
+            cardUrl = anchor.attrib['href']
+            cardPage = lxml.html.document_fromstring(core.network.getUrl(self.makeAbsUrl(cardUrl)))
+
+            cardProps = cardPage.cssselect('.product-item-detail-properties')[0]
+            tokenIndex = -1
+            for i, dt in enumerate(cardProps.cssselect('dt')):
+                if dt.text == 'Токен':
+                    tokenIndex = i
+                    break
+            if tokenIndex >= 0 and cardProps.cssselect('dd')[tokenIndex].text.strip() == 'Да':
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
+            cardName, foilString = re.match(r'^(.+?)(\s\(Foil\))?$', anchor.attrib['title']).groups()
+            for offer in offers:
+                condition, *language = offer.cssselect('.super-offer-name')[0].text.split()
                 yield self.fillCardInfo({
                     'name': self.packName(cardName),
                     'foilness': foilString is not None,
+                    'set': self.getSetAbbrv(cardPage.cssselect('.bx-breadcrumb-item a span')[-1].text),
                     'language': core.language.getAbbreviation(''.join(language)),
-                    'price': decimal.Decimal(re.match(r'(\d+)', entry.cssselect('.offer-price')[0].text.strip()).group(0)),
+                    'price': decimal.Decimal(re.match(r'(\d+)', offer.cssselect('.offer-price')[0].text.strip()).group(0)),
                     'currency': core.currency.RUR,
-                    'count': int(re.search(r'(\d+)', entry.cssselect('.super-offer span strong')[0].text).group(0)),
+                    'count': int(re.search(r'(\d+)', offer.cssselect('.super-offer span strong')[0].text).group(0)),
                     'condition': _CONDITIONS[condition],
                     'source': self.packSource(self.getTitle(), anchor.attrib['href'])
                 })
