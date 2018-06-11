@@ -752,13 +752,13 @@ class EasyBoosters(CardSource):
                 })
 
 
-class MtgTrade(CardSource):
-    def __init__(self):
-        super().__init__('http://mtgtrade.net', '/search/?query={query}', 'utf-8', 'utf-8', {})
+class MtgTradeShop(CardSource):
+    def __init__(self, shopUrl, sourceSubstringsToExclude):
+        super().__init__(shopUrl, '/search/?query={query}', 'utf-8', 'utf-8', {})
         self.cardSelector = 'table.search-card tbody tr'
-        self.sourceSubstringsToExclude = [
+        self.sourceSubstringsToExclude = set(sourceSubstringsToExclude + [
             'ambersonmtg',
-        ]
+        ])
 
     def makeRequest(self, url, data):
         result = lxml.html.document_fromstring('<html/>')
@@ -774,22 +774,37 @@ class MtgTrade(CardSource):
 
     def parse(self, html, url):
         for resultsEntry in html.cssselect('.search-item'):
-            sellerCardsGroups = resultsEntry.cssselect('table.search-card')
             anchor = resultsEntry.cssselect('.search-title')[0]
-            if '/single/' not in anchor.attrib['href']:
+            isSingle = '/single/' in anchor.attrib['href']
+
+            isToken = False
+            for p in resultsEntry.cssselect('p'):
+                if 'Token' in p.text:
+                    isToken = True
+                    break
+
+            if not isSingle or isToken:
                 self.estimatedCardsCount -= len(resultsEntry.cssselect(self.cardSelector))
                 yield None
                 continue
 
-            for cardsGroup in sellerCardsGroups:
+            for cardsGroup in resultsEntry.cssselect('table.search-card'):
                 sellerBlock = cardsGroup.cssselect('td.user-name-td')[0]
-                sellerNickname = sellerBlock.cssselect('a')[0].text.lower()
-                sellerUrl = list(sellerBlock.cssselect('a'))[-1].attrib['href']
 
+                sellerNickname = None
+                sellerNameBlocks = sellerBlock.cssselect('div.trader-name')
+                if len(sellerNameBlocks) > 0:
+                    sellerNickname = sellerNameBlocks[0].text.strip()
+                if not sellerNickname:
+                    sellerNickname = sellerBlock.cssselect('a')[0].text
                 if any(source in sellerNickname.lower() for source in self.sourceSubstringsToExclude):
                     self.estimatedCardsCount -= 1
                     yield None
                     continue
+
+                sourceCaption = self.getTitle()
+                if sourceCaption != sellerNickname:
+                    sourceCaption = '{}/{}'.format(sourceCaption, sellerNickname)
 
                 for cardEntry in cardsGroup.cssselect('tbody tr'):
                     condition = None
@@ -811,8 +826,18 @@ class MtgTrade(CardSource):
                         'currency': core.currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
-                        'source': self.packSource(self.getTitle() + '/' + sellerNickname, sellerUrl)
+                        'source': self.packSource(sourceCaption, anchor.attrib['href'])
                     })
+
+
+class MtgTrade(MtgTradeShop):
+    def __init__(self):
+        super().__init__('http://mtgtrade.net', ['bigmagic', 'upkeep'])
+
+
+class BigMagic(MtgTradeShop):
+    def __init__(self):
+        super().__init__('http://bigmagic.ru', [])
 
 
 class AutumnsMagic(CardSource):
@@ -901,6 +926,7 @@ def getCardSourceClasses():
         Amberson,
         AngryBottleGnome,
         AutumnsMagic,
+        BigMagic,
         CardPlace,
         EasyBoosters,
         ManaPoint,
