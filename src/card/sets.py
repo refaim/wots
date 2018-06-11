@@ -60,7 +60,7 @@ _SET_ABBREVIATIONS_SOURCE = {
     'CHR': ('Chronicles',),
     'CM1': ("Commander's Arsenal",),
     'CMA': ('Commander Anthology',),
-    'CMD': ('Commander', 'Magic: The Gathering Commander',),
+    'CMD': ('Commander', 'Magic: The Gathering Commander', 'Commander 2011'),
     'CN2': ('Conspiracy: Take the Crown',),
     'CNS': ('Conspiracy',),
     'CON': ('Conflux', 'CF', 'CFX',),

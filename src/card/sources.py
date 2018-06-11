@@ -135,6 +135,7 @@ class CardSource(object):
         return result
 
     def fillCardInfo(self, cardInfo):
+        cardInfo.setdefault('language', None)
         self.foundCardsCount += 1
         return cardInfo
 
@@ -508,6 +509,7 @@ class MtgRu(CardSource):
             'easyboosters.com',
             'manapoint.mtg.ru',
             'mtgsale.ru',
+            'mtgshop.ru',
             'mtgtrade.net',
             'myupkeep.ru',
         ]
@@ -809,7 +811,7 @@ class MtgTradeShop(CardSource):
 
 class MtgTrade(MtgTradeShop):
     def __init__(self):
-        super().__init__('http://mtgtrade.net', ['bigmagic', 'upkeep'])
+        super().__init__('http://mtgtrade.net', ['bigmagic', 'upkeep', 'mtgshop'])
 
 
 class BigMagic(MtgTradeShop):
@@ -920,6 +922,38 @@ class HexproofRu(CardSource):
                     })
 
 
+class MyMagic(CardSource):
+    def __init__(self):
+        super().__init__('https://shop.mymagic.ru', '/collection/card-search?q={query}&page={page}', 'utf-8', 'utf-8', {})
+
+    def _getPageCount(self, html):
+        result = 1
+        buttons = html.cssselect('a.PageButton')
+        if len(buttons) > 0:
+            result = int(buttons[-1].text)
+        return result
+
+    def _getPageCardsCount(self, html):
+        return len(html.cssselect('.SingleListItem'))
+
+    def _parseResponse(self, queryText, url, html):
+        for entry in html.cssselect('.SingleListItem'):
+            priceBlock = entry.cssselect('.price-column')[0]
+            stocks = priceBlock.cssselect('.stock .count')
+            if len(stocks) == 0:
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+            anchor = entry.cssselect('.name-column a')[0]
+            yield self.fillCardInfo({
+                'name': self.packName(anchor.text),
+                'set': self.getSetAbbrv(re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1)),
+                'price': decimal.Decimal(re.match(r'(\d+)', priceBlock.cssselect('.price .current span')[0].text).group(1)),
+                'currency': core.currency.RUR,
+                'count': int(re.match(r'(\d+)', stocks[0].text.strip()).group(1)),
+                'source': self.packSource(self.getTitle(), anchor.attrib['href']),
+            })
+
 class OfflineTestSource(CardSource):
     def __init__(self):
         super().__init__('http://offline.shop', '?query={query}', 'utf-8', 'utf-8', {})
@@ -957,6 +991,7 @@ def getCardSourceClasses():
         MtgRu,
         MtgSale,
         MtgTrade,
+        MyMagic,
         MyUpKeep,
         MtgShopRu,
         TopTrade,
