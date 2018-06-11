@@ -57,10 +57,12 @@ def getConditionHumanReadableString(conditionString):
     if key in _CONDITIONS_CASE_INSENSITIVE:
         return _CONDITIONS_SOURCE[_CONDITIONS_CASE_INSENSITIVE[key]][0]
 
+def makeLwLettersKey(value):
+    return re.sub(r'\W', '', value.lower())
 
-def guessCardLanguage(cardName):
+def guessStringLanguage(value):
     language = None
-    nameLetters = re.sub(r'\W', '', cardName.lower())
+    nameLetters = makeLwLettersKey(value)
     for abbrv, letters in core.language.LANGUAGES_TO_LOWERCASE_LETTERS.items():
         if all(c in letters for c in nameLetters):
             language = abbrv
@@ -76,7 +78,9 @@ class CardSource(object):
         self.queryEncoding = queryEncoding
         self.responseEncoding = responseEncoding
         self.foundCardsCount = 0
+        self.wasEstimated = False
         self.estimatedCardsCount = None
+        self.estimatedCardsPerPageCount = None
         self.requestCache = {}
         self.logger = core.logger.Logger(self.__class__.__name__)
         self.verifySsl = True
@@ -143,34 +147,44 @@ class CardSource(object):
     def query(self, queryText):
         self.currentQuery = queryText
 
+        preloadedCards = self._searchPreloaded(queryText)
+        self.estimatedCardsCount = len(preloadedCards)
+        for cardInfo in preloadedCards:
+            if cardInfo is not None:
+                yield cardInfo
+
         loopIndex = 0
         pageIndex = 0
         pageCount = 0
         while pageIndex <= pageCount:
-            pageIndex = self.getPageIndex(loopIndex)
+            pageIndex = loopIndex + 1
             escapedQuery = self.escapeQueryText(queryText)
             try:
                 encodedQuery = escapedQuery.encode(self.queryEncoding)
             except UnicodeEncodeError:
                 encodedQuery = escapedQuery
             requestUrl = self.queryUrlTemplate.format(**{'query': urllib.parse.quote(encodedQuery), 'page': pageIndex})
-            response = self.makeRequest(requestUrl, self.prepareRequest(queryText, pageIndex))
+            response = self.makeRequest(requestUrl, None)
             if response is None:
                 continue
 
             if not pageCount:
-                pageCount = max(1, self.estimatePagesCount(response))
-            if not self.estimatedCardsCount:
-                self.estimatedCardsCount = self.estimateCardsCount(pageCount, response)
-
-            preloadedCards = self.searchPreloaded(queryText)
-            self.estimatedCardsCount += len(preloadedCards)
-            for cardInfo in preloadedCards:
-                if cardInfo is not None:
-                    yield cardInfo
+                pageCount = max(1, self._getPageCount(response))
+            pageCardsCount = self._getPageCardsCount(response)
+            if not self.wasEstimated:
+                self.wasEstimated = True
+                self.estimatedCardsPerPageCount = pageCardsCount
+                if self.estimatedCardsCount is None:
+                    self.estimatedCardsCount = 0
+                totalCount = self._getTotalCardsCount(response)
+                if totalCount is None:
+                    totalCount = pageCount * pageCardsCount
+                self.estimatedCardsCount += totalCount
+            if pageCardsCount < self.estimatedCardsPerPageCount:
+                self.estimatedCardsCount -= self.estimatedCardsPerPageCount - pageCardsCount
 
             pageCards = 0
-            for cardInfo in self.parse(response, requestUrl):
+            for cardInfo in self._parseResponse(queryText, requestUrl, response):
                 pageCards += int(cardInfo is not None)
                 yield cardInfo
             if pageCards == 0:
@@ -179,40 +193,21 @@ class CardSource(object):
                 break
 
             loopIndex += 1
-            pageIndex = self.getPageIndex(loopIndex)
+            pageIndex = loopIndex + 1
 
-        # self.estimatedCardsCount = self._getFoundCardsCount(html)
-        # if self.estimatedCardsCount <= 0:
-        #     self.estimatedCardsCount = self._getCardsPerPageCount(html) * pagesCount
-
-    def getPageIndex(self, loopIndex):
-        return loopIndex + 1
-
-    def estimatePagesCount(self, html):
+    def _getPageCount(self, html):
         return 1
 
-    def estimateCardsCount(self, pageCount, html):
-        return pageCount * self.getPageCardsCount(html)
-
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return 0
 
-    def refineEstimatedCardsCount(self, html, entriesCount):
-        pageCards = self.getPageCardsCount(html)
-        if entriesCount < pageCards:
-            self.estimatedCardsCount -= pageCards - entriesCount
-            if self.estimatedCardsCount < 0:
-                self.estimatedCardsCount = 0
-            return True
-        return False
-
-    def prepareRequest(self, queryText, pageIndex):
+    def _getTotalCardsCount(self, html):
         return None
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         yield None
 
-    def searchPreloaded(self, queryText):
+    def _searchPreloaded(self, queryText):
         return []
 
 
@@ -233,10 +228,10 @@ class AngryBottleGnome(CardSource):
         # if query url contains & request will fail
         return super().escapeQueryText(queryText.replace('R&D', '').replace('&', ''))
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(html.cssselect('#search-results tbody tr'))
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         searchResults = html.cssselect('#search-results tbody tr')
         for resultsEntry in searchResults:
             dataCells = resultsEntry.cssselect('td')
@@ -270,22 +265,18 @@ class MtgRuShop(CardSource):
             self.promoHtml = self.makeRequest(self.makeAbsUrl(self.promoUrl), None)
         self.entrySelector = '#Catalog tr'
 
-    def estimatePagesCount(self, html):
+    def _getPageCount(self, html):
         pagesCount = 1
         pagesLinks = html.cssselect('.split-pages a')
         if len(pagesLinks) > 0:
             pagesCount = int(re.match(r'.+page=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
         return pagesCount
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(html.cssselect(self.entrySelector))
 
-    def parse(self, html, url):
-        products = html.cssselect(self.entrySelector)
-        if self.refineEstimatedCardsCount(html, len(products)):
-            yield None
-
-        for resultsEntry in products:
+    def _parseResponse(self, queryText, url, html):
+        for resultsEntry in html.cssselect(self.entrySelector):
             dataCells = resultsEntry.cssselect('td')
             language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
@@ -316,7 +307,7 @@ class ManaPoint(MtgRuShop):
             ('buy-a-box', 'fullbox',): 'Misc Promos',
         }
 
-    def searchPreloaded(self, queryText):
+    def _searchPreloaded(self, queryText):
         if self.promoHtml is None:
             return []
 
@@ -331,7 +322,7 @@ class ManaPoint(MtgRuShop):
             if queryText.lower() in cardName.lower():
                 cardLang = core.language.tryGetAbbreviation(cardInfo['lang'] or '')
                 if cardLang is None:
-                    cardLang = core.language.getAbbreviation(guessCardLanguage(card.utils.getNameKey(cardName)))
+                    cardLang = core.language.getAbbreviation(guessStringLanguage(card.utils.getNameKey(cardName)))
 
                 propStrings = []
                 supported = True # TODO support archenemy & planechase
@@ -380,20 +371,20 @@ class MtgSale(CardSource):
         super().__init__('https://mtgsale.ru', '/home/search-results?Name={query}&Page={page}', 'utf-8', 'utf-8', sourceSpecificSets)
         self.verifySsl = False
 
-    def estimatePagesCount(self, html):
+    def _getPageCount(self, html):
         pagesCount = 1
         pagesLinks = html.cssselect('ul.tabsb li a')
         if len(pagesLinks) > 0:
             pagesCount = int(pagesLinks[-1].text)
         return pagesCount
 
-    def estimateCardsCount(self, pageCount, html):
+    def _getTotalCardsCount(self, html):
         return int(re.match(r'\D*(\d+)\D*', html.cssselect('span.search-number')[0].text).group(1))
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return 25
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         for resultsEntry in html.cssselect('.tab_container div.ctclass'):
             count = int(re.match(r'(\d+)', resultsEntry.cssselect('p.colvo')[0].text).group(0))
             if count <= 0:
@@ -455,10 +446,10 @@ class CardPlace(CardSource):
             for valueString in values:
                 self.conditions[valueString] = key
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(html.cssselect('#mtgksingles tbody tr'))
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         for resultsEntry in html.cssselect('#mtgksingles tbody tr'):
             dataCells = resultsEntry.cssselect('td')
 
@@ -526,10 +517,10 @@ class MtgRu(CardSource):
     def escapeQueryText(self, queryText):
         return super().escapeQueryText(queryText.replace(' ', '%20'))
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(html.cssselect('table.NoteDivWidth'))
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         for userEntry in html.cssselect('table.NoteDivWidth'):
             userInfo = userEntry.cssselect('tr table')[0]
             nickname = userInfo.cssselect('tr th')[0].text
@@ -592,10 +583,10 @@ class TtTopdeck(CardSource):
             'mtgsale',
         ]
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(html.cssselect('table table tr')[1:])
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         for entry in html.cssselect('table table tr')[1:]:
             cells = entry.cssselect('td')
             cardName = cells[3].text
@@ -705,18 +696,17 @@ class EasyBoosters(CardSource):
     def __init__(self):
         super().__init__('https://easyboosters.com', '/search/?q={query}&how=r&PAGEN_3={page}', 'utf-8', 'utf-8', {})
 
-    def estimatePagesCount(self, html):
+    def _getPageCount(self, html):
         pagesCount = 1
         pagesLinks = html.cssselect('.bx-pagination li a')
         if len(pagesLinks) > 0:
             pagesCount = int(re.match(r'.+PAGEN_3=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
         return pagesCount
 
-    def getPageCardsCount(self, html):
-        return 30
+    def _getPageCardsCount(self, html):
+        return len(html.cssselect('.super-offer'))
 
-    def parse(self, html, url):
-        self.refineEstimatedCardsCount(html, len(html.cssselect('.super-offer')))
+    def _parseResponse(self, queryText, url, html):
         for entry in html.cssselect('.product-item'):
             offers = entry.cssselect('.super-offer')
             if len(offers) == 0:
@@ -770,10 +760,10 @@ class MtgTradeShop(CardSource):
                 raise
         return result
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(html.cssselect(self.cardSelector))
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         for resultsEntry in html.cssselect('.search-item'):
             anchor = resultsEntry.cssselect('.search-title')[0]
             isSingle = '/single/' in anchor.attrib['href']
@@ -852,19 +842,19 @@ class MtgShopRu(MtgTradeShop):
 
 class AutumnsMagic(CardSource):
     def __init__(self):
-        super().__init__('http://autumnsmagic.com', '/catalog?search={query}', 'utf-8', 'utf-8', {})
+        super().__init__('http://autumnsmagic.com', '/catalog?search={query}&page={page}', 'utf-8', 'utf-8', {})
 
-    def estimatePagesCount(self, html):
+    def _getPageCount(self, html):
         result = 1
         pagesElements = html.cssselect('.allPages')
         if pagesElements:
             result = int(pagesElements[-1].text_content().split()[-1].strip())
         return result
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(html.cssselect('.product-wrapper'))
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         for entry in html.cssselect('.product-wrapper'):
             cardUrl = entry.cssselect('a')[0].attrib['href']
             if any((c not in string.printable) for c in cardUrl):
@@ -877,29 +867,32 @@ class AutumnsMagic(CardSource):
                 self.estimatedCardsCount -= 1
                 yield None
                 continue
-
             cardName = nameTags[0].cssselect('a')[0].text.strip()
+
             dscBlock = entry.cssselect('.product-description')[0]
             dscImages = dscBlock.cssselect('img')
-            foilness = len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0
-            countTag = [tag for tag in dscBlock.cssselect('span') if 'шт' in tag.text][0]
-            priceTag = entry.cssselect('.product-footer .product-price .product-default-price')[0]
-            setAbbrv = dscBlock.cssselect('i')[0].attrib['class'].split()[1][len('ss-'):]
 
             language = None
             lngTitles = [img.attrib['title'] for img in dscImages if 'flags' in img.attrib['src']]
             if len(lngTitles) > 0:
                 language = lngTitles[0]
             if not language:
-                language = guessCardLanguage(cardName)
+                language = guessStringLanguage(cardName)
             if language:
                 language = core.language.getAbbreviation(language)
+            if language.lower() == guessStringLanguage(queryText) == 'en' and makeLwLettersKey(queryText) not in makeLwLettersKey(cardName):
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
+            countTag = [tag for tag in dscBlock.cssselect('span') if 'шт' in tag.text][0]
+            priceTag = entry.cssselect('.product-footer .product-price .product-default-price')[0]
 
             yield self.fillCardInfo({
                 'name': self.packName(cardName),
-                'set': self.getSetAbbrv(setAbbrv),
+                'set': self.getSetAbbrv(dscBlock.cssselect('i')[0].attrib['class'].split()[1][len('ss-'):]),
                 'language': language,
-                'foilness': foilness,
+                'foilness': len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0,
                 'count': int(re.match(r'^([\d]+).*', countTag.text.replace(' ', '')).group(1)),
                 'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', priceTag.text.strip()).group(1).replace(' ', '')),
                 'currency': core.currency.RUR,
@@ -911,17 +904,17 @@ class HexproofRu(CardSource):
     def __init__(self):
         super().__init__('https://hexproof.ru', '/search?type=product&q={query}', 'utf-8', 'utf-8', {})
 
-    def estimatePagesCount(self, html):
+    def _getPageCount(self, html):
         return 1
 
     @staticmethod
     def _listEntries(html):
         return html.cssselect('.productgrid--items')[0].cssselect('.productgrid--item')
 
-    def getPageCardsCount(self, html):
+    def _getPageCardsCount(self, html):
         return len(self._listEntries(html))
 
-    def parse(self, html, url):
+    def _parseResponse(self, queryText, url, html):
         for entry in self._listEntries(html):
             product = entry.cssselect('.productitem')[0]
             cardData = json.loads(entry.cssselect('.productitem-quickshop script')[0].text)['product']
