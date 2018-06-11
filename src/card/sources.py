@@ -811,7 +811,7 @@ class MtgTradeShop(CardSource):
 
 class MtgTrade(MtgTradeShop):
     def __init__(self):
-        super().__init__('http://mtgtrade.net', ['bigmagic', 'upkeep', 'mtgshop'])
+        super().__init__('http://mtgtrade.net', ['bigmagic', 'upkeep', 'mtgshop', 'magiccardmarket'])
 
 
 class BigMagic(MtgTradeShop):
@@ -827,6 +827,11 @@ class MyUpKeep(MtgTradeShop):
 class MtgShopRu(MtgTradeShop):
     def __init__(self):
         super().__init__('http://mtgshop.ru', [])
+
+
+class MagicCardMarket(MtgTradeShop):
+    def __init__(self):
+        super().__init__('http://magiccardmarket.ru', [])
 
 class AutumnsMagic(CardSource):
     def __init__(self):
@@ -987,6 +992,7 @@ def getCardSourceClasses():
         CardPlace,
         EasyBoosters,
         HexproofRu,
+        MagicCardMarket,
         ManaPoint,
         MtgRu,
         MtgSale,

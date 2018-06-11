@@ -1,3 +1,4 @@
+ ☐ Починить цены!!!
  ☐ Добавить русские названия сетов в sets.py
  ☐ Нужен какой-то язык для описания алиасов сетов (регексп?), как-то много копипасты получается
  ☐ Разделить колонки source и seller
@@ -67,7 +68,7 @@
  ✔ myupkeep.ru (same as bigmagic) @done (18-06-11 21:40)
  ✔ http://mtgshop.ru/ (same as bigmagic) @done (18-06-11 21:41)
  ✔ https://hexproof.ru @done (18-06-11 23:27)
- ☐ http://magiccardmarket.ru/ (mtgtrade - MagicCardMarket)
+ ✔ http://magiccardmarket.ru/ (mtgtrade - MagicCardMarket) @done (18-06-12 02:46)
  ☐ http://www.buymagic.com.ua
  ☐ Токены, эмблемы, конспирационные штуки эти
  ☐ поддержка схем/планов
