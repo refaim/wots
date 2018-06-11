@@ -4,12 +4,16 @@ import sys
 import time
 import traceback
 
+import raven
+
 import card.sources
 import card.utils
 import wizard
 
 
 def main(args):
+    with open(wizard.getResourcePath('config.json')) as fobj:
+        sentry = raven.Client(json.load(fobj)['sentry_dsn'])
     sourceId, stdoutLog, stderrLog = args
 
     oldStdout = sys.stdout
@@ -61,6 +65,7 @@ def main(args):
                     sys.stderr = oldStderr
                     return 1
                 except Exception:
+                    sentry.captureException()
                     sys.stdout.write('<{} FAIL'.format('=' * 20) + '\n')
                     sys.stderr.write(stateString + '\n')
                     traceback.print_exc(file=sys.stderr)

@@ -11,6 +11,7 @@ import signal
 import sys
 import webbrowser
 
+import raven
 import psutil
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
@@ -361,11 +362,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 def queryCardSource(cardSourceId, cardSourceClass, queryString, resultsQueue, exitEvent, cookie):
-    cardSource = cardSourceClass()
-    for cardInfo in cardSource.query(queryString):
-        if exitEvent.is_set():
-            return
-        resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
+    sentry = createSentry()
+    try:
+        cardSource = cardSourceClass()
+        for cardInfo in cardSource.query(queryString):
+            if exitEvent.is_set():
+                return
+            resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
+    except:
+        sentry.captureException()
+        raise
 
 
 def queryPriceSource(priceSourceClass, sourceId, storagePath, resources, requestsQueue, resultsQueue, exitEvent):
@@ -592,7 +598,12 @@ def catchExceptions(systemHook, type_, value, traceback):
     sys.excepthook = systemHook
     sys.excepthook(type_, value, traceback)
 
+def createSentry():
+    with open(getResourcePath('config.json')) as configFile:
+        return raven.Client(json.load(configFile)['sentry_dsn'])
+
 if __name__ == '__main__':
+    sentry = createSentry()
     sys.excepthook = functools.partial(catchExceptions, sys.excepthook)
     try:
         if getattr(sys, 'frozen', False):
@@ -613,5 +624,8 @@ if __name__ == '__main__':
             sys.exit(application.exec_())
         finally:
             window.abort()
+    except:
+        sentry.captureException()
+        raise
     finally:
         killChildrenProcesses()

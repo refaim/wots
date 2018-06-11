@@ -1,8 +1,11 @@
+import json
 import math
 import multiprocessing
 import os
 import sys
 import time
+
+import raven
 
 LEVEL_ERROR = 1
 LEVEL_WARNING = 2
@@ -20,6 +23,8 @@ STDERR_LOCK = multiprocessing.Lock()
 
 class Logger(object):
     def __init__(self, loggerId):
+        with open(os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'config.json')) as fobj:
+            self.sentry = raven.Client(json.load(fobj)['sentry_dsn'])
         self.id = loggerId
         self.level = LEVEL_ALL
         self.baseTime = time.time()
@@ -34,6 +39,8 @@ class Logger(object):
         self.write(message, LEVEL_ERROR)
 
     def write(self, message, level):
+        if level == LEVEL_WARNING or level == LEVEL_ERROR:
+            self.sentry.captureMessage(message)
         if self.level >= level:
             timeDiff = time.time() - self.baseTime
             logEntry = '[{:0>8}] [{}] {: <10}{: >10} {}'.format(

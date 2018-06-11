@@ -1,4 +1,4 @@
 *.pyc
-.idea
-build
-venv
+/.idea
+/build
+/venv
