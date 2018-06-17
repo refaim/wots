@@ -462,6 +462,8 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     return 'Foil' if data['foilness'] else None  # TODO image
             elif columnId == 'count':
                 if role == QtCore.Qt.DisplayRole:
+                    if isinstance(data['count'], bool) and data['count'] is True:
+                        return '1+'
                     return int(data['count']) or ''
             elif columnId.endswith('price') and data and data['amount'] is not None:
                 if role == QtCore.Qt.DisplayRole:
@@ -563,7 +565,15 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
         elif columnId == 'foilness':
             return a['foilness'] < b['foilness']
         elif columnId == 'count':
-            return a['count'] < b['count']
+            ac = a['count']
+            bc = b['count']
+            ap = isinstance(ac, bool) and ac is True
+            bp = isinstance(bc, bool) and bc is True
+            ai = int(ac) if ac is not None else 0
+            bi = int(bc) if bc is not None else 0
+            if ai == bi and ap != bp:
+                return bp
+            return ai < bi
         elif columnId.endswith('price'):
             if not a:
                 return False

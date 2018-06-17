@@ -50,10 +50,11 @@
  ☐ Номера базиков в сетах, похоже, CardFixer раздаёт некорректно (можно на кардплейсе поискать любые базики для примера)
  ✔ Inferno -- 94% и всё @done (18-06-12 00:37)
  ☐ на Mtgtrade по запросу angel 98%
+ ☐ Phyrexian Arena cardplace карту находит, а её нет
 
  ☐ Фиксер считает, что Disallow нету в PRL, только в AER (и с Sanctum of Ugin та же история) [там же начиная с какого-то сета любая рарка может оказаться в промках? или нет?]
 
- ☐ https://goodork.ru/categories/karty
+ ✔ https://goodork.ru/categories/karty @done (18-06-16 13:07)
  ✔ shop.mymagic.ru (и убрать соответствующую залепу в мтгрушном поиске, и убрать его из топдек-поиска (запрос lightning)) @done (18-06-12 02:42)
  ☐ Оверсайзед-карты из коммандера теряют фойловость и сет становится CMD, если пустой был
  ✘ На easyboosters через несколько скачанных страниц Heroku блокирует качалку @cancelled (18-06-11 23:31)
@@ -79,6 +80,7 @@
    ☐ AutumnsMagic
    ☐ CardPlace (поюзать http://www.cardplace.ru/advancedsearch/mtg/) [тест -- Lightning Bolt/Удар молнии]
    ✔ EasyBoosters @done (18-06-11 18:36)
+   ☐ GoodOrk
    ✔ Hexproof @done (18-06-11 23:27)
    ☐ ManaPoint
    ☐ MtgRu
