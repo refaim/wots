@@ -138,10 +138,14 @@ class CardSource(object):
 
     def fillCardInfo(self, cardInfo):
         cardInfo.setdefault('language', None)
+        if isinstance(cardInfo['name'], str):
+            cardInfo['name'] = self.packName(cardInfo['name'])
         if cardInfo.get('set') is not None:
             cardInfo['set'] = self.getSetAbbrv(cardInfo['set'])
         if cardInfo.get('language') is not None:
             cardInfo['language'] = core.language.getAbbreviation(cardInfo['language'])
+        if isinstance(cardInfo['source'], str):
+            cardInfo['source'] = self.packSource(self.getTitle(), cardInfo['source'])
         self.foundCardsCount += 1
         return cardInfo
 
@@ -255,7 +259,7 @@ class AngryBottleGnome(CardSource):
             for cardVersion in cardVersions:
                 rawInfo = self.cardInfoRegexp.match(cardVersion.text).groupdict()
                 yield self.fillCardInfo({
-                    'name': self.packName(cardName),
+                    'name': cardName,
                     'set': cardSet,
                     'language': rawInfo['language'],
                     'condition': _CONDITIONS[rawInfo['condition'].rstrip(',')],
@@ -263,7 +267,7 @@ class AngryBottleGnome(CardSource):
                     'count': int(rawInfo['count']),
                     'price': decimal.Decimal(rawInfo['price']),
                     'currency': core.currency.RUR,
-                    'source': self.packSource(self.getTitle(), cardUrl),
+                    'source': cardUrl,
                 })
 
 
@@ -291,14 +295,14 @@ class MtgRuShop(CardSource):
             language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
             yield self.fillCardInfo({
-                'name': self.packName(dataCells[2].cssselect(nameSelector)[0].text),
+                'name': dataCells[2].cssselect(nameSelector)[0].text,
                 'set': dataCells[0].cssselect('img')[0].attrib['alt'],
                 'language': language,
                 'foilness': bool(dataCells[3].text),
                 'count': int(re.match(r'(\d+)', dataCells[5].text).group(0)),
                 'price': decimal.Decimal(re.match(r'(\d+)', dataCells[6].text.replace('`', '')).group(0)),
                 'currency': core.currency.RUR,
-                'source': self.packSource(self.getTitle(), url)
+                'source': url,
             })
 
 
@@ -358,14 +362,14 @@ class ManaPoint(MtgRuShop):
                         print('Unable to detect set', propStrings)
 
                     results.append(self.fillCardInfo({
-                        'name': self.packName(cardName),
+                        'name': cardName,
                         'set': setString,
                         'language': cardLang,
                         'foilness': foil,
                         'count': int(re.match(r'(\d+)', dataCells[1].text).group(0)),
                         'price': decimal.Decimal(re.match(r'(\d+)', dataCells[2].text.replace('`', '')).group(0)),
                         'currency': core.currency.RUR,
-                        'source': self.packSource(self.getTitle(), self.promoUrl)
+                        'source': self.promoUrl,
                     }))
         return results
 
@@ -420,7 +424,7 @@ class MtgSale(CardSource):
                 price = decimal.Decimal(re.match(r'(\d+)', priceString.strip()).group(0))
 
             yield self.fillCardInfo({
-                'name': self.packName(resultsEntry.cssselect(nameSelector)[0].text),
+                'name': resultsEntry.cssselect(nameSelector)[0].text,
                 'set': entrySet,
                 'language': language,
                 'condition': _CONDITIONS[resultsEntry.cssselect('p.sost span')[0].text],
@@ -428,7 +432,7 @@ class MtgSale(CardSource):
                 'count': count,
                 'price': price,
                 'currency': core.currency.RUR,
-                'source': self.packSource(self.getTitle(), url),
+                'source': url,
             })
 
 
@@ -495,7 +499,7 @@ class CardPlace(CardSource):
 
             yield self.fillCardInfo({
                 'id': cardId,
-                'name': self.packName(cardName),
+                'name': cardName,
                 'foilness': len(nameImages) > 0 and nameImages[0].attrib['title'].lower() == 'foil',
                 'set': cardSet,
                 'language': language,
@@ -503,7 +507,7 @@ class CardPlace(CardSource):
                 'price': decimal.Decimal(re.match(r'([\d.]+)', dataCells[6].text.strip()).group(0)),
                 'currency': core.currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
-                'source': self.packSource(self.getTitle(), anchorName.attrib['href']),
+                'source': anchorName.attrib['href'],
             })
 
 
@@ -520,7 +524,6 @@ class MtgRu(CardSource):
             'mtgtrade.net',
             'myupkeep.ru',
         ]
-        self.knownShopSourceSubstrings = []
         super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def escapeQueryText(self, queryText):
@@ -538,18 +541,23 @@ class MtgRu(CardSource):
                 self.estimatedCardsCount -= 1
                 yield None
             else:
-                cardSource = self.getTitle() + '/' + nickname.lower().replace(' ', '_')
-                if any(substring in exchangeUrl for substring in self.knownShopSourceSubstrings):
-                    cardSource = urllib.parse.urlparse(exchangeUrl).netloc
-                elif not exchangeUrl.endswith('.html'):
+                shopFound = not exchangeUrl.endswith('.html')
+                if shopFound:
                     cardSource = exchangeUrl
                     self.logger.warning('Found new shop: {}'.format(exchangeUrl))
+                else:
+                    cardSource = self.getTitle() + '/' + nickname
 
                 userCards = userEntry.cssselect('table.CardInfo')
                 if len(userCards) > 0:
                     self.estimatedCardsCount += len(userCards) - 1
 
                 for cardInfo in userCards:
+                    cardName = cardInfo.cssselect('th.txt0')[0].text
+                    cardUrl = exchangeUrl
+                    if not shopFound:
+                        cardUrl += '?Title={}'.format(cardName)
+
                     idSource = cardInfo.cssselect('nobr.txt0')[0].text
                     cardId = int(re.match(r'[^\d]*(\d+)[^\d]*', idSource).group(1)) if idSource else None
 
@@ -573,14 +581,14 @@ class MtgRu(CardSource):
 
                     yield self.fillCardInfo({
                         'id': cardId,
-                        'name': self.packName(cardInfo.cssselect('th.txt0')[0].text),
+                        'name': cardName,
                         'foilness': foilness,
                         'set': setSource,
                         'language': language,
                         'price': price,
                         'currency': core.currency.RUR,
                         'count': int(cardInfo.cssselect('td.txt15 b')[0].text.split()[0]),
-                        'source': self.packSource(cardSource, exchangeUrl),
+                        'source': self.packSource(cardSource, cardUrl),
                     })
 
 
@@ -723,7 +731,7 @@ class EasyBoosters(CardSource):
             for offer in offers:
                 condition, *language = offer.cssselect('.super-offer-name')[0].text.split()
                 yield self.fillCardInfo({
-                    'name': self.packName(cardName),
+                    'name': cardName,
                     'foilness': foilString is not None,
                     'set': cardPage.cssselect('.bx-breadcrumb-item a span')[-1].text,
                     'language': ''.join(language),
@@ -731,7 +739,7 @@ class EasyBoosters(CardSource):
                     'currency': core.currency.RUR,
                     'count': int(re.search(r'(\d+)', offer.cssselect('.super-offer span strong')[0].text).group(0)),
                     'condition': _CONDITIONS[condition],
-                    'source': self.packSource(self.getTitle(), anchor.attrib['href'])
+                    'source': anchor.attrib['href'],
                 })
 
 
@@ -801,7 +809,7 @@ class MtgTradeShop(CardSource):
                         yield None
                         continue
                     yield self.fillCardInfo({
-                        'name': self.packName(' '.join(anchor.text_content().split())),
+                        'name': ' '.join(anchor.text_content().split()),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': cardSet,
                         'language': ''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"'),
@@ -809,7 +817,7 @@ class MtgTradeShop(CardSource):
                         'currency': core.currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
-                        'source': self.packSource(sourceCaption, anchor.attrib['href'])
+                        'source': self.packSource(sourceCaption, anchor.attrib['href']), # TODO specify url to specific player + card
                     })
 
 
@@ -884,14 +892,14 @@ class AutumnsMagic(CardSource):
             priceTag = entry.cssselect('.product-footer .product-price .product-default-price')[0]
 
             yield self.fillCardInfo({
-                'name': self.packName(cardName),
+                'name': cardName,
                 'set': dscBlock.cssselect('i')[0].attrib['class'].split()[1][len('ss-'):],
                 'language': language,
                 'foilness': len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0,
                 'count': int(re.match(r'^([\d]+).*', countTag.text.replace(' ', '')).group(1)),
                 'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', priceTag.text.strip()).group(1).replace(' ', '')),
                 'currency': core.currency.RUR,
-                'source': self.packSource(self.getTitle(), cardUrl),
+                'source': cardUrl,
             })
 
 
@@ -918,14 +926,14 @@ class HexproofRu(CardSource):
                 if variant['available'] and variant['inventory_quantity'] > 0:
                     rawCnd, rawLng = variant['title'].split()
                     yield self.fillCardInfo({
-                        'name': self.packName(cardData['title']),
+                        'name': cardData['title'],
                         'set': cardSet,
                         'language': rawLng,
                         'price': decimal.Decimal(cardData['price_max'] / 100),
                         'currency': core.currency.RUR,
                         'count': int(variant['inventory_quantity']),
                         'condition': _CONDITIONS[rawCnd],
-                        'source': self.packSource(self.getTitle(), product.cssselect('.productitem--title a')[0].attrib['href']),
+                        'source': product.cssselect('.productitem--title a')[0].attrib['href'],
                     })
 
 
@@ -953,12 +961,12 @@ class MyMagic(CardSource):
                 continue
             anchor = entry.cssselect('.name-column a')[0]
             yield self.fillCardInfo({
-                'name': self.packName(anchor.text),
+                'name': anchor.text,
                 'set': re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1),
                 'price': decimal.Decimal(re.match(r'(\d+)', priceBlock.cssselect('.price .current span')[0].text).group(1)),
                 'currency': core.currency.RUR,
                 'count': int(re.match(r'(\d+)', stocks[0].text.strip()).group(1)),
-                'source': self.packSource(self.getTitle(), anchor.attrib['href']),
+                'source': anchor.attrib['href'],
             })
 
 
@@ -970,8 +978,7 @@ class GoodOrk(CardSource):
             r'((и?гровое поле)|плеймат|коврик)',
             r'(протекторы|разделители|toploaders|sleeves)',
             r'кау(т)?нтеры',
-            r'альбом(ов)?',
-            r'лист(ов)?',
+            r'(альбом(ов)?)|(лист(ов)?)|(журнал(ов)?)',
             r'(короб(оч)?ка)|(deck\s?box)',
             r'набор|колода|((двух|тр?х|четыр?х|пяти)цветн(ая|ый))|archenemy',
             r'дисплей|бустер',
@@ -1057,14 +1064,14 @@ class GoodOrk(CardSource):
 
             yield self.fillCardInfo({
                 'id': cardId,
-                'name': self.packName(cardName),
+                'name': cardName,
                 'foilness': cardFoil,
                 'set': cardSet,
                 'language': cardLanguage,
                 'price': decimal.Decimal(entry.cssselect('.price-number')[0].text.replace(' ', '')),
                 'currency': core.currency.RUR,
                 'count': True,
-                'source': self.packSource(self.getTitle(), anchor.attrib['href'] + '#?tab=tabOptions')
+                'source': anchor.attrib['href'] + '#?tab=tabOptions',
             })
 
 
@@ -1080,7 +1087,7 @@ class OfflineTestSource(CardSource):
             # noinspection PyProtectedMember
             yield self.fillCardInfo({
                 'id': random.randint(1, 300),
-                'name': self.packName(random.choice(string.ascii_letters) * random.randint(10, 25)),
+                'name': random.choice(string.ascii_letters) * random.randint(10, 25),
                 'foilness': bool(random.randint(0, 1)),
                 'set': random.choice(list(card.sets._SET_ABBREVIATIONS_SOURCE.keys())),
                 'language': random.choice(list(core.language._LANGUAGES.keys())),
@@ -1088,7 +1095,7 @@ class OfflineTestSource(CardSource):
                 'currency': random.choice([core.currency.RUR, core.currency.USD, core.currency.EUR]),
                 'count': random.randint(1, 10),
                 'condition': _CONDITIONS[random.choice(list(_CONDITIONS.keys()))],
-                'source': self.packSource(self.getTitle(), '')
+                'source': '',
             })
 
 
