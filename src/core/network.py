@@ -3,6 +3,7 @@
 import errno
 import http
 import http.client
+from typing import Optional
 import io
 import ssl
 import time
@@ -10,13 +11,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-import core.logger
+from core.logger import WotsLogger
 
 MAX_ATTEMPTS = 30
 HTTP_DELAY_SECONDS_MULTIPLIER = 2
 CHUNK_SIZE_BYTES = 1024 * 100
-
-_logger = core.logger.Logger('Network')
 
 def httpCodeAnyOf(code, statuses):
     for candidate, _, _ in statuses:
@@ -24,7 +23,7 @@ def httpCodeAnyOf(code, statuses):
             return True
     return False
 
-def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
+def getUrl(url: str, logger: WotsLogger, parametersDict: Optional[dict]=None, verbose: bool=False, verifySsl: bool=True):
     parametersBytes = None
     representation = '[{}] {}'.format('POST' if parametersDict else 'GET', url)
     if parametersDict:
@@ -34,7 +33,7 @@ def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
 
     attempt = 0
     if verbose:
-        _logger.info('Loading {}'.format(representation))
+        logger.debug('Loading %s', representation)
     while True:
         retry = False
         try:
@@ -58,7 +57,7 @@ def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
             dstObj.seek(0)
             srcObj.close()
             if verbose:
-                _logger.info('Finished {}'.format(representation))
+                logger.debug('Finished %s', representation)
             return dstObj.read()
         except urllib.error.HTTPError as ex:
             if httpCodeAnyOf(ex.code, [http.HTTPStatus.BAD_GATEWAY, http.HTTPStatus.GATEWAY_TIMEOUT, http.HTTPStatus.INTERNAL_SERVER_ERROR]):
@@ -87,7 +86,7 @@ def getUrl(url, parametersDict=None, verbose=False, verifySsl=True):
             retry = False
             lastException = ex
         if retry and attempt <= MAX_ATTEMPTS:
-            _logger.info('Restarting ({}/{}) {}'.format(attempt, MAX_ATTEMPTS, representation))
+            logger.debug('Restarting (%s/%s) %s', attempt, MAX_ATTEMPTS, representation)
             time.sleep(attempt * HTTP_DELAY_SECONDS_MULTIPLIER)
             continue
         raise lastException

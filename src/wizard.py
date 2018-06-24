@@ -2,16 +2,21 @@ import codecs
 import functools
 import io
 import json
+import logging
 import math
-import multiprocessing
 import os
 import platform
-import queue
 import signal
 import sys
 import webbrowser
+from multiprocessing import Event as MpEvent
+from multiprocessing import Process as MpProcess
+from multiprocessing import Queue as MpQueue
+from multiprocessing import freeze_support as mp_freeze_support, set_start_method as mp_set_start_method
+from queue import Queue as SpQueue
+from threading import Thread
 
-import multiprocessing_logging
+import dotenv
 import psutil
 import raven
 from PyQt5 import QtCore
@@ -23,8 +28,7 @@ import card.sets
 import card.sources
 import card.utils
 import core.currency
-import core.logger
-import price.sources
+from core.logger import WotsLogger
 
 
 def getResourcePath(resourceId):
@@ -150,29 +154,32 @@ class HyperlinkItemDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, logger: WotsLogger):
         super().__init__()
 
         uic.loadUi('wizard.ui', self)
 
+        self.logger = logger
+
         self.foundCardsCount = 0
         self.wasSearchInProgress = False
         self.searchVersion = 0
-        self.searchProgressQueue = queue.Queue()
-        self.searchResults = multiprocessing.Queue()
+        self.searchProgressQueue = SpQueue()
+        self.searchResults = MpQueue()
 
         self.searchWorkers = {}
         self.searchProgressStats = {}
 
-        self.priceStopEvent = multiprocessing.Event()
-        self.priceRequests = multiprocessing.Queue()
-        self.obtainedPrices = multiprocessing.Queue()
+        self.priceStopEvent = MpEvent()
+        self.priceRequests = MpQueue()
+        self.obtainedPrices = MpQueue()
         self.priceWorkers = []
         for i, columnInfo in enumerate(SEARCH_RESULTS_TABLE_COLUMNS_INFO):
             if columnInfo['id'].endswith('price') and 'class' in columnInfo:
                 sourceClass = columnInfo['class']
                 storagePath = os.path.join(os.path.expanduser('~'), '.wots.{}.db'.format(columnInfo['storage_id']))
-                process = multiprocessing.Process(
+                # noinspection PyArgumentList
+                process = MpProcess(
                     name=columnInfo['id'],
                     target=queryPriceSource,
                     args=(sourceClass, i, storagePath, columnInfo['resources'], self.priceRequests, self.obtainedPrices, self.priceStopEvent,),
@@ -198,7 +205,7 @@ class MainWindow(QtWidgets.QMainWindow):
         with codecs.open(getResourcePath('completion_set.json'), 'r', 'utf-8') as fobj:
             cardsNamesSet = json.load(fobj)
 
-        cardsFixer = card.fixer.CardsFixer(cardsInfo, cardsNamesMap)
+        cardsFixer = card.fixer.CardsFixer(cardsInfo, cardsNamesMap, self.logger.get_child('fixer'))
         self.searchResultsModel = CardsTableModel(cardsFixer, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
@@ -340,7 +347,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchVersion += 1
         self.searchWorkers = {}
         self.searchProgressStats = {}
-        self.searchStopEvent = multiprocessing.Event()
+        self.searchStopEvent = MpEvent()
         self.searchResultsModel.setCookie(self.searchVersion)
         self.searchResultsModel.clear()
         self.searchProgress.setValue(0)
@@ -350,10 +357,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for i, sourceClass in enumerate(sourceClasses):
             engineId = ';'.join((str(sourceClass), str(i + 1), str(self.searchVersion)))
-            process = multiprocessing.Process(
+            # noinspection PyArgumentList
+            process = MpProcess(
                 name=str(sourceClass),
                 target=queryCardSource,
-                args=(engineId, sourceClass, queryString, self.searchResults, self.searchStopEvent, self.searchVersion,),
+                args=(engineId, sourceClass, queryString, self.searchResults, self.logger, self.searchStopEvent, self.searchVersion),
                 daemon=True)
             process.start()
             self.searchWorkers[engineId] = process
@@ -362,21 +370,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateSearchControlsStatus()
 
 
-def queryCardSource(cardSourceId, cardSourceClass, queryString, resultsQueue, exitEvent, cookie):
-    sentry = createSentry()
+def queryCardSource(cardSourceId: int, instanceClass, queryString: str, resultsQueue: MpQueue, logger: WotsLogger, exitEvent: MpEvent, cookie):
+    cardSourceSentry = raven.Client(os.getenv('SENTRY_DSN'))
     try:
-        cardSource = cardSourceClass()
+        cardSource: card.sources.CardSource = instanceClass(logger)
         for cardInfo in cardSource.query(queryString):
             if exitEvent.is_set():
                 return
             resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
     except:
-        sentry.captureException()
+        cardSourceSentry.captureException()
         raise
 
 
 def queryPriceSource(priceSourceClass, sourceId, storagePath, resources, requestsQueue, resultsQueue, exitEvent):
-    pricesQueue = multiprocessing.Queue()
+    pricesQueue = MpQueue()
     priceSource = priceSourceClass(pricesQueue, storagePath, resources)
     while True:
         if exitEvent.is_set():
@@ -395,7 +403,7 @@ def convertPrice(priceInfo):
     amount, currency = priceInfo['price'], priceInfo['currency']
     original_amount, original_currency = amount, currency
     if currency is not None and amount is not None and currency != core.currency.RUR:
-        roubles = currencyConverter.convert(currency, core.currency.RUR, amount)
+        roubles = gCurrencyConverter.convert(currency, core.currency.RUR, amount)
         if roubles is not None:
             amount, currency = roubles, core.currency.RUR
     return {'amount': amount, 'currency': currency, 'original_amount': original_amount, 'original_currency': original_currency}
@@ -404,7 +412,6 @@ def convertPrice(priceInfo):
 class CardsTableModel(QtCore.QAbstractTableModel):
     def __init__(self, cardsFixer, columnsInfo, dataQueue, statQueue, priceRequests):
         super().__init__()
-        self.logger = core.logger.Logger('CardsTableModel')
         self.cardsFixer = cardsFixer
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
@@ -609,12 +616,30 @@ def catchExceptions(systemHook, type_, value, traceback):
     sys.excepthook = systemHook
     sys.excepthook(type_, value, traceback)
 
-def createSentry():
-    with open(getResourcePath('config.json')) as configFile:
-        return raven.Client(json.load(configFile)['sentry_dsn'])
+
+def setupLogging() -> core.logger.WotsLogger:
+    logsQueue = MpQueue()
+    logger = core.logger.WotsLogger('', logsQueue)
+    logsThread = Thread(target=__handleIncomingLogs, args=(logsQueue,))
+    logsThread.daemon = True
+    logsThread.start()
+    return logger
+
+
+def __handleIncomingLogs(logsQueue: MpQueue) -> None:
+    loggers = {}
+    while True:
+        name, level, message, args, kwargs = logsQueue.get()
+        if name not in loggers:
+            loggers[name] = logging.getLogger(name)
+        loggers[name].log(level, message, *args, *kwargs)
+
 
 if __name__ == '__main__':
-    sentry = createSentry()
+    mp_freeze_support()
+
+    dotenv.load_dotenv()
+    gSentry = raven.Client(os.getenv('SENTRY_DSN'))
     sys.excepthook = functools.partial(catchExceptions, sys.excepthook)
     try:
         if getattr(sys, 'frozen', False):
@@ -623,21 +648,24 @@ if __name__ == '__main__':
 
         if platform.system() == 'Linux':
             # workaround for creating instances of QApplication in the child processes created by multiprocessing on Linux
-            multiprocessing.set_start_method('spawn')
+            mp_set_start_method('spawn')
 
-        multiprocessing.freeze_support()
-        multiprocessing_logging.install_mp_handler()
-        currencyConverter = core.currency.Converter()
-        currencyConverter.update()
-        application = QtWidgets.QApplication(sys.argv)
-        window = MainWindow()
-        window.show()
+        gRootLogger = setupLogging()
+        gCurrencyConverter = core.currency.Converter(gRootLogger.get_child('cb'))
+        gCurrencyConverter.update()
+
+        gApplication = QtWidgets.QApplication(sys.argv)
+        gWindow = MainWindow(gRootLogger)
+        gWindow.show()
+
         try:
-            sys.exit(application.exec_())
+            sys.exit(gApplication.exec_())
         finally:
-            window.abort()
-    except:
-        sentry.captureException()
+            gWindow.abort()
+    except SystemExit:
+        pass
+    except Exception:
+        gSentry.captureException()
         raise
     finally:
         killChildrenProcesses()

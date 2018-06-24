@@ -1,11 +1,9 @@
+import logging
 import string
-import traceback
 
 import core.language
-import core.logger
 import tools.dict
 
-_logger = core.logger.Logger('Sets')
 _SET_ABBREVIATIONS_SOURCE = {
     '2ED': ('Unlimited Edition', '2E', 'Unlimited',),
     '3ED': ('Revised Edition', '3E', 'Revised',),
@@ -344,8 +342,8 @@ def getFullName(setAbbrv):
 def tryGetAbbreviation(setNameString, quiet=False):
     result = _SETS.get(getNameKey(setNameString), None)
     if result is None and not quiet:
-        _logger.warning('Unable to recognize set "{}"'.format(setNameString))
-        _logger.warning(''.join(traceback.format_stack()))
+        # TODO WotsLogger !!!!!!!!!!!!!!!!!!
+        logging.getLogger('Sets').error('Unable to recognize set "%s"', setNameString)
     return result
 
 

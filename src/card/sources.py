@@ -11,6 +11,7 @@ import time
 import urllib
 import urllib.error
 import urllib.parse
+from typing import List, Optional
 
 import lxml.html
 
@@ -18,10 +19,10 @@ import card.sets
 import card.utils
 import core.currency
 import core.language
-import core.logger
 import core.network
 import tools.dict
 import tools.string
+from core.logger import WotsLogger
 
 CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
 _CONDITIONS_SOURCE = {
@@ -71,7 +72,7 @@ def guessStringLanguage(value):
 
 
 class CardSource(object):
-    def __init__(self, url, queryUrlTemplate, queryEncoding='utf-8', responseEncoding='utf-8', setMap=None):
+    def __init__(self, logger: WotsLogger, url: str, queryUrlTemplate: str, queryEncoding: str = 'utf-8', responseEncoding: str = 'utf-8', setMap=None):
         self.url = url
         self.queryUrlTemplate = url + queryUrlTemplate
         self.sourceSpecificSets = setMap or {}
@@ -82,9 +83,9 @@ class CardSource(object):
         self.estimatedCardsCount = None
         self.estimatedCardsPerPageCount = None
         self.requestCache = {}
-        self.logger = core.logger.Logger(self.__class__.__name__)
         self.verifySsl = True
         self.currentQuery = None
+        self.logger = logger.get_child(self.getTitle())
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
@@ -93,7 +94,7 @@ class CardSource(object):
     def getSetAbbrv(self, setId):
         result = card.sets.tryGetAbbreviation(self.sourceSpecificSets.get(setId, setId), quiet=True)
         if result is None:
-            self.logger.warning('Unable to recognize set "{}" for query "{}"'.format(setId, self.currentQuery))
+            self.logger.warning('Unable to recognize set "%s" for query "%s"', setId, self.currentQuery)
         return result
 
     @staticmethod
@@ -109,20 +110,18 @@ class CardSource(object):
     def escapeQueryText(self, queryText):
         return queryText.replace(u'`', "'").replace(u'’', "'")
 
-    def makeRequest(self, url, data):
-        cacheKey = url
-        if data:
-            cacheKey += ';' + urllib.parse.urlencode(data)
-        if cacheKey not in self.requestCache:
+    def getHtml(self, url: str):
+        url = self.makeAbsUrl(url)
+        if url not in self.requestCache:
             try:
-                byteString = core.network.getUrl(url, data, False, self.verifySsl)
-                self.requestCache[cacheKey] = lxml.html.document_fromstring(byteString.decode(self.responseEncoding))
+                byteString = core.network.getUrl(url, self.logger, None, False, self.verifySsl)
+                self.requestCache[url] = lxml.html.document_fromstring(byteString.decode(self.responseEncoding))
             except Exception as ex:
                 message = str(ex)
                 if len(message) == 0 or message.isspace():
                     raise
                 self.logger.warning(message)
-        return self.requestCache.get(cacheKey)
+        return self.requestCache.get(url)
 
     def packName(self, caption, description=None):
         return {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
@@ -175,7 +174,7 @@ class CardSource(object):
             except UnicodeEncodeError:
                 encodedQuery = escapedQuery
             requestUrl = self.queryUrlTemplate.format(**{'query': urllib.parse.quote(encodedQuery), 'page': pageIndex})
-            response = self.makeRequest(requestUrl, None)
+            response = self.getHtml(requestUrl)
             if response is None:
                 continue
 
@@ -226,14 +225,14 @@ class CardSource(object):
         return guessStringLanguage(cardName) == guessStringLanguage(queryText) and makeLwLettersKey(queryText) not in makeLwLettersKey(cardName)
 
 class AngryBottleGnome(CardSource):
-    def __init__(self):
+    def __init__(self, logger: WotsLogger):
         sourceSpecificSets = {
             'Promo - Special': 'Media Inserts',
             'Prerelease Events': 'Prerelease & Release Cards',
             'Release Events': 'Prerelease & Release Cards',
             'Launch Party': 'Magic: The Gathering Launch Parties',
         }
-        super().__init__('http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', setMap=sourceSpecificSets)
+        super().__init__(logger, 'http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', setMap=sourceSpecificSets)
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Английский, M/NM  (30р., в наличии: 1)</div>
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Итальянский, M/NM  Фойл (180р., в наличии: 1)</div>
         self.cardInfoRegexp = re.compile(r'(?P<language>[^,]+),\s*(?P<condition>[\S]+)\s*(?P<foilness>[^(]+)?\s*\((?P<price>\d+)[^\d]*(?P<count>\d+)\)')
@@ -252,7 +251,7 @@ class AngryBottleGnome(CardSource):
             cardName = dataCells[0].cssselect('a')[0].text
             cardSet = dataCells[1].cssselect('a')[0].text
             cardUrl = self.makeAbsUrl(dataCells[0].cssselect('a')[0].attrib['href'])
-            cardVersionsHtml = lxml.html.document_fromstring(core.network.getUrl(cardUrl))
+            cardVersionsHtml = self.getHtml(cardUrl)
             cardVersions = cardVersionsHtml.cssselect('.abg-card-version-instock')
             if len(cardVersions) > 0:
                 self.estimatedCardsCount += len(cardVersions) - 1  # одну карту уже учли выше
@@ -272,11 +271,11 @@ class AngryBottleGnome(CardSource):
 
 
 class MtgRuShop(CardSource):
-    def __init__(self, url, promoUrl):
-        super().__init__(url, '/catalog.phtml?Title={query}&page={page}', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
+    def __init__(self, logger: WotsLogger, url: str, promoUrl: str):
+        super().__init__(logger, url, '/catalog.phtml?Title={query}&page={page}', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
         self.promoUrl = promoUrl
         if self.promoUrl is not None:
-            self.promoHtml = self.makeRequest(self.makeAbsUrl(self.promoUrl), None)
+            self.promoHtml = self.getHtml(self.makeAbsUrl(self.promoUrl))
         self.entrySelector = '#Catalog tr'
 
     def _getPageCount(self, html):
@@ -307,13 +306,13 @@ class MtgRuShop(CardSource):
 
 
 class Amberson(MtgRuShop):
-    def __init__(self):
-        super().__init__('http://amberson.mtg.ru', '3.html')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://amberson.mtg.ru', '3.html')
 
 
 class ManaPoint(MtgRuShop):
-    def __init__(self):
-        super().__init__('http://manapoint.mtg.ru', '2.html')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://manapoint.mtg.ru', '2.html')
         self.promoSetsSubstrings = {
             ('release', 'launch',): 'Prerelease & Release Cards',
             ('gameday',): 'Magic Game Day Cards',
@@ -374,13 +373,13 @@ class ManaPoint(MtgRuShop):
         return results
 
 class MtgSale(CardSource):
-    def __init__(self):
+    def __init__(self, logger: WotsLogger):
         sourceSpecificSets = {
             'MI': 'Mirrodin',
             'MR': 'Mirage',
             'TP': 'Tempest',
         }
-        super().__init__('https://mtgsale.ru', '/home/search-results?Name={query}&Page={page}', setMap=sourceSpecificSets)
+        super().__init__(logger, 'https://mtgsale.ru', '/home/search-results?Name={query}&Page={page}', setMap=sourceSpecificSets)
         self.verifySsl = False
 
     def _getPageCount(self, html):
@@ -437,7 +436,7 @@ class MtgSale(CardSource):
 
 
 class CardPlace(CardSource):
-    def __init__(self):
+    def __init__(self, logger: WotsLogger):
         sourceSpecificSets = {
             'DCI Legends': 'Media Inserts',
             'Starter': 'Starter 1999',
@@ -446,7 +445,7 @@ class CardPlace(CardSource):
             'Release & Prerelease cards': 'Prerelease & Release Cards',
             "Commander's Aresnal": "Commander's Arsenal",
         }
-        super().__init__('http://cardplace.ru', '/directory/new_search/{query}/singlemtg', queryEncoding='cp1251', setMap=sourceSpecificSets)
+        super().__init__(logger, 'http://cardplace.ru', '/directory/new_search/{query}/singlemtg', queryEncoding='cp1251', setMap=sourceSpecificSets)
         conditions = {
             'NM': ['nm', 'nm/m', 'm'],
             'SP': ['vf', 'very fine'],
@@ -512,7 +511,7 @@ class CardPlace(CardSource):
 
 
 class MtgRu(CardSource):
-    def __init__(self):
+    def __init__(self, logger: WotsLogger):
         self.sourceSubstringsToExclude = [
             'amberson.mtg.ru',
             'autumnsmagic.com',
@@ -524,7 +523,7 @@ class MtgRu(CardSource):
             'mtgtrade.net',
             'myupkeep.ru',
         ]
-        super().__init__('http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__(logger, 'http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
 
     def escapeQueryText(self, queryText):
         return super().escapeQueryText(queryText)
@@ -544,7 +543,7 @@ class MtgRu(CardSource):
                 shopFound = not exchangeUrl.endswith('.html')
                 if shopFound:
                     cardSource = exchangeUrl
-                    self.logger.warning('Found new shop: {}'.format(exchangeUrl))
+                    self.logger.warning('Found new shop: {}', exchangeUrl)
                 else:
                     cardSource = self.getTitle() + '/' + nickname
 
@@ -593,8 +592,8 @@ class MtgRu(CardSource):
 
 
 class TopTrade(CardSource):
-    def __init__(self):
-        super().__init__('https://topdeck.ru', '/apps/toptrade/singles/search?q={query}')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'https://topdeck.ru', '/apps/toptrade/singles/search?q={query}')
         self.excludedSellers = [
             'angrybottlegnome',
             'bigmagic',
@@ -675,7 +674,7 @@ class TopTrade(CardSource):
 
             seller = entry['source']
             if seller != 'topdeck':
-                self.logger.warning('Found new shop: {}'.format(seller))
+                self.logger.warning('Found new shop: {}', seller)
             else:
                 seller = entry['seller']['name']
 
@@ -693,8 +692,8 @@ class TopTrade(CardSource):
 
 
 class EasyBoosters(CardSource):
-    def __init__(self):
-        super().__init__('https://easyboosters.com', '/search/?q={query}&how=r&PAGEN_3={page}')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'https://easyboosters.com', '/search/?q={query}&how=r&PAGEN_3={page}')
 
     def _getPageCount(self, html):
         pagesCount = 1
@@ -713,8 +712,7 @@ class EasyBoosters(CardSource):
                 continue
 
             anchor = entry.cssselect('.product-item-title a')[0]
-            cardUrl = anchor.attrib['href']
-            cardPage = lxml.html.document_fromstring(core.network.getUrl(self.makeAbsUrl(cardUrl)))
+            cardPage = self.getHtml(anchor.attrib['href'])
 
             cardProps = cardPage.cssselect('.product-item-detail-properties')[0]
             tokenIndex = -1
@@ -744,17 +742,17 @@ class EasyBoosters(CardSource):
 
 
 class MtgTradeShop(CardSource):
-    def __init__(self, shopUrl, sourceSubstringsToExclude):
-        super().__init__(shopUrl, '/search/?query={query}')
+    def __init__(self, logger: WotsLogger, shopUrl: str, sourceSubstringsToExclude: List[str]):
+        super().__init__(logger, shopUrl, '/search/?query={query}')
         self.cardSelector = 'table.search-card tbody tr'
         self.sourceSubstringsToExclude = set(sourceSubstringsToExclude + [
             'ambersonmtg',
         ])
 
-    def makeRequest(self, url, data):
+    def getHtml(self, url):
         result = lxml.html.document_fromstring('<html/>')
         try:
-            result = super().makeRequest(url, data)
+            result = super().getHtml(url)
         except urllib.error.HTTPError as ex:
             if not core.network.httpCodeAnyOf(ex.code, [http.HTTPStatus.INTERNAL_SERVER_ERROR]):
                 raise
@@ -822,32 +820,32 @@ class MtgTradeShop(CardSource):
 
 
 class MtgTrade(MtgTradeShop):
-    def __init__(self):
-        super().__init__('http://mtgtrade.net', ['bigmagic', 'upkeep', 'mtgshop', 'magiccardmarket'])
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://mtgtrade.net', ['bigmagic', 'upkeep', 'mtgshop', 'magiccardmarket'])
 
 
 class BigMagic(MtgTradeShop):
-    def __init__(self):
-        super().__init__('http://bigmagic.ru', [])
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://bigmagic.ru', [])
 
 
 class MyUpKeep(MtgTradeShop):
-    def __init__(self):
-        super().__init__('http://myupkeep.ru', [])
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://myupkeep.ru', [])
 
 
 class MtgShopRu(MtgTradeShop):
-    def __init__(self):
-        super().__init__('http://mtgshop.ru', [])
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://mtgshop.ru', [])
 
 
 class MagicCardMarket(MtgTradeShop):
-    def __init__(self):
-        super().__init__('http://magiccardmarket.ru', [])
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://magiccardmarket.ru', [])
 
 class AutumnsMagic(CardSource):
-    def __init__(self):
-        super().__init__('http://autumnsmagic.com', '/catalog?search={query}&page={page}')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://autumnsmagic.com', '/catalog?search={query}&page={page}')
 
     def _getPageCount(self, html):
         result = 1
@@ -904,8 +902,8 @@ class AutumnsMagic(CardSource):
 
 
 class HexproofRu(CardSource):
-    def __init__(self):
-        super().__init__('https://hexproof.ru', '/search?type=product&q={query}')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'https://hexproof.ru', '/search?type=product&q={query}')
 
     def _getPageCount(self, html):
         return 1
@@ -938,8 +936,8 @@ class HexproofRu(CardSource):
 
 
 class MyMagic(CardSource):
-    def __init__(self):
-        super().__init__('https://shop.mymagic.ru', '/collection/card-search?q={query}&page={page}')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'https://shop.mymagic.ru', '/collection/card-search?q={query}&page={page}')
 
     def _getPageCount(self, html):
         result = 1
@@ -971,8 +969,8 @@ class MyMagic(CardSource):
 
 
 class GoodOrk(CardSource):
-    def __init__(self):
-        super().__init__('https://goodork.ru', '/search?categoryId=6317&q={query}&page={page}')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'https://goodork.ru', '/search?categoryId=6317&q={query}&page={page}')
         nonCardRegexpStrings = [
             r'(токен|token)',
             r'((и?гровое поле)|плеймат|коврик)',
@@ -1036,8 +1034,7 @@ class GoodOrk(CardSource):
                 cardLanguage = core.language.tryGetAbbreviation(langString.rstrip('.'))
             cardFoil = foilString is not None
 
-            cardUrl = anchor.attrib['href']
-            cardPage = lxml.html.document_fromstring(core.network.getUrl(self.makeAbsUrl(cardUrl)))
+            cardPage = self.getHtml(anchor.attrib['href'])
             cardSet = None
             propValues = cardPage.cssselect('ul.properties .properties-item-value span')
             for i, prop in enumerate(cardPage.cssselect('ul.properties .properties-item-name')):
@@ -1076,8 +1073,8 @@ class GoodOrk(CardSource):
 
 
 class OfflineTestSource(CardSource):
-    def __init__(self):
-        super().__init__('http://offline.shop', '?query={query}')
+    def __init__(self, logger: WotsLogger):
+        super().__init__(logger, 'http://offline.shop', '?query={query}')
 
     def query(self, queryText):
         self.estimatedCardsCount = random.randint(1, 10)

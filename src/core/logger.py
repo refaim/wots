@@ -1,56 +1,34 @@
-import json
-import math
-import multiprocessing
-import os
+import logging
 import sys
-import time
-
-import raven
-
-LEVEL_ERROR = 1
-LEVEL_WARNING = 2
-LEVEL_INFO = 3
-LEVEL_ALL = 10
-
-_LEVEL_STRING = {
-    LEVEL_WARNING: '[WARNING]',
-    LEVEL_ERROR: '[ERROR]',
-    LEVEL_INFO: '',
-}
-
-STDERR_LOCK = multiprocessing.Lock()
+from multiprocessing import Queue as MpQueue
 
 
-class Logger(object):
-    def __init__(self, loggerId):
-        with open(os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'config.json')) as fobj:
-            self.sentry = raven.Client(json.load(fobj)['sentry_dsn'])
-        self.id = loggerId
-        self.level = LEVEL_ALL
-        self.baseTime = time.time()
+class WotsLogger(object):
+    def __init__(self, name: str, queue: MpQueue):
+        logging.basicConfig(stream=sys.stderr, level=logging.INFO, format='%(asctime)s [%(name)s] %(message)s')
+        self.__name = name
+        self.__queue = queue
 
-    def info(self, message):
-        self.write(message, LEVEL_INFO)
+    def get_child(self, name: str) -> 'WotsLogger':
+        child_name = name
+        if self.__name:
+            child_name = '{}.{}'.format(self.__name, child_name)
+        return WotsLogger(child_name, self.__queue)
 
-    def warning(self, message):
-        self.write(message, LEVEL_WARNING)
+    def __log(self, name, level, message, *args, **kwargs):
+        self.__queue.put((name, level, message, args, kwargs))
 
-    def error(self, message):
-        self.write(message, LEVEL_ERROR)
+    def debug(self, message, *args, **kwargs):
+        self.__log(self.__name, logging.DEBUG, message, *args, **kwargs)
 
-    def write(self, message, level):
-        if level == LEVEL_WARNING or level == LEVEL_ERROR:
-            self.sentry.captureMessage(message)
-        if self.level >= level:
-            timeDiff = time.time() - self.baseTime
-            logEntry = '[{:0>8}] [{}] {: <10}{: >10} {}'.format(
-                os.getpid(),
-                '{}.{:0>3}'.format(time.strftime('%H:%M:%S', time.gmtime(timeDiff)), str(round(math.modf(timeDiff % 1000)[0], 3)).replace('0.', '')),
-                self.id,
-                _LEVEL_STRING[level],
-                message,
-            )
-            if not getattr(sys, 'frozen', False):
-                with STDERR_LOCK:
-                    sys.stderr.write(logEntry + '\n')
-                    sys.stderr.flush()
+    def info(self, message, *args, **kwargs):
+        self.__log(self.__name, logging.INFO, message, *args, **kwargs)
+
+    def warning(self, message, *args, **kwargs):
+        self.__log(self.__name, logging.WARNING, message, *args, **kwargs)
+
+    def error(self, message, *args, **kwargs):
+        self.__log(self.__name, logging.ERROR, message, *args, **kwargs)
+
+    def critical(self, message, *args, **kwargs):
+        self.__log(self.__name, logging.CRITICAL, message, *args, **kwargs)

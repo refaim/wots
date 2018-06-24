@@ -65,7 +65,7 @@ class TcgPlayerCommunicator(object):
         self.secret_key = secret_key
         self.public_key = public_key
         self.token = token
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger('TcgCommunicator') # TODO WotsLogger !!!!!!!!!!!!
 
     def __raw_request(self, method: str, path: str, payload: dict, headers: dict) -> dict:
         params_key = { 'GET': 'params', 'POST': 'data' }[method]

@@ -3,11 +3,12 @@ import copy
 import card.sets
 import card.utils
 import core.language
-import core.logger
+from core.logger import WotsLogger
+
 
 class CardsFixer(object):
-    def __init__(self, cardsInfo, cardsNames):
-        self.logger = core.logger.Logger('CardsFixer')
+    def __init__(self, cardsInfo, cardsNames, logger: WotsLogger):
+        self.logger = logger
         self.cardsNames = cardsNames
         self.setsLanguages = {}
         self.setsFoilness = {}
@@ -52,7 +53,7 @@ class CardsFixer(object):
         if oldCardSet is not None:
             oldCardSetKey = card.sets.tryGetAbbreviation(oldCardSet)
             if oldCardSetKey is None:
-                self.logger.warning('Unknown set {} on card {}'.format(oldCardSet, cardKey))
+                self.logger.warning('Unknown set %s on card %s', oldCardSet, cardKey)
             deleteSet = False
             deleteSet = deleteSet or (oldCardSetKey is None or oldCardSetKey not in cardSets)
             deleteSet = deleteSet or (oldCardSetKey is not None and oldCardSetKey in self.cardsIds and cardKey not in self.cardsIds[oldCardSetKey])
@@ -65,7 +66,7 @@ class CardsFixer(object):
         for possibleSet in cardSets:
             possibleSetKey = card.sets.tryGetAbbreviation(possibleSet)
             if possibleSetKey is None:
-                self.logger.warning('Unknown internal set {}'.format(possibleSet))
+                self.logger.warning('Unknown internal set %s', possibleSet)
             if possibleSetKey is not None:
                 cardFoilness = cardInfo.get('foilness')
                 setFoilness = self.setsFoilness.get(possibleSetKey)
@@ -87,8 +88,6 @@ class CardsFixer(object):
 
             setFoilness = self.setsFoilness.get(newCardSetKey, None)
             if setFoilness is not None:
-                # if 'foilness' in cardInfo and cardInfo['foilness'] != setFoilness:
-                #     self.logger.warning('Foilness data conflict: card {} says {}, set {} says {}'.format(cardInfo['name']['caption'], cardInfo['foilness'], setKey, setFoilness))
                 cardInfo['foilness'] = setFoilness
 
         return cardInfo

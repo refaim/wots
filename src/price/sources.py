@@ -1,14 +1,8 @@
 import json
 
-import core.currency
-import core.language
-import core.logger
-
-
 class TcgPlayer(object):
     def __init__(self, resultsQueue, storagePath, resources):
         self.priceResults = resultsQueue
-        self.logger = core.logger.Logger('TcgPlayer')
         self.storagePath = storagePath
         with open(resources['sets']) as fobj:
             self.setAbbrvsToQueryStrings = json.load(fobj)

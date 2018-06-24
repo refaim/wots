@@ -7,8 +7,8 @@ import threading
 
 import lxml
 
-import core.logger
 import core.network
+from core.logger import WotsLogger
 
 RUR = 'RUR'
 USD = 'USD'
@@ -23,10 +23,9 @@ FORMAT_STRINGS = {
 if sys.platform.startswith('win32') and sys.getwindowsversion().major <= 5:
     FORMAT_STRINGS[RUR] = '{}р.'
 
-_logger = core.logger.Logger('Currency')
-
 class Converter(object):
-    def __init__(self):
+    def __init__(self, logger: WotsLogger):
+        self.logger = logger
         self.readyEvent = threading.Event()
         self.updateThread = None
         self.exchangeRates = {}
@@ -38,8 +37,9 @@ class Converter(object):
             self.updateThread.start()
 
     def _update(self, results, readyEvent):
+        # noinspection PyBroadException
         try:
-            tree = lxml.etree.fromstring(core.network.getUrl('http://www.cbr.ru/scripts/XML_daily.asp'))
+            tree = lxml.etree.fromstring(core.network.getUrl('http://www.cbr.ru/scripts/XML_daily.asp', self.logger))
             for currency in tree.xpath('/ValCurs/Valute'):
                 code = currency.xpath('CharCode')[0].text
                 nominal = decimal.Decimal(currency.xpath('Nominal')[0].text.replace(',', '.'))
@@ -47,7 +47,8 @@ class Converter(object):
                 results[code] = (nominal, value,)
             results[RUR] = (1, 1,)
         except:
-            _logger.warning('Unable to obtain actual information')
+            # TODO sentry !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            self.logger.warning('Unable to obtain actual information')
         finally:
             readyEvent.set()
 
