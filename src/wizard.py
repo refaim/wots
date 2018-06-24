@@ -11,8 +11,9 @@ import signal
 import sys
 import webbrowser
 
-import raven
+import multiprocessing_logging
 import psutil
+import raven
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import uic
@@ -23,6 +24,7 @@ import card.sources
 import card.utils
 import core.currency
 import core.logger
+import price.sources
 
 
 def getResourcePath(resourceId):
@@ -624,6 +626,7 @@ if __name__ == '__main__':
             multiprocessing.set_start_method('spawn')
 
         multiprocessing.freeze_support()
+        multiprocessing_logging.install_mp_handler()
         currencyConverter = core.currency.Converter()
         currencyConverter.update()
         application = QtWidgets.QApplication(sys.argv)

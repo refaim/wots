@@ -1,6 +1,13 @@
+certifi==2018.4.16
+chardet==3.0.4
 cssselect==1.0.3
+idna==2.7
 lxml==4.2.1
+multiprocessing-logging==0.2.6
 psutil==5.4.5
 PyQt5==5.10.1
+python-dotenv==0.8.2
 raven==6.9.0
+requests==2.19.1
 sip==4.19.8
+urllib3==1.23
