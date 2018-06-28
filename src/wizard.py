@@ -636,6 +636,11 @@ def __handleIncomingLogs(logsQueue: MpQueue) -> None:
 
 
 if __name__ == '__main__':
+    gRequiredVersion = (3, 6, 5)
+    if sys.version_info < gRequiredVersion:
+        print('Python {}.{}.{}+ required'.format(*gRequiredVersion), file=sys.stderr)
+        sys.exit(1)
+
     mp_freeze_support()
 
     dotenv.load_dotenv()
