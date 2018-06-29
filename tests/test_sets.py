@@ -307,6 +307,8 @@ class TestSetDatabase(unittest.TestCase):
         self.e('V16', ['From the Vault: Lore', 'FTV: Lore'])
         self.e('V17', ['From the Vault: Transform', 'FTV: Transform'])
 
+        self.e('SS1', ['Signature Spellbook: Jace'])
+
         self.e('E02', ['Explorers of Ixalan', 'Исследователи Иксалана'])
 
         self.e('UGL', ['Unglued'])

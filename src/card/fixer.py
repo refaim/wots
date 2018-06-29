@@ -56,10 +56,7 @@ class CardsFixer(object):
             oldCardSetKey = self.setDatabase.get_abbreviation(oldCardSet)
             if oldCardSetKey is None:
                 self.logger.warning('Unknown set %s on card %s', oldCardSet, cardKey)
-            deleteSet = False
-            deleteSet = deleteSet or (oldCardSetKey is None or oldCardSetKey not in cardSets)
-            deleteSet = deleteSet or (oldCardSetKey is not None and oldCardSetKey in self.cardsIds and cardKey not in self.cardsIds[oldCardSetKey])
-            if deleteSet:
+            if oldCardSetKey is None or oldCardSetKey in self.cardsIds and cardKey not in self.cardsIds[oldCardSetKey]:
                 del cardInfo['set']
                 if 'id' in cardInfo:
                     del cardInfo['id']
