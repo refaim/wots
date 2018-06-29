@@ -186,6 +186,7 @@ class TestSetDatabase(unittest.TestCase):
             'PreRelease',
             'Prerelease, Release & Launch Party Cards',
             'Release & Launch Parties Promos',
+            'Release & Prerelease cards',
             'Release Events',
             'Release',
         ])
@@ -209,7 +210,7 @@ class TestSetDatabase(unittest.TestCase):
         self.e('WLD', ['Championships Prizes'])
         self.e('ARL', ['Arena League', 'Arena', 'Arena/Colosseo Leagues Promos', 'Arena Promo'])
         self.e('LND', ['Alternate Art Lands'])
-        self.e('UGF', ["Ugin's Fate Promos", "Ugin's Fate", 'FRF_UGIN'])
+        self.e('UGF', ["Ugin's Fate Promos", "Ugin's Fate", 'FRF_UGIN', "Ugin's Fate ugin"])
         self.e('HPP', ["Hero's Path Promos"])
         self.e('CPP', ['Clash Pack Promos', 'Clash Pack'])
         self.e('MBP', ['Media Inserts', 'Media Promos', 'pMEI'])
@@ -245,9 +246,9 @@ class TestSetDatabase(unittest.TestCase):
         self.e('SME', ['Salvat Magic Encyclopedia'])
         self.e('S11', ['Salvat 2011'])
 
-        self.e('H09', ['Premium Deck Series: Slivers'])
-        self.e('PD2', ['Premium Deck Series: Fire and Lightning', 'Premium Deck Series: Fire & Lightning', 'PD: Fire and Lightning', 'PD: Fire & Lightning'])
-        self.e('PD3', ['Premium Deck Series: Graveborn', 'PD: Graveborn'])
+        self.e('H09', ['Premium Deck Series: Slivers', 'Premium Deck: Slivers', 'PD: Slivers'])
+        self.e('PD2', ['Premium Deck Series: Fire and Lightning', 'Premium Deck Series: Fire & Lightning', 'Premium Deck: Fire and Lightning', 'Premium Deck: Fire & Lightning', 'PD: Fire and Lightning', 'PD: Fire & Lightning'])
+        self.e('PD3', ['Premium Deck Series: Graveborn', 'Premium Deck: Graveborn', 'PD: Graveborn'])
 
         self.e('CD1', ['Challenge Deck: Face the Hydra'])
         self.e('CD2', ['Challenge Deck: Battle the Horde'])
@@ -286,7 +287,7 @@ class TestSetDatabase(unittest.TestCase):
 
         self.e('OVS', ['Oversized Cards', 'Oversize Cards'])
         self.e('CMD', ['Commander', 'Magic: The Gathering Commander', 'Commander 2011'])
-        self.e('CM1', ["Commander's Arsenal"])
+        self.e('CM1', ["Commander's Arsenal", "Commander's Aresnal"])
         self.e('C13', ['Commander 2013', 'Commander 2013 Edition'])
         self.e('C14', ['Commander 2014', 'Commander 2014 Edition'])
         self.e('C15', ['Commander 2015', 'Commander 2015 Edition'])

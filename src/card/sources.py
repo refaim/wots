@@ -224,13 +224,7 @@ class CardSource(object):
 
 class AngryBottleGnome(CardSource):
     def __init__(self, logger: ILogger):
-        sourceSpecificSets = {
-            'Promo - Special': 'Media Inserts',
-            'Prerelease Events': 'Prerelease & Release Cards',
-            'Release Events': 'Prerelease & Release Cards',
-            'Launch Party': 'Magic: The Gathering Launch Parties',
-        }
-        super().__init__(logger, 'http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', setMap=sourceSpecificSets)
+        super().__init__(logger, 'http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', setMap={'Promo - Special': 'Media Inserts'})
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Английский, M/NM  (30р., в наличии: 1)</div>
         # <div class = "abg-float-left abg-card-margin abg-card-version-instock">Итальянский, M/NM  Фойл (180р., в наличии: 1)</div>
         self.cardInfoRegexp = re.compile(r'(?P<language>[^,]+),\s*(?P<condition>[\S]+)\s*(?P<foilness>[^(]+)?\s*\((?P<price>\d+)[^\d]*(?P<count>\d+)\)')
@@ -435,15 +429,7 @@ class MtgSale(CardSource):
 
 class CardPlace(CardSource):
     def __init__(self, logger: ILogger):
-        sourceSpecificSets = {
-            'DCI Legends': 'Media Inserts',
-            'Starter': 'Starter 1999',
-            "OverSize Cards": 'Oversized Cards',
-            'Premium deck: Graveborn': 'Premium Deck Series: Graveborn',
-            'Release & Prerelease cards': 'Prerelease & Release Cards',
-            "Commander's Aresnal": "Commander's Arsenal",
-        }
-        super().__init__(logger, 'http://cardplace.ru', '/directory/new_search/{query}/singlemtg', queryEncoding='cp1251', setMap=sourceSpecificSets)
+        super().__init__(logger, 'http://cardplace.ru', '/directory/new_search/{query}/singlemtg', queryEncoding='cp1251', setMap={'DCI Legends': 'Media Inserts'})
         conditions = {
             'NM': ['nm', 'nm/m', 'm'],
             'SP': ['vf', 'very fine'],
