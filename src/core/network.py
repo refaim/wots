@@ -3,15 +3,15 @@
 import errno
 import http
 import http.client
-from typing import Optional
 import io
 import ssl
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from typing import Optional
 
-from core.logger import WotsLogger
+from core.utils import ILogger
 
 MAX_ATTEMPTS = 30
 HTTP_DELAY_SECONDS_MULTIPLIER = 2
@@ -23,7 +23,7 @@ def httpCodeAnyOf(code, statuses):
             return True
     return False
 
-def getUrl(url: str, logger: WotsLogger, parametersDict: Optional[dict]=None, verbose: bool=False, verifySsl: bool=True):
+def getUrl(url: str, logger: ILogger, parametersDict: Optional[dict]=None, verbose: bool=False, verifySsl: bool=True):
     parametersBytes = None
     representation = '[{}] {}'.format('POST' if parametersDict else 'GET', url)
     if parametersDict:

@@ -1,5 +1,5 @@
 import codecs
-import json
+import os
 import sys
 import time
 import traceback
@@ -8,12 +8,11 @@ import raven
 
 import card.sources
 import card.utils
-import wizard
+import core.utils
 
 
 def main(args):
-    with open(wizard.getResourcePath('config.json')) as fobj:
-        sentry = raven.Client(json.load(fobj)['sentry_dsn'])
+    sentry = raven.Client(os.getenv('SENTRY_DSN'))
     sourceId, stdoutLog, stderrLog = args
 
     oldStdout = sys.stdout
@@ -21,10 +20,8 @@ def main(args):
     sys.stdout = codecs.open(stdoutLog, 'a', 'utf-8')
     sys.stderr = codecs.open(stderrLog, 'a', 'utf-8')
 
-    with codecs.open(wizard.getResourcePath('completion_map.json'), 'r', 'utf-8') as fobj:
-        cardsNamesMap = json.load(fobj)
-    with codecs.open(wizard.getResourcePath('database.json'), 'r', 'utf-8') as fobj:
-        setsInfo = json.load(fobj)
+    cardsNamesMap = core.utils.load_json_resource('completion_map.json')
+    setsInfo = core.utils.load_json_resource('database.json')
 
     setsCards = {}
     for setId, setData in setsInfo.items():

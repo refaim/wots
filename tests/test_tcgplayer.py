@@ -39,5 +39,6 @@ class TestCommunicator(unittest.TestCase):
             self.assertTrue(card.image_url.startswith('http') and card.image_url.endswith('.jpg'))
             break
 
+
 if __name__ == '__main__':
     unittest.main()

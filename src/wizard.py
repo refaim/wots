@@ -1,7 +1,5 @@
-import codecs
 import functools
 import io
-import json
 import logging
 import math
 import os
@@ -24,19 +22,12 @@ from PyQt5 import QtWidgets
 from PyQt5 import uic
 
 import card.fixer
-import card.sets
 import card.sources
 import card.utils
+from card.components import SetDatabase
+from card.fixer import CardsFixer
 import core.currency
-from core.logger import WotsLogger
-
-
-def getResourcePath(resourceId):
-    root = os.path.dirname(sys.executable)
-    if not getattr(sys, 'frozen', False):
-        root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-    return os.path.normpath(os.path.join(root, 'resources', resourceId))
-
+from core.utils import MultiprocessingLogger, load_json_resource, ILogger
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {
@@ -154,7 +145,7 @@ class HyperlinkItemDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, logger: WotsLogger):
+    def __init__(self, logger: ILogger):
         super().__init__()
 
         uic.loadUi('wizard.ui', self)
@@ -198,15 +189,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.textChanged.connect(self.onSearchFieldTextChanged)
         self.searchField.returnPressed.connect(self.searchCards)
 
-        with codecs.open(getResourcePath('database.json'), 'r', 'utf-8') as fobj:
-            cardsInfo = json.load(fobj)
-        with codecs.open(getResourcePath('completion_map.json'), 'r', 'utf-8') as fobj:
-            cardsNamesMap = json.load(fobj)
-        with codecs.open(getResourcePath('completion_set.json'), 'r', 'utf-8') as fobj:
-            cardsNamesSet = json.load(fobj)
+        cardsInfo = load_json_resource('database.json')
+        cardsNamesMap = load_json_resource('completion_map.json')
+        cardsNamesSet = load_json_resource('completion_set.json')
 
-        cardsFixer = card.fixer.CardsFixer(cardsInfo, cardsNamesMap, self.logger.get_child('fixer'))
-        self.searchResultsModel = CardsTableModel(cardsFixer, SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests)
+        setDatabase = SetDatabase(self.logger, thorough=False)
+        cardsFixer = CardsFixer(cardsInfo, cardsNamesMap, setDatabase, self.logger.get_child('fixer'))
+        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests, cardsFixer, setDatabase)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
@@ -370,7 +359,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateSearchControlsStatus()
 
 
-def queryCardSource(cardSourceId: int, instanceClass, queryString: str, resultsQueue: MpQueue, logger: WotsLogger, exitEvent: MpEvent, cookie):
+def queryCardSource(cardSourceId: int, instanceClass, queryString: str, resultsQueue: MpQueue, logger: ILogger, exitEvent: MpEvent, cookie):
     cardSourceSentry = raven.Client(os.getenv('SENTRY_DSN'))
     try:
         cardSource: card.sources.CardSource = instanceClass(logger)
@@ -410,14 +399,15 @@ def convertPrice(priceInfo):
 
 
 class CardsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, cardsFixer, columnsInfo, dataQueue, statQueue, priceRequests):
+    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests, cardsFixer: CardsFixer, setDatabase: SetDatabase):
         super().__init__()
-        self.cardsFixer = cardsFixer
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
         self.dataQueue = dataQueue
         self.statQueue = statQueue
         self.priceRequests = priceRequests
+        self.cardsFixer = cardsFixer
+        self.setDatabase = setDatabase
         self.dataTable = []
         self.cardCount = 0
 
@@ -454,7 +444,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     return data['set']
                 elif role == QtCore.Qt.ToolTipRole:
                     setAbbrv = data['set']
-                    return card.sets.getFullName(setAbbrv) if setAbbrv else None
+                    return self.setDatabase.get_name(setAbbrv) if setAbbrv else None
             elif columnId == 'language':
                 if role == QtCore.Qt.DisplayRole:
                     return data['language']
@@ -617,9 +607,9 @@ def catchExceptions(systemHook, type_, value, traceback):
     sys.excepthook(type_, value, traceback)
 
 
-def setupLogging() -> core.logger.WotsLogger:
+def setupLogging() -> ILogger:
     logsQueue = MpQueue()
-    logger = core.logger.WotsLogger('', logsQueue)
+    logger = MultiprocessingLogger('', logsQueue)
     logsThread = Thread(target=__handleIncomingLogs, args=(logsQueue,))
     logsThread.daemon = True
     logsThread.start()

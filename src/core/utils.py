@@ -1,19 +1,54 @@
+import codecs
 import logging
+import os
 import sys
+import json
 from multiprocessing import Queue as MpQueue
 
 
-class WotsLogger(object):
+def load_json_resource(filename: str):
+    root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
+    if getattr(sys, 'frozen', False):
+        root = os.path.dirname(sys.executable)
+    with codecs.open(os.path.normpath(os.path.join(root, 'resources', filename)), 'r', 'utf-8') as fobj:
+        return json.load(fobj)
+
+
+class ILogger(object):
+    def get_child(self, name: str) -> 'ILogger':
+        pass
+
+    def debug(self, message, *args, **kwargs):
+        pass
+
+    def info(self, message, *args, **kwargs):
+        pass
+
+    def warning(self, message, *args, **kwargs):
+        pass
+
+    def error(self, message, *args, **kwargs):
+        pass
+
+    def critical(self, message, *args, **kwargs):
+        pass
+
+
+class DummyLogger(ILogger):
+    pass
+
+
+class MultiprocessingLogger(ILogger):
     def __init__(self, name: str, queue: MpQueue):
         logging.basicConfig(stream=sys.stderr, level=logging.INFO, format='%(asctime)s [%(name)s] %(message)s')
         self.__name = name
         self.__queue = queue
 
-    def get_child(self, name: str) -> 'WotsLogger':
+    def get_child(self, name: str) -> 'ILogger':
         child_name = name
         if self.__name:
             child_name = '{}.{}'.format(self.__name, child_name)
-        return WotsLogger(child_name, self.__queue)
+        return MultiprocessingLogger(child_name, self.__queue)
 
     def __log(self, name, level, message, *args, **kwargs):
         self.__queue.put((name, level, message, args, kwargs))

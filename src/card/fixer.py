@@ -1,21 +1,23 @@
 import copy
 
-import card.sets
 import card.utils
 import core.language
-from core.logger import WotsLogger
+from card.components import SetDatabase
+from core.utils import ILogger
 
 
 class CardsFixer(object):
-    def __init__(self, cardsInfo, cardsNames, logger: WotsLogger):
+    def __init__(self, cardsInfo, cardsNames, setDatabase: SetDatabase, logger: ILogger):
         self.logger = logger
+        self.setDatabase = setDatabase
         self.cardsNames = cardsNames
         self.setsLanguages = {}
         self.setsFoilness = {}
         self.cardsIds = {}
         self.cardSets = {}
+
         for setId, setInfo in cardsInfo.items():
-            setKey = card.sets.tryGetAbbreviation(setId)
+            setKey = self.setDatabase.get_abbreviation(setId)
             assert setKey is not None
             self.setsLanguages[setKey] = setInfo['languages']
 
@@ -51,7 +53,7 @@ class CardsFixer(object):
         cardSets = self.cardSets.get(cardKey, set())
         oldCardSet = cardInfo.get('set')
         if oldCardSet is not None:
-            oldCardSetKey = card.sets.tryGetAbbreviation(oldCardSet)
+            oldCardSetKey = self.setDatabase.get_abbreviation(oldCardSet)
             if oldCardSetKey is None:
                 self.logger.warning('Unknown set %s on card %s', oldCardSet, cardKey)
             deleteSet = False
@@ -64,7 +66,7 @@ class CardsFixer(object):
 
         matchedSets = []
         for possibleSet in cardSets:
-            possibleSetKey = card.sets.tryGetAbbreviation(possibleSet)
+            possibleSetKey = self.setDatabase.get_abbreviation(possibleSet)
             if possibleSetKey is None:
                 self.logger.warning('Unknown internal set %s', possibleSet)
             if possibleSetKey is not None:
@@ -77,7 +79,7 @@ class CardsFixer(object):
 
         newCardSet = cardInfo.get('set')
         if newCardSet is not None:
-            newCardSetKey = card.sets.tryGetAbbreviation(newCardSet)
+            newCardSetKey = self.setDatabase.get_abbreviation(newCardSet)
             if newCardSetKey in self.cardsIds:
                 newCardId = self.cardsIds[newCardSetKey].get(cardKey, None)
                 if newCardId is not None:

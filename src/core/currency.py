@@ -8,7 +8,7 @@ import threading
 import lxml
 
 import core.network
-from core.logger import WotsLogger
+from core.utils import ILogger
 
 RUR = 'RUR'
 USD = 'USD'
@@ -24,7 +24,7 @@ if sys.platform.startswith('win32') and sys.getwindowsversion().major <= 5:
     FORMAT_STRINGS[RUR] = '{}р.'
 
 class Converter(object):
-    def __init__(self, logger: WotsLogger):
+    def __init__(self, logger: ILogger):
         self.logger = logger
         self.readyEvent = threading.Event()
         self.updateThread = None
