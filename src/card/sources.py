@@ -884,6 +884,9 @@ class AutumnsMagic(CardSource):
                 yield None
                 continue
 
+            foilString, cardName = self.extractToken(r'(?P<token>\s?\(фойловая\))', cardName)
+            foil = foilString is not None
+
             countTag = [tag for tag in dscBlock.cssselect('span') if 'шт' in tag.text][0]
             priceTag = entry.cssselect('.product-footer .product-price .product-default-price')[0]
 
@@ -891,7 +894,7 @@ class AutumnsMagic(CardSource):
                 'name': cardName,
                 'set': dscBlock.cssselect('i')[0].attrib['class'].split()[1][len('ss-'):],
                 'language': language,
-                'foilness': len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0,
+                'foilness': foil or len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0,
                 'count': int(re.match(r'^([\d]+).*', countTag.text.replace(' ', '')).group(1)),
                 'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', priceTag.text.strip()).group(1).replace(' ', '')),
                 'currency': core.currency.RUR,
