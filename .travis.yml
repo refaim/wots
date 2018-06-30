@@ -2,8 +2,8 @@ os:
   - linux
   - osx
 matrix:
-allow_failures:
-  - os: osx
+  allow_failures:
+    - os: osx
 language: python
 python:
   - 3.6
