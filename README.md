@@ -6,9 +6,9 @@
 
 Работает на Windows, Linux и OS X.
 
-## Список поддерживаемых ресурсов:
+## Список поддерживаемых ресурсов
 - [amberson.mtg.ru](http://amberson.mtg.ru/)
-- [angrybottlegnome.ru](http://angrybottlegnome/)
+- [angrybottlegnome.ru](http://angrybottlegnome.ru/)
 - [autumnsmagic.com](https://autumnsmagic.com/)
 - [bigmagic.ru](http://bigmagic.ru/)
 - [cardplace.ru](https://www.cardplace.ru/)
