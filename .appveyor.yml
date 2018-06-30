@@ -10,6 +10,7 @@ environment:
     - PYTHON: "C:\\Python36-x64"
 
 install:
+  - "SET PYTHONPATH=%PYTHONPATH%;%APPVEYOR_BUILD_FOLDER%\app"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
 
 build: off
