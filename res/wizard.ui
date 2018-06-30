@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../resources/magnifier.png</normaloff>../resources/magnifier.png</iconset>
+    <normaloff>../res/magnifier.png</normaloff>../res/magnifier.png</iconset>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>

@@ -1,16 +1,20 @@
 import codecs
+import json
 import logging
 import os
 import sys
-import json
 from multiprocessing import Queue as MpQueue
 
 
-def load_json_resource(filename: str):
+def get_resource_path(filename: str) -> str:
     root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
     if getattr(sys, 'frozen', False):
         root = os.path.dirname(sys.executable)
-    with codecs.open(os.path.normpath(os.path.join(root, 'resources', filename)), 'r', 'utf-8') as fobj:
+    return os.path.normpath(os.path.join(root, 'res', filename))
+
+
+def load_json_resource(filename: str):
+    with codecs.open(get_resource_path(filename), 'r', 'utf-8') as fobj:
         return json.load(fobj)
 
 

@@ -9,7 +9,7 @@ from price.tcgplayer.communicator import TcgPlayerCommunicator
 
 class TestCommunicator(unittest.TestCase):
     def setUp(self):
-        dotenv.load_dotenv()
+        dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
         self.communicator = TcgPlayerCommunicator(os.getenv('TCG_SECRET_KEY'), os.getenv('TCG_PUBLIC_KEY'), os.getenv('TCG_TOKEN'))
 
     def tearDown(self):

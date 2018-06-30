@@ -7,7 +7,7 @@ import card.sources
 
 
 def main():
-    logsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'testlogs'))
+    logsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'log'))
     processes = []
     for classObject in card.sources.getCardSourceClasses():
         source = classObject()

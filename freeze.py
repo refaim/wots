@@ -10,19 +10,19 @@ cx_Freeze.setup(
         'build_exe': {
             'create_shared_zip': False,
             'append_script_to_exe': True,
-            'path': sys.path + [os.path.abspath('src')],
+            'path': sys.path + [os.path.abspath('app')],
             'includes': [
                 'cssselect',
                 'lxml._elementpath',
             ],
             'include_files': [
-                'resources',
-                'src/wizard.ui',
+                'res',
+                'app/wizard.ui',
             ],
         },
     },
     executables=[cx_Freeze.Executable(
-        script='src/wizard.py',
+        script='app/wizard.py',
         targetName='wizard.exe',
         base='Win32GUI',
     )]

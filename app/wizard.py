@@ -27,7 +27,7 @@ import core.currency
 from card.components import SetDatabase
 from card.fixer import CardsFixer
 from card.sources import getCardSourceClasses, CardSource, getConditionHumanReadableString, CONDITIONS_ORDER
-from core.utils import MultiprocessingLogger, load_json_resource, ILogger
+from core.utils import MultiprocessingLogger, load_json_resource, get_resource_path, ILogger
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {
@@ -148,7 +148,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, logger: ILogger):
         super().__init__()
 
-        uic.loadUi('wizard.ui', self)
+        uic.loadUi(get_resource_path('wizard.ui'), self)
 
         self.logger = logger
 
@@ -639,7 +639,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     mp_freeze_support()
-    dotenv.load_dotenv()
+    dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env')) # TODO check frozen !!!
     gSentry = raven.Client(os.getenv('SENTRY_DSN'))
     sys.excepthook = partial(__catch_exceptions, sys.excepthook)
     try:
@@ -657,9 +657,8 @@ if __name__ == '__main__':
 
         gApplication = QtWidgets.QApplication(sys.argv)
         gWindow = MainWindow(gRootLogger)
-        gWindow.show()
-
         try:
+            gWindow.show()
             sys.exit(gApplication.exec_())
         finally:
             gWindow.abort()
