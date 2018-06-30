@@ -1,18 +1,18 @@
-import functools
-import io
 import logging
 import math
 import os
 import platform
-import signal
 import sys
-import webbrowser
+from functools import partial
+from io import StringIO
 from multiprocessing import Event as MpEvent
 from multiprocessing import Process as MpProcess
 from multiprocessing import Queue as MpQueue
 from multiprocessing import freeze_support as mp_freeze_support, set_start_method as mp_set_start_method
 from queue import Queue as SpQueue
+from signal import SIGTERM
 from threading import Thread
+from webbrowser import open as open_browser
 
 import dotenv
 import psutil
@@ -21,12 +21,11 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import uic
 
-import card.fixer
-import card.sources
 import card.utils
+import core.currency
 from card.components import SetDatabase
 from card.fixer import CardsFixer
-import core.currency
+from card.sources import getCardSourceClasses, CardSource, getConditionHumanReadableString, CONDITIONS_ORDER
 from core.utils import MultiprocessingLogger, load_json_resource, ILogger
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
@@ -139,7 +138,7 @@ class HyperlinkItemDelegate(QtWidgets.QStyledItemDelegate):
             url = url.replace('https://', 'http://')
             if not url.startswith('http://'):
                 url = 'http://{0}'.format(url)
-            webbrowser.open(url)
+            open_browser(url)
             return True
         return False
 
@@ -219,7 +218,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def killWorkers(self, workers):
         for process in workers:
             if process.is_alive():
-                os.kill(process.pid, signal.SIGTERM)
+                os.kill(process.pid, SIGTERM)
 
     def abort(self):
         self.priceStopEvent.set()
@@ -341,7 +340,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchResultsModel.clear()
         self.searchProgress.setValue(0)
 
-        sourceClasses = card.sources.getCardSourceClasses()
+        sourceClasses = getCardSourceClasses()
         # sourceClasses = [card.sources.OfflineTestSource] * 10
 
         for i, sourceClass in enumerate(sourceClasses):
@@ -362,7 +361,7 @@ class MainWindow(QtWidgets.QMainWindow):
 def queryCardSource(cardSourceId: int, instanceClass, queryString: str, resultsQueue: MpQueue, logger: ILogger, exitEvent: MpEvent, cookie):
     cardSourceSentry = raven.Client(os.getenv('SENTRY_DSN'))
     try:
-        cardSource: card.sources.CardSource = instanceClass(logger)
+        cardSource: CardSource = instanceClass(logger)
         for cardInfo in cardSource.query(queryString):
             if exitEvent.is_set():
                 return
@@ -455,7 +454,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                 if role == QtCore.Qt.DisplayRole:
                     return data['condition']
                 elif role == QtCore.Qt.ToolTipRole:
-                    return card.sources.getConditionHumanReadableString(data['condition'])
+                    return getConditionHumanReadableString(data['condition'])
             elif columnId == 'foilness':
                 if role == QtCore.Qt.DisplayRole:
                     return 'Foil' if data['foilness'] else None  # TODO image
@@ -538,7 +537,7 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
     def __init__(self, columnsInfo):
         super().__init__()
         self.columnsInfo = columnsInfo
-        self.conditionsOrder = card.sources.CONDITIONS_ORDER
+        self.conditionsOrder = CONDITIONS_ORDER
 
     def lessThan(self, aIndex, bIndex):
         model = self.sourceModel()
@@ -635,11 +634,11 @@ if __name__ == '__main__':
 
     dotenv.load_dotenv()
     gSentry = raven.Client(os.getenv('SENTRY_DSN'))
-    sys.excepthook = functools.partial(catchExceptions, sys.excepthook)
+    sys.excepthook = partial(catchExceptions, sys.excepthook)
     try:
         if getattr(sys, 'frozen', False):
-            sys.stdout = io.StringIO()
-            sys.stderr = io.StringIO()
+            sys.stdout = StringIO()
+            sys.stderr = StringIO()
 
         if platform.system() == 'Linux':
             # workaround for creating instances of QApplication in the child processes created by multiprocessing on Linux
