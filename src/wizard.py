@@ -12,6 +12,7 @@ from multiprocessing import freeze_support as mp_freeze_support, set_start_metho
 from queue import Queue as SpQueue
 from signal import SIGTERM
 from threading import Thread
+from typing import Callable
 from webbrowser import open as open_browser
 
 import dotenv
@@ -171,7 +172,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # noinspection PyArgumentList
                 process = MpProcess(
                     name=columnInfo['id'],
-                    target=queryPriceSource,
+                    target=partial(mpEntryPoint, queryPriceSource),
                     args=(sourceClass, i, storagePath, columnInfo['resources'], self.priceRequests, self.obtainedPrices, self.priceStopEvent,),
                     daemon=True)
                 self.priceWorkers.append(process)
@@ -345,12 +346,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for i, sourceClass in enumerate(sourceClasses):
             engineId = ';'.join((str(sourceClass), str(i + 1), str(self.searchVersion)))
-            # noinspection PyArgumentList
-            process = MpProcess(
-                name=str(sourceClass),
-                target=queryCardSource,
-                args=(engineId, sourceClass, queryString, self.searchResults, self.logger, self.searchStopEvent, self.searchVersion),
-                daemon=True)
+            process = MpProcess(name=str(sourceClass), target=partial(mpEntryPoint, queryCardSource),
+                args=(engineId, sourceClass, queryString, self.searchResults, self.logger, self.searchStopEvent, self.searchVersion))
+            process.daemon = True
             process.start()
             self.searchWorkers[engineId] = process
 
@@ -358,17 +356,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateSearchControlsStatus()
 
 
-def queryCardSource(cardSourceId: int, instanceClass, queryString: str, resultsQueue: MpQueue, logger: ILogger, exitEvent: MpEvent, cookie):
-    cardSourceSentry = raven.Client(os.getenv('SENTRY_DSN'))
+def mpEntryPoint(original: Callable, *args, **kwargs) -> None:
+    sentry = raven.Client(os.getenv('SENTRY_DSN'))
     try:
-        cardSource: CardSource = instanceClass(logger)
-        for cardInfo in cardSource.query(queryString):
-            if exitEvent.is_set():
-                return
-            resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
-    except:
-        cardSourceSentry.captureException()
+        original(*args, **kwargs)
+    except KeyboardInterrupt:
+        return
+    except Exception:
+        sentry.captureException()
         raise
+
+
+def queryCardSource(cardSourceId: int, instanceClass, queryString: str, resultsQueue: MpQueue, logger: ILogger, exitEvent: MpEvent, cookie):
+    cardSource: CardSource = instanceClass(logger)
+    for cardInfo in cardSource.query(queryString):
+        if exitEvent.is_set():
+            return
+        resultsQueue.put((cardInfo, (cardSourceId, cardSource.getFoundCardsCount(), cardSource.getEstimatedCardsCount()), cookie,))
 
 
 def queryPriceSource(priceSourceClass, sourceId, storagePath, resources, requestsQueue, resultsQueue, exitEvent):
