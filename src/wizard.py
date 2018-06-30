@@ -592,17 +592,21 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
         return a < b
 
 
-def killChildrenProcesses():
-    process = psutil.Process(os.getpid())
-    for child in process.children(recursive=True):
+def __get_main_process():
+    return psutil.Process(os.getpid())
+
+
+def __kill_children_processes():
+    for child in __get_main_process().children(recursive=True):
         try:
             child.kill()
         except psutil.NoSuchProcess:
             pass
 
-def catchExceptions(systemHook, type_, value, traceback):
-    killChildrenProcesses()
-    sys.excepthook = systemHook
+
+def __catch_exceptions(hook, type_, value, traceback):
+    __kill_children_processes()
+    sys.excepthook = hook
     sys.excepthook(type_, value, traceback)
 
 
@@ -631,10 +635,9 @@ if __name__ == '__main__':
         sys.exit(1)
 
     mp_freeze_support()
-
     dotenv.load_dotenv()
     gSentry = raven.Client(os.getenv('SENTRY_DSN'))
-    sys.excepthook = partial(catchExceptions, sys.excepthook)
+    sys.excepthook = partial(__catch_exceptions, sys.excepthook)
     try:
         if getattr(sys, 'frozen', False):
             sys.stdout = StringIO()
@@ -662,4 +665,5 @@ if __name__ == '__main__':
         gSentry.captureException()
         raise
     finally:
-        killChildrenProcesses()
+        __kill_children_processes()
+        __get_main_process().kill()
