@@ -3,7 +3,7 @@ chardet==3.0.4
 cssselect==1.0.3
 idna==2.7
 lxml==4.2.1
-psutil==5.4.5
+psutil==5.4.6
 PyQt5==5.10.1
 python-dotenv==0.8.2
 raven==6.9.0
