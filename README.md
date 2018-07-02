@@ -6,7 +6,7 @@
 [![Travis CI](https://travis-ci.org/refaim/wots.svg?branch=master)](https://travis-ci.org/refaim/wots)
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/ifvfy7vy8kru9if8?svg=true)](https://ci.appveyor.com/project/refaim/wots)
 
-Программа для поиска карт Magic the Gathering на русскоязычных торговых интернет-площадках.
+Программа для поиска карт ККИ Magic the Gathering на русскоязычных торговых интернет-площадках.
 
 Написана с использованием Python 3.6 и PyQt5.
 
