@@ -1,10 +1,4 @@
 environment:
-  TCG_PUBLIC_KEY:
-    secure: VSe89fHbjoNCugDXq0pBArTppysGsjf91iyiQJP/vVSuo7AbcITL8CUhBDGLEJj5
-  TCG_SECRET_KEY:
-    secure: G5nLe+GJ6YMoCVlR7uTpOaqi/wDGFFgcHXCMBl8khcwMCqc9Xtup0M68gBWEZ2Y+
-  SENTRY_DSN:
-    secure: CntwfVFIve/HrqR34dwiYwv97rmZ9hzv/G7ppYXGa+CBwaLIrFEBUUfw0l0rrDIlvDoSzx/qbqvNLy+mIRRG5w==
   matrix:
     - PYTHON: "C:\\Python36"
     - PYTHON: "C:\\Python36-x64"
