@@ -6,11 +6,16 @@ import sys
 from multiprocessing import Queue as MpQueue
 
 
-def get_resource_path(filename: str) -> str:
-    root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
+def get_project_root() -> str:
     if getattr(sys, 'frozen', False):
-        root = os.path.dirname(sys.executable)
-    return os.path.normpath(os.path.join(root, 'res', filename))
+        result = os.path.dirname(sys.executable)
+    else:
+        result = os.path.join(os.path.dirname(__file__), '..', '..')
+    return os.path.normpath(result)
+
+
+def get_resource_path(filename: str) -> str:
+    return os.path.normpath(os.path.join(get_project_root(), 'res', filename))
 
 
 def load_json_resource(filename: str):

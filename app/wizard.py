@@ -639,7 +639,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     mp_freeze_support()
-    dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env')) # TODO check frozen !!!
+    dotenv.load_dotenv(os.path.join(core.utils.get_project_root(), '.env'))
     gSentry = raven.Client(os.getenv('SENTRY_DSN'))
     sys.excepthook = partial(__catch_exceptions, sys.excepthook)
     try:
@@ -669,4 +669,3 @@ if __name__ == '__main__':
         raise
     finally:
         __kill_children_processes()
-        __get_main_process().kill()
