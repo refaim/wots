@@ -34,6 +34,7 @@ CI:
  ☐ pyinstaller lib not found api-ms-win-crt
  ☐ Паковать в один *.exe файл
  ☐ Разломан CI на OSX (это Travis сломан, но можно самим обойти проблему)
+ ☐ Настроить связку pytest + coveralls + travis
  ✔ Нужно настроить билд на Windows через AppVeyor @done (18-07-01 02:32)
 Баги:
  ☐ При закрытии программы после поиска карты в памяти остаётся висеть какой-то из python.exe
