@@ -12,4 +12,4 @@ install:
 build: off
 
 test_script:
-  - pytest --cov wots
+  - pytest --cov app

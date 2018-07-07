@@ -9,4 +9,4 @@ install:
 before_script:
   - export PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/app
 script:
-  - pytest --cov wots
+  - pytest --cov app
