@@ -2,10 +2,10 @@
 
 ![License: MIT](https://img.shields.io/github/license/refaim/wots.svg)
 ![Last Commit](https://img.shields.io/github/last-commit/refaim/wots.svg)
-![Code Size](https://img.shields.io/github/languages/code-size/refaim/wots.svg)
 [![Travis CI](https://travis-ci.org/refaim/wots.svg?branch=master)](https://travis-ci.org/refaim/wots)
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/ifvfy7vy8kru9if8?svg=true)](https://ci.appveyor.com/project/refaim/wots)
-
+![Code Size](https://img.shields.io/github/languages/code-size/refaim/wots.svg)
+[![Coverage Status](https://coveralls.io/repos/github/refaim/wots/badge.svg)](https://coveralls.io/github/refaim/wots)
 Программа для поиска карт ККИ Magic the Gathering на русскоязычных торговых интернет-площадках.
 
 Написана с использованием Python 3.6 и PyQt5.
