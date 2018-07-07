@@ -3,12 +3,12 @@ certifi==2018.4.16
 chardet==3.0.4
 cssselect==1.0.3
 future==0.16.0
+git+git://github.com/pyinstaller/pyinstaller.git@6b2fbcc4d7da7e160cc3cea435b74e15970d253f
 idna==2.7
 lxml==4.2.3
 macholib==1.9
 pefile==2017.11.5
 psutil==5.4.6
-git+git://github.com/pyinstaller/pyinstaller.git@6b2fbcc4d7da7e160cc3cea435b74e15970d253f
 PyQt5==5.10.1
 python-dotenv==0.8.2
 raven==6.9.0

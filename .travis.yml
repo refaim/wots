@@ -4,8 +4,9 @@ language: python
 python:
   - 3.6
 install:
-  - pip install -r requirements.common.txt
+  - pip install -r req.main.txt
+  - pip install -r req.test.txt
 before_script:
   - export PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/app
 script:
-  - python -m unittest discover -s test -t test -p test_*.py
+  - pytest --cov wots

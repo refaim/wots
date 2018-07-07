@@ -1,6 +1,8 @@
 *.pyc
-.env
+/.coverage
+/.env
 /.idea
+/.pytest_cache
 /build
 /dist
 __pycache__
