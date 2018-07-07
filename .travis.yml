@@ -10,3 +10,5 @@ before_script:
   - export PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/app
 script:
   - pytest --cov app
+after_success:
+  - coveralls
