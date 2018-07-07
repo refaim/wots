@@ -6,14 +6,13 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
   - "SET PYTHONPATH=%PYTHONPATH%;%APPVEYOR_BUILD_FOLDER%\\app"
-  - "python -m pip install -r req.windows.txt"
-  - "python -m pip install -r req.test.txt"
+  - "python -m pip install -r requirements.windows.txt"
+  - "python -m pip install -r requirements.test.txt"
 
 build: off
 
 test_script:
   - pytest --cov app
-
 after_test:
   - coveralls
 

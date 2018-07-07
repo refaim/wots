@@ -6,6 +6,7 @@
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/ifvfy7vy8kru9if8?svg=true)](https://ci.appveyor.com/project/refaim/wots)
 ![Code Size](https://img.shields.io/github/languages/code-size/refaim/wots.svg)
 [![Coverage Status](https://coveralls.io/repos/github/refaim/wots/badge.svg)](https://coveralls.io/github/refaim/wots)
+
 Программа для поиска карт ККИ Magic the Gathering на русскоязычных торговых интернет-площадках.
 
 Написана с использованием Python 3.6 и PyQt5.
