@@ -14,7 +14,10 @@ if platform.system() == 'Windows':
     path.append(os.path.join(os.path.dirname(PyQt5.__file__), 'Qt', 'bin'))
     path.append(os.path.dirname(sys.executable))
 
-txt_resources = [('.env', '.')]
+txt_resources = []
+if os.path.exists('.env'):
+    txt_resources.append(('.env', '.'))
+
 bin_resources = []
 for filename in os.listdir(RESOURCES_DIRECTORY):
     target = txt_resources
