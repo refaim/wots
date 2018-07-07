@@ -11,8 +11,6 @@ psutil==5.4.6
 git+git://github.com/pyinstaller/pyinstaller.git@6b2fbcc4d7da7e160cc3cea435b74e15970d253f
 PyQt5==5.10.1
 python-dotenv==0.8.2
-pywin32==223
-pywin32-ctypes==0.1.2
 raven==6.9.0
 requests==2.19.1
 sip==4.19.8
