@@ -15,6 +15,4 @@ test_script:
   - pytest --cov app
 after_test:
   - coveralls
-
-before_package:
   - pyinstaller wizard.spec

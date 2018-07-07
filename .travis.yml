@@ -5,7 +5,7 @@ python:
   - 3.6
 
 install:
-  - pip install -r requirements.main.txt
+  - pip install -r requirements.txt
   - pip install -r requirements.test.txt
 
 before_script:
@@ -13,4 +13,4 @@ before_script:
 script:
   - pytest --cov app
   - coveralls
-  - pyinstaller wizard.spec -y
+  - pyinstaller wizard.spec
