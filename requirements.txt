@@ -9,6 +9,7 @@ lxml==4.2.3
 macholib==1.9
 pefile==2017.11.5
 psutil==5.4.6
+pycryptodome==3.6.3
 PyQt5==5.10.1
 python-dotenv==0.8.2
 raven==6.9.0
