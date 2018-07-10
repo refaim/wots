@@ -36,10 +36,10 @@ for filename in os.listdir(RESOURCES_DIRECTORY):
         target = bin_resources
     target.append((os.path.join(RESOURCES_DIRECTORY, filename), RESOURCES_DIRECTORY))
 
+block_cipher = None
 cipher_key = os.getenv('PYINSTALLER_CIPHER_KEY')
-if cipher_key is not None:
-    cipher_key = cipher_key.encode('utf-8')
-block_cipher = BytesPyiBlockCipher(key=cipher_key)
+if cipher_key:
+    block_cipher = BytesPyiBlockCipher(key=cipher_key.encode('utf-8'))
 
 a = Analysis([os.path.join('app', 'wizard.py')],
              pathex=path, binaries=bin_resources, datas=txt_resources, hiddenimports=[], hookspath=[],
