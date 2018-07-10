@@ -20,10 +20,17 @@ class BytesPyiBlockCipher(PyiBlockCipher):
 
 dotenv.load_dotenv('.env')
 
-path = []
+extra_path = []
 if platform.system() == 'Windows':
-    path.append(os.path.join(os.path.dirname(PyQt5.__file__), 'Qt', 'bin'))
-    path.append(os.path.dirname(sys.executable))
+    extra_path.append(os.path.join(os.path.dirname(PyQt5.__file__), 'Qt', 'bin'))
+    extra_path.append(os.path.dirname(sys.executable))
+    version, *_ = platform.win32_ver()
+    if int(version) >= 10:
+        for program_files_var in ['ProgramFiles', 'ProgramFiles(x86)']:
+            for arch in ['x86', 'x64']:
+                dll_path = os.path.join(os.getenv(program_files_var), 'Windows Kits\\10\\Redist\\ucrt\\DLLs', arch)
+                if os.path.isdir(dll_path):
+                    extra_path.append(dll_path)
 
 txt_resources = []
 if os.path.exists('.env'):
@@ -42,7 +49,7 @@ if cipher_key:
     block_cipher = BytesPyiBlockCipher(key=cipher_key.encode('utf-8'))
 
 a = Analysis([os.path.join('app', 'wizard.py')],
-             pathex=path, binaries=bin_resources, datas=txt_resources, hiddenimports=[], hookspath=[],
+             pathex=extra_path, binaries=bin_resources, datas=txt_resources, hiddenimports=[], hookspath=[],
              runtime_hooks=[], excludes=[], win_no_prefer_redirects=False, win_private_assemblies=False,
              cipher=block_cipher)
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)

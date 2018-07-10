@@ -34,7 +34,7 @@ CI:
  ✔ Зашифровать байткод при постройке @done (18-07-10 23:55)
  ✘ Как-то спрятать .env при постройке @cancelled (18-07-08 00:32)
  ☐ Написать на C модуль, который будет хранить в себе приватный ключ от TCG и работать API-клиентом
- ☐ pyinstaller lib not found api-ms-win-crt
+ ✔ pyinstaller lib not found api-ms-win-crt @done (18-07-11 00:15)
  ☐ Паковать в один *.exe файл
  ☐ Разломан CI на OSX (это Travis сломан, но можно самим обойти проблему)
  ✔ Настроить связку pytest + coveralls + travis @done (18-07-07 10:31)
