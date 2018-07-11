@@ -1,6 +1,5 @@
 image:
-  - Visual Studio 2015 # Windows Server 2012 R2
-  - Visual Studio 2017 # Windows Server 2016
+  - Visual Studio 2015
 environment:
   matrix:
     - PYTHON: "C:\\Python36"
@@ -9,7 +8,7 @@ environment:
 install:
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%
   - SET PYTHONPATH=%PYTHONPATH%;%APPVEYOR_BUILD_FOLDER%\\app
-  - SET CL=-FI "%VCINSTALLDIR%\INCLUDE\stdint.h" # pycrypto build workaround
+  - SET CL=-FI"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\INCLUDE\stdint.h" # pycrypto build workaround
   - python -m pip install -r requirements.windows.txt
   - python -m pip install -r requirements.test.txt
 
