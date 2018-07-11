@@ -1,3 +1,6 @@
+image:
+  - Visual Studio 2015 # Windows Server 2012 R2
+  - Visual Studio 2017 # Windows Server 2016
 environment:
   matrix:
     - PYTHON: "C:\\Python36"
