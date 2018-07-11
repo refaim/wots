@@ -53,4 +53,4 @@ a = Analysis([os.path.join('app', 'wizard.py')],
              cipher=block_cipher)
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(pyz, a.scripts, exclude_binaries=True, name='wizard', debug=False, strip=False, upx=False, console=False)
-COLLECT(exe, a.binaries, a.zipfiles, a.datas, strip=False, upx=False, name=os.getenv('APP_NAME'))
+COLLECT(exe, a.binaries, a.zipfiles, a.datas, strip=False, upx=False, name='wizard')
