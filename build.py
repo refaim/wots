@@ -11,13 +11,6 @@ from PyInstaller.building.build_main import Analysis
 RESOURCES_DIRECTORY = 'res'
 BINARY_RESOURCE_EXTENSIONS = {'.png'}
 
-
-class BytesPyiBlockCipher(PyiBlockCipher):
-    def __init__(self, key: bytes):
-        super().__init__('')
-        self.key = key
-
-
 dotenv.load_dotenv('.env')
 
 extra_path = []
@@ -45,7 +38,7 @@ for filename in os.listdir(RESOURCES_DIRECTORY):
 block_cipher = None
 cipher_key = os.getenv('PYINSTALLER_CIPHER_KEY')
 if cipher_key:
-    block_cipher = BytesPyiBlockCipher(key=cipher_key.encode('utf-8'))
+    block_cipher = PyiBlockCipher(key=cipher_key)
 
 a = Analysis([os.path.join('app', 'wizard.py')],
              pathex=extra_path, binaries=bin_resources, datas=txt_resources, hiddenimports=[], hookspath=[],
