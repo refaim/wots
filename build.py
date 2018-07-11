@@ -24,8 +24,7 @@ extra_path = []
 if platform.system() == 'Windows':
     extra_path.append(os.path.join(os.path.dirname(PyQt5.__file__), 'Qt', 'bin'))
     extra_path.append(os.path.dirname(sys.executable))
-    version, *_ = platform.win32_ver()
-    if int(version) >= 10:
+    if platform.version().startswith('10.'):
         for program_files_var in ['ProgramFiles', 'ProgramFiles(x86)']:
             for arch in ['x86', 'x64']:
                 dll_path = os.path.join(os.getenv(program_files_var), 'Windows Kits\\10\\Redist\\ucrt\\DLLs', arch)
