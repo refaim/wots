@@ -11,6 +11,6 @@ install:
 before_script:
   - export PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/app
 script:
-  - pytest --cov app
+  - make test
   - coveralls
-  - pyinstaller wizard.spec
+  - make build
