@@ -10,7 +10,7 @@ macholib==1.9
 pefile==2017.11.5
 psutil==5.4.6
 pycrypto==2.6.1
-PyQt5==5.10.1
+PyQt5==5.11.2
 python-dotenv==0.8.2
 raven==6.9.0
 requests==2.19.1
