@@ -2,17 +2,17 @@
 
 import unittest
 
-from card.components import SetDatabase
+from card.components import SetOracle
 from core.utils import DummyLogger
 
 
-class TestSetDatabase(unittest.TestCase):
+class TestSetOracle(unittest.TestCase):
     def setUp(self):
-        self.db = SetDatabase(DummyLogger(), thorough=True)
+        self.oracle = SetOracle(DummyLogger(), thorough=True)
 
     def e(self, abbrv: str, strings: list):
         for s in [abbrv] + strings:
-            self.assertEqual(abbrv, self.db.get_abbreviation(s), s)
+            self.assertEqual(abbrv, self.oracle.get_abbreviation(s), s)
 
     def test_core_sets(self):
         self.e('LEA', ['Limited Edition Alpha', 'Alpha', 'Alpha Edition', 'A'])

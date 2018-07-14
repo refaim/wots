@@ -2,14 +2,14 @@ import copy
 
 import card.utils
 import core.language
-from card.components import SetDatabase
+from card.components import SetOracle
 from core.utils import ILogger
 
 
 class CardsFixer(object):
-    def __init__(self, cardsInfo, cardsNames, setDatabase: SetDatabase, logger: ILogger):
+    def __init__(self, cardsInfo, cardsNames, setOracle: SetOracle, logger: ILogger):
         self.logger = logger
-        self.setDatabase = setDatabase
+        self.setOracle = setOracle
         self.cardsNames = cardsNames
         self.setsLanguages = {}
         self.setsFoilness = {}
@@ -17,7 +17,7 @@ class CardsFixer(object):
         self.cardSets = {}
 
         for setId, setInfo in cardsInfo.items():
-            setKey = self.setDatabase.get_abbreviation(setId)
+            setKey = self.setOracle.get_abbreviation(setId)
             assert setKey is not None
             self.setsLanguages[setKey] = setInfo['languages']
 
@@ -53,7 +53,7 @@ class CardsFixer(object):
         cardSets = self.cardSets.get(cardKey, set())
         oldCardSet = cardInfo.get('set')
         if oldCardSet is not None:
-            oldCardSetKey = self.setDatabase.get_abbreviation(oldCardSet)
+            oldCardSetKey = self.setOracle.get_abbreviation(oldCardSet)
             if oldCardSetKey is None:
                 self.logger.warning('Unknown set %s on card %s', oldCardSet, cardKey)
             if oldCardSetKey is None or oldCardSetKey in self.cardsIds and cardKey not in self.cardsIds[oldCardSetKey]:
@@ -63,7 +63,7 @@ class CardsFixer(object):
 
         matchedSets = []
         for possibleSet in cardSets:
-            possibleSetKey = self.setDatabase.get_abbreviation(possibleSet)
+            possibleSetKey = self.setOracle.get_abbreviation(possibleSet)
             if possibleSetKey is None:
                 self.logger.warning('Unknown internal set %s', possibleSet)
             if possibleSetKey is not None:
@@ -76,7 +76,7 @@ class CardsFixer(object):
 
         newCardSet = cardInfo.get('set')
         if newCardSet is not None:
-            newCardSetKey = self.setDatabase.get_abbreviation(newCardSet)
+            newCardSetKey = self.setOracle.get_abbreviation(newCardSet)
             if newCardSetKey in self.cardsIds:
                 newCardId = self.cardsIds[newCardSetKey].get(cardKey, None)
                 if newCardId is not None:

@@ -21,7 +21,7 @@ import core.language
 import core.network
 import tools.dict
 import tools.string
-from card.components import SetDatabase
+from card.components import SetOracle
 from core.utils import ILogger, load_json_resource
 
 CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
@@ -86,14 +86,14 @@ class CardSource(object):
         self.verifySsl = True
         self.currentQuery = None
         self.logger = logger.get_child(self.getTitle())
-        self.setDatabase = SetDatabase(self.logger, thorough=False)
+        self.setOracle = SetOracle(self.logger, thorough=False)
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
         return re.sub(r'^www\.', '', location)
 
     def getSetAbbrv(self, setId):
-        return self.setDatabase.get_abbreviation(self.sourceSpecificSets.get(setId, setId))
+        return self.setOracle.get_abbreviation(self.sourceSpecificSets.get(setId, setId))
 
     @staticmethod
     def extractToken(pattern, dataString):
@@ -340,7 +340,7 @@ class ManaPoint(MtgRuShop):
                     elif propString == 'foil':
                         foil = True
                     elif setString is None:
-                        setString = self.setDatabase.get_abbreviation(propString, quiet=True)
+                        setString = self.setOracle.get_abbreviation(propString, quiet=True)
                         propStrings.append(propString)
 
                 if supported:

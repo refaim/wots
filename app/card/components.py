@@ -6,7 +6,7 @@ from core.language import LOWERCASE_LETTERS_ENGLISH, LOWERCASE_LETTERS_RUSSIAN
 from core.utils import load_json_resource, ILogger
 
 
-class SetDatabase(object):  # TODO single language sets
+class SetOracle(object):  # TODO single language sets
     def __init__(self, logger: ILogger, thorough: bool):
         self.__thorough = thorough
         self.__logger = logger
