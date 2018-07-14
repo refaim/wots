@@ -1,0 +1,14 @@
+{
+  "CN": ["Chinese", "chi|kit|кит(айский)?"],
+  "DE": ["Deutch", "nem|нем(ецкий)?"],
+  "EN": ["English", "eng|анг(л|лийский)?"],
+  "ES": ["Spanish", "isp|esp|spa|исп(анский)?"],
+  "FR": ["French", "fre|франц(узский)?"],
+  "IT": ["Italian", "ital?|итал(ьянский)?"],
+  "JP": ["Japanese", "jap|яп(онский)?"],
+  "KO": ["Korean", "kor|кор(ейский)?"],
+  "PT": ["Portuguese", "port?|пор(тугальский)?"],
+  "RU": ["Russian", "rus|рус(ский)?"],
+  "TW": ["Taiwanese", "tw|тайваньский"],
+  "??": ["Unknown", "\\?|other|неведомый"]
+}

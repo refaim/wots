@@ -2,8 +2,12 @@ import codecs
 import json
 import logging
 import os
+import re
+import string
 import sys
+from abc import ABC, abstractmethod
 from multiprocessing import Queue as MpQueue
+from typing import List
 
 
 def get_project_root() -> str:
@@ -23,9 +27,35 @@ def load_json_resource(filename: str):
         return json.load(fobj)
 
 
-class ILogger(object):
+class ILogger(ABC):
+    @abstractmethod
     def get_child(self, name: str) -> 'ILogger':
-        pass
+        raise NotImplementedError()
+
+    @abstractmethod
+    def debug(self, message, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def info(self, message, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def warning(self, message, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def error(self, message, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def critical(self, message, *args, **kwargs):
+        raise NotImplementedError()
+
+
+class DummyLogger(ILogger):
+    def get_child(self, name: str) -> 'ILogger':
+        return self
 
     def debug(self, message, *args, **kwargs):
         pass
@@ -41,10 +71,6 @@ class ILogger(object):
 
     def critical(self, message, *args, **kwargs):
         pass
-
-
-class DummyLogger(ILogger):
-    pass
 
 
 class MultiprocessingLogger(ILogger):
@@ -76,3 +102,19 @@ class MultiprocessingLogger(ILogger):
 
     def critical(self, message, *args, **kwargs):
         self.__log(self.__name, logging.CRITICAL, message, *args, **kwargs)
+
+
+class StringUtils(ABC):
+    LOWERCASE_LETTERS_RUSSIAN = set(u'абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
+    LOWERCASE_LETTERS_ENGLISH = set(string.ascii_lowercase)
+
+    @classmethod
+    def letters(cls, s: str) -> str:
+        return re.sub(r'[\W\d_]+', '', s)
+
+    @classmethod
+    def letter_clusters(cls, s: str) -> List[str]:
+        result = []
+        for match in re.finditer(r'([^\W\d_]+)', s, re.UNICODE):
+            result.append(match.group(1))
+        return result

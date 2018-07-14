@@ -2,7 +2,7 @@
 
 import re
 
-import core.language
+from core.utils import StringUtils
 
 
 def _processCard(cardname, rules):
@@ -34,7 +34,7 @@ _STRINGS_TO_CLEAN = {
 _CACHE_ESCAPE = {}
 _CACHE_UNESCAPE = {}
 
-_LETTERS = core.language.LOWERCASE_LETTERS_ENGLISH | core.language.LOWERCASE_LETTERS_RUSSIAN
+_LETTERS = StringUtils.LOWERCASE_LETTERS_ENGLISH | StringUtils.LOWERCASE_LETTERS_RUSSIAN
 
 _DOUBLE_FACED_CARD_RE = re.compile(r'\|+|\\+|/+')
 

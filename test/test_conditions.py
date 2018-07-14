@@ -1,18 +1,13 @@
 # coding: utf-8
 
-import unittest
-
+from OracleTest import OracleTest
 from card.components import ConditionOracle
 from core.utils import DummyLogger
 
 
-class TestConditionOracle(unittest.TestCase):
-    def setUp(self):
-        self.oracle = ConditionOracle(DummyLogger(), thorough=True)
-
-    def e(self, abbrv: str, strings: list):
-        for s in [abbrv] + strings:
-            self.assertEqual(abbrv, self.oracle.get_abbreviation(s), s)
+class TestConditionOracle(OracleTest):
+    def get_oracle(self):
+        return ConditionOracle(DummyLogger(), thorough=True)
 
     def test_match(self):
         self.e('HP', ['Heavily Played', 'Hardly Played', 'ХП', 'poor'])

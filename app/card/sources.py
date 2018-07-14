@@ -17,13 +17,11 @@ import lxml.html
 
 import card.utils
 import core.currency
-import core.language
 import core.network
-import tools.dict
-import tools.string
-from card.components import SetOracle, ConditionOracle
-from core.utils import ILogger, load_json_resource
+from card.components import SetOracle, ConditionOracle, LanguageOracle
+from core.utils import ILogger, load_json_resource, StringUtils
 
+# TODO move to class !!!!!!!!!!!!!!!
 MTG_RU_SPECIFIC_SETS = {
     'AN': 'Arabian Nights',
     'AQ': 'Antiquities',
@@ -31,27 +29,14 @@ MTG_RU_SPECIFIC_SETS = {
     'LG': 'Legends',
     'MI': 'Mirage',
     'MR': 'Mirrodin',
-    'P1': 'Portal',
-    'P2': 'Portal: Second Age',
-    'P3': 'Portal: Three Kingdoms',
+    'P1': 'Portal', # TODO move to json
+    'P2': 'Portal: Second Age', # TODO move to json
+    'P3': 'Portal: Three Kingdoms', # TODO move to json
     'PC': 'Planar Chaos',
     'PCH': 'Planechase',
-    'ST': 'Starter 1999',
-    'UG': 'Unglued',
+    'ST': 'Starter 1999', # TODO move to json
+    'UG': 'Unglued', # TODO move to json????
 }
-
-
-def makeLwLettersKey(value):
-    return re.sub(r'\W', '', value.lower())
-
-def guessStringLanguage(value):
-    language = None
-    nameLetters = makeLwLettersKey(value)
-    for abbrv, letters in core.language.LANGUAGES_TO_LOWERCASE_LETTERS.items():
-        if all(c in letters for c in nameLetters):
-            language = abbrv
-            break
-    return language
 
 
 class CardSource(object):
@@ -69,6 +54,7 @@ class CardSource(object):
         self.verifySsl = True
         self.currentQuery = None
         self.logger = logger.get_child(self.getTitle())
+        self.langOracle = LanguageOracle(self.logger, thorough=False)
         self.setOracle = SetOracle(self.logger, thorough=False)
         self.conditionOracle = ConditionOracle(self.logger, thorough=False)
 
@@ -123,7 +109,7 @@ class CardSource(object):
         if cardInfo.get('set') is not None:
             cardInfo['set'] = self.setOracle.get_abbreviation(self.sourceSpecificSets.get(cardInfo['set'], cardInfo['set']))
         if cardInfo.get('language') is not None:
-            cardInfo['language'] = core.language.getAbbreviation(cardInfo['language'])
+            cardInfo['language'] = self.langOracle.get_abbreviation(cardInfo['language'])
         if isinstance(cardInfo['source'], str):
             cardInfo['source'] = self.packSource(self.getTitle(), cardInfo['source'])
         self.foundCardsCount += 1
@@ -203,7 +189,8 @@ class CardSource(object):
 
     @staticmethod
     def _isCardUnwanted(cardName, queryText):
-        return guessStringLanguage(cardName) == guessStringLanguage(queryText) and makeLwLettersKey(queryText) not in makeLwLettersKey(cardName)
+        return LanguageOracle.guess_language(cardName) == LanguageOracle.guess_language(queryText) \
+               and StringUtils.letters(queryText).lower() not in StringUtils.letters(cardName).lower()
 
 class AngryBottleGnome(CardSource):
     def __init__(self, logger: ILogger):
@@ -266,7 +253,8 @@ class MtgRuShop(CardSource):
     def _parseResponse(self, queryText, url, html):
         for resultsEntry in html.cssselect(self.entrySelector):
             dataCells = resultsEntry.cssselect('td')
-            language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path))
+            langImage = os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path)
+            language = self.langOracle.get_abbreviation(os.path.splitext(langImage)[0])
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
             yield self.fillCardInfo({
                 'name': dataCells[2].cssselect(nameSelector)[0].text,
@@ -308,9 +296,9 @@ class ManaPoint(MtgRuShop):
             cardName = cardInfo['name'].split('/')[0].strip()
 
             if queryText.lower() in cardName.lower():
-                cardLang = core.language.tryGetAbbreviation(cardInfo['lang'] or '')
+                cardLang = self.langOracle.get_abbreviation(cardInfo['lang'] or '', quiet=True)
                 if cardLang is None:
-                    cardLang = guessStringLanguage(card.utils.getNameKey(cardName))
+                    cardLang = LanguageOracle.guess_language(card.utils.getNameKey(cardName))
 
                 propStrings = []
                 supported = True # TODO support archenemy & planechase
@@ -379,7 +367,7 @@ class MtgSale(CardSource):
                 continue
 
             nameSelector = 'p.tname .tnamec'
-            language = core.language.getAbbreviation(resultsEntry.cssselect('p.lang i')[0].attrib['title'])
+            language = self.langOracle.get_abbreviation(resultsEntry.cssselect('p.lang i')[0].attrib['title'])
             if language is not None and language != 'EN':
                 nameSelector = 'p.tname .smallfont'
 
@@ -424,7 +412,8 @@ class CardPlace(CardSource):
             language = None
             langImages = dataCells[3].cssselect('img')
             if len(langImages) > 0:
-                language = core.language.getAbbreviation(os.path.basename(urllib.parse.urlparse(self.url + langImages[0].attrib['src']).path))
+                imageFile = os.path.basename(urllib.parse.urlparse(self.url + langImages[0].attrib['src']).path)
+                language = self.langOracle.get_abbreviation(os.path.splitext(imageFile)[0])
 
             conditionString = None
             for anchor in dataCells[2].cssselect('a'):
@@ -608,8 +597,8 @@ class TopTrade(CardSource):
 
             foundLangsNum = 0
             langCluster = None
-            for cluster in tools.string.splitByNonLetters(dataString):
-                langAbbrv = core.language.tryGetAbbreviation(cluster)
+            for cluster in StringUtils.letter_clusters(dataString):
+                langAbbrv = self.langOracle.get_abbreviation(cluster, quiet=True)
                 if langAbbrv is not None:
                     langCluster = cluster
                     cardLanguage = langAbbrv
@@ -620,7 +609,7 @@ class TopTrade(CardSource):
                 cardLanguage = None
 
             foundConditions = set()
-            for cluster in tools.string.splitByNonLetters(dataString):
+            for cluster in StringUtils.letter_clusters(dataString):
                 cnd = self.conditionOracle.get_abbreviation(cluster.lower(), quiet=True)
                 if cnd is not None:
                     foundConditions.add(cnd)
@@ -765,7 +754,7 @@ class MtgTradeShop(CardSource):
                         'name': ' '.join(anchor.text_content().split()),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': cardSet,
-                        'language': ''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"'),
+                        'language': ''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"') or None,
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price b')[0].text.split()).strip('" ')),
                         'currency': core.currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
@@ -835,7 +824,7 @@ class AutumnsMagic(CardSource):
             if len(lngTitles) > 0:
                 language = lngTitles[0]
             if not language:
-                language = guessStringLanguage(cardName)
+                language = LanguageOracle.guess_language(cardName)
             if self._isCardUnwanted(cardName, queryText):
                 self.estimatedCardsCount -= 1
                 yield None
@@ -989,7 +978,7 @@ class GoodOrk(CardSource):
 
             cardLanguage = None
             if langString is not None:
-                cardLanguage = core.language.tryGetAbbreviation(langString.rstrip('.'))
+                cardLanguage = self.langOracle.get_abbreviation(langString.rstrip('.'))
             cardFoil = foilString is not None
 
             cardPage = self.getHtml(anchor.attrib['href'])
@@ -1046,7 +1035,7 @@ class OfflineTestSource(CardSource):
                 'name': random.choice(string.ascii_letters) * random.randint(10, 25),
                 'foilness': bool(random.randint(0, 1)),
                 'set': random.choice(self.setAbbreviations),
-                'language': random.choice(list(core.language._LANGUAGES.keys())),
+                'language': random.choice(['RU', 'EN', 'FR', 'DE', 'ES']),
                 'price': decimal.Decimal(random.randint(10, 1000)) if bool(random.randint(0, 1)) else None,
                 'currency': random.choice([core.currency.RUR, core.currency.USD, core.currency.EUR]),
                 'count': random.randint(1, 10),

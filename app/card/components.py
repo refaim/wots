@@ -2,14 +2,14 @@ import re
 import string
 from typing import Optional
 
-from core.language import LOWERCASE_LETTERS_ENGLISH, LOWERCASE_LETTERS_RUSSIAN
-from core.utils import load_json_resource, ILogger
+from core.utils import load_json_resource, ILogger, StringUtils
 
 
 class BaseOracle(object):
-    def __init__(self, logger: ILogger, thorough: bool, resource_id: str, name_character_set: str):
-        self.__logger = logger
+    def __init__(self, entity: str, resource_id: str, thorough: bool, logger: ILogger, name_character_set: str):
+        self.__entity = entity
         self.__thorough = thorough
+        self.__logger = logger
         self.__name_characters = name_character_set
         self.__abbrvs_by_name_key = {}
         self.__names_by_abbrv = {}
@@ -47,19 +47,37 @@ class BaseOracle(object):
                 raise Exception('Found {} for "{}"'.format(', '.join(matches), candidate))
             return matches[0]
         if not quiet:
-            self.__logger.warning('Unable to recognize "%s"', candidate)
+            self.__logger.warning('Unable to recognize %s "%s"', self.__entity, candidate)
         return None
 
 
 class SetOracle(BaseOracle):  # TODO single language sets
     def __init__(self, logger: ILogger, thorough: bool):
-        super().__init__(logger, thorough, 'set_names.json', LOWERCASE_LETTERS_ENGLISH | LOWERCASE_LETTERS_RUSSIAN | set(string.digits))
+        super().__init__('set', 'set_names.json', thorough, logger,
+             StringUtils.LOWERCASE_LETTERS_ENGLISH | StringUtils.LOWERCASE_LETTERS_RUSSIAN | set(string.digits))
 
 
 class ConditionOracle(BaseOracle):
     def __init__(self, logger: ILogger, thorough: bool):
-        super().__init__(logger, thorough, 'conditions.json', LOWERCASE_LETTERS_ENGLISH | LOWERCASE_LETTERS_RUSSIAN)
+        super().__init__('condition', 'conditions.json', thorough, logger,
+             StringUtils.LOWERCASE_LETTERS_ENGLISH | StringUtils.LOWERCASE_LETTERS_RUSSIAN)
 
     @classmethod
     def get_order(cls) -> tuple:
         return 'HP', 'MP', 'SP', 'NM',
+
+
+class LanguageOracle(BaseOracle):
+    def __init__(self, logger: ILogger, thorough: bool):
+        super().__init__('language', 'languages.json', thorough, logger,
+             StringUtils.LOWERCASE_LETTERS_ENGLISH | StringUtils.LOWERCASE_LETTERS_RUSSIAN | set('?'))
+
+    @classmethod
+    def guess_language(cls, s: str) -> Optional[str]:
+        result = None
+        for language, lang_letters in {'EN': StringUtils.LOWERCASE_LETTERS_ENGLISH, 'RU': StringUtils.LOWERCASE_LETTERS_RUSSIAN}.items():
+            letters = set(StringUtils.letters(s).lower())
+            if letters in lang_letters:
+                result = language
+                break
+        return result

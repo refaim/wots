@@ -1,15 +1,15 @@
 import copy
 
 import card.utils
-import core.language
-from card.components import SetOracle
+from card.components import SetOracle, LanguageOracle
 from core.utils import ILogger
 
 
 class CardsFixer(object):
-    def __init__(self, cardsInfo, cardsNames, setOracle: SetOracle, logger: ILogger):
+    def __init__(self, cardsInfo, cardsNames, setOracle: SetOracle, langOracle: LanguageOracle, logger: ILogger):
         self.logger = logger
         self.setOracle = setOracle
+        self.langOracle = langOracle
         self.cardsNames = cardsNames
         self.setsLanguages = {}
         self.setsFoilness = {}
@@ -83,7 +83,7 @@ class CardsFixer(object):
                     cardInfo['id'] = newCardId
 
             if newCardSetKey in self.setsLanguages and len(self.setsLanguages[newCardSetKey]) == 1:
-                cardInfo['language'] = core.language.tryGetAbbreviation(self.setsLanguages[newCardSetKey][0])
+                cardInfo['language'] = self.langOracle.get_abbreviation(self.setsLanguages[newCardSetKey][0])
 
             setFoilness = self.setsFoilness.get(newCardSetKey, None)
             if setFoilness is not None:

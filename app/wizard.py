@@ -24,7 +24,7 @@ from PyQt5 import uic
 
 import card.utils
 import core.currency
-from card.components import SetOracle, ConditionOracle
+from card.components import SetOracle, ConditionOracle, LanguageOracle
 from card.fixer import CardsFixer
 from card.sources import getCardSourceClasses, CardSource
 from core.utils import MultiprocessingLogger, load_json_resource, get_resource_path, ILogger
@@ -193,10 +193,11 @@ class MainWindow(QtWidgets.QMainWindow):
         cardsNamesMap = load_json_resource('completion_map.json')
         cardsNamesSet = load_json_resource('completion_set.json')
 
+        langOracle = LanguageOracle(self.logger, thorough=False)
         setOracle = SetOracle(self.logger, thorough=False)
         conditionOracle = ConditionOracle(self.logger, thorough=False)
-        cardsFixer = CardsFixer(cardsInfo, cardsNamesMap, setOracle, self.logger.get_child('fixer'))
-        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests, cardsFixer, setOracle, conditionOracle)
+        cardsFixer = CardsFixer(cardsInfo, cardsNamesMap, setOracle, langOracle, self.logger.get_child('fixer'))
+        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests, cardsFixer, langOracle, setOracle, conditionOracle)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
@@ -403,7 +404,7 @@ def convertPrice(priceInfo):
 
 
 class CardsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests, cardsFixer: CardsFixer, setOracle: SetOracle, conditionOracle: ConditionOracle):
+    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests, cardsFixer: CardsFixer, langOracle: LanguageOracle, setOracle: SetOracle, conditionOracle: ConditionOracle):
         super().__init__()
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
@@ -411,6 +412,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         self.statQueue = statQueue
         self.priceRequests = priceRequests
         self.cardsFixer = cardsFixer
+        self.langOracle = langOracle
         self.setOracle = setOracle
         self.conditionOracle = conditionOracle
         self.dataTable = []
@@ -445,22 +447,25 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                 if role == QtCore.Qt.DisplayRole:
                     return str(data['id']).zfill(3) if data['id'] > 0 else None
             elif columnId == 'set':
+                setAbbrv = data['set']
                 if role == QtCore.Qt.DisplayRole:
-                    return data['set']
+                    return setAbbrv
                 elif role == QtCore.Qt.ToolTipRole:
-                    setAbbrv = data['set']
                     return self.setOracle.get_name(setAbbrv) if setAbbrv else None
             elif columnId == 'language':
+                lang = data['language']
                 if role == QtCore.Qt.DisplayRole:
-                    return data['language']
+                    return lang
+                elif role == QtCore.Qt.ToolTipRole:
+                    return self.langOracle.get_name(lang) if lang else None
             elif columnId == 'name':
                 if role == QtCore.Qt.DisplayRole:
                     return card.utils.unescape(data['name']['caption'])
             elif columnId == 'condition':
+                condition = data['condition']
                 if role == QtCore.Qt.DisplayRole:
-                    return data['condition']
+                    return condition
                 elif role == QtCore.Qt.ToolTipRole:
-                    condition = data['condition']
                     return self.conditionOracle.get_name(condition) if condition else None
             elif columnId == 'foilness':
                 if role == QtCore.Qt.DisplayRole:
