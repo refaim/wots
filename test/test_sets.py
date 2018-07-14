@@ -224,10 +224,10 @@ class TestSetOracle(OracleTest):
         self.e('CHR', ['Chronicles'])
 
         self.e('ITP', ['Introductory Two-Player Set'])
-        self.e('POR', ['Portal'])
-        self.e('PO2', ['Portal: Second Age', 'Portal Second Age'])
+        self.e('POR', ['Portal', 'P1'])
+        self.e('PO2', ['Portal: Second Age', 'Portal Second Age', 'P2'])
         self.e('S99', ['Starter 1999', 'Starter'])
-        self.e('PTK', ['Portal: Three Kingdoms', 'Portal Three Kingdoms'])
+        self.e('PTK', ['Portal: Three Kingdoms', 'Portal Three Kingdoms', 'P3'])
         self.e('S00', ['Starter 2000'])
 
         self.e('P96', ['1996 Pro Tour Decks'])
@@ -308,7 +308,7 @@ class TestSetOracle(OracleTest):
 
         self.e('E02', ['Explorers of Ixalan', 'Исследователи Иксалана'])
 
-        self.e('UGL', ['Unglued'])
+        self.e('UGL', ['Unglued', 'UG'])
         self.e('UNH', ['Unhinged', 'UH'])
         self.e('UST', ['Unstable'])
 

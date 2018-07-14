@@ -21,23 +21,6 @@ import core.network
 from card.components import SetOracle, ConditionOracle, LanguageOracle
 from core.utils import ILogger, load_json_resource, StringUtils
 
-# TODO move to class !!!!!!!!!!!!!!!
-MTG_RU_SPECIFIC_SETS = {
-    'AN': 'Arabian Nights',
-    'AQ': 'Antiquities',
-    'LE': 'Legions',
-    'LG': 'Legends',
-    'MI': 'Mirage',
-    'MR': 'Mirrodin',
-    'P1': 'Portal', # TODO move to json
-    'P2': 'Portal: Second Age', # TODO move to json
-    'P3': 'Portal: Three Kingdoms', # TODO move to json
-    'PC': 'Planar Chaos',
-    'PCH': 'Planechase',
-    'ST': 'Starter 1999', # TODO move to json
-    'UG': 'Unglued', # TODO move to json????
-}
-
 
 class CardSource(object):
     def __init__(self, logger: ILogger, url: str, queryUrlTemplate: str, queryEncoding: str = 'utf-8', responseEncoding: str = 'utf-8', setMap=None):
@@ -234,7 +217,7 @@ class AngryBottleGnome(CardSource):
 
 class MtgRuShop(CardSource):
     def __init__(self, logger: ILogger, url: str, promoUrl: str):
-        super().__init__(logger, url, '/catalog.phtml?Title={query}&page={page}', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__(logger, url, '/catalog.phtml?Title={query}&page={page}', 'cp1251', 'cp1251', MtgRu.SPECIFIC_SETS)
         self.promoUrl = promoUrl
         if self.promoUrl is not None:
             self.promoHtml = self.getHtml(self.makeAbsUrl(self.promoUrl))
@@ -455,6 +438,18 @@ class CardPlace(CardSource):
 
 
 class MtgRu(CardSource):
+    SPECIFIC_SETS = {
+        'AN': 'Arabian Nights',
+        'AQ': 'Antiquities',
+        'LE': 'Legions',
+        'LG': 'Legends',
+        'MI': 'Mirage',
+        'MR': 'Mirrodin',
+        'PC': 'Planar Chaos',
+        'PCH': 'Planechase',
+        'ST': 'Starter 1999',
+    }
+
     def __init__(self, logger: ILogger):
         self.sourceSubstringsToExclude = [
             'amberson.mtg.ru',
@@ -467,7 +462,7 @@ class MtgRu(CardSource):
             'mtgtrade.net',
             'myupkeep.ru',
         ]
-        super().__init__(logger, 'http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', MTG_RU_SPECIFIC_SETS)
+        super().__init__(logger, 'http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', SPECIFIC_SETS)
 
     def escapeQueryText(self, queryText):
         return super().escapeQueryText(queryText)
