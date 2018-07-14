@@ -6,22 +6,22 @@ from core.language import LOWERCASE_LETTERS_ENGLISH, LOWERCASE_LETTERS_RUSSIAN
 from core.utils import load_json_resource, ILogger
 
 
-class SetOracle(object):  # TODO single language sets
-    def __init__(self, logger: ILogger, thorough: bool):
-        self.__thorough = thorough
+class BaseOracle(object):
+    def __init__(self, logger: ILogger, thorough: bool, resource_id: str, name_character_set: str):
         self.__logger = logger
-        self.__name_characters = LOWERCASE_LETTERS_ENGLISH | LOWERCASE_LETTERS_RUSSIAN | set(string.digits)
+        self.__thorough = thorough
+        self.__name_characters = name_character_set
         self.__abbrvs_by_name_key = {}
         self.__names_by_abbrv = {}
         self.__patterns_by_abbrv = {}
-        for abbreviation, (name, pattern) in load_json_resource('set_names.json').items():
+        for abbreviation, (name, pattern) in load_json_resource(resource_id).items():
             if pattern is None:
                 pattern = name
             self.__abbrvs_by_name_key[self.__get_name_key(name)] = abbreviation
             self.__names_by_abbrv[abbreviation] = name
             self.__patterns_by_abbrv[abbreviation] = re.compile(r'^({})$'.format(pattern), re.IGNORECASE | re.UNICODE)
 
-    def __get_name_key(self, value):
+    def __get_name_key(self, value) -> str:
         return ''.join(c for c in value.lower() if c in self.__name_characters)
 
     def get_name(self, abbreviation: str) -> str:
@@ -47,5 +47,19 @@ class SetOracle(object):  # TODO single language sets
                 raise Exception('Found {} for "{}"'.format(', '.join(matches), candidate))
             return matches[0]
         if not quiet:
-            self.__logger.warning('Unable to recognize set "%s"', candidate)
+            self.__logger.warning('Unable to recognize "%s"', candidate)
         return None
+
+
+class SetOracle(BaseOracle):  # TODO single language sets
+    def __init__(self, logger: ILogger, thorough: bool):
+        super().__init__(logger, thorough, 'set_names.json', LOWERCASE_LETTERS_ENGLISH | LOWERCASE_LETTERS_RUSSIAN | set(string.digits))
+
+
+class ConditionOracle(BaseOracle):
+    def __init__(self, logger: ILogger, thorough: bool):
+        super().__init__(logger, thorough, 'conditions.json', LOWERCASE_LETTERS_ENGLISH | LOWERCASE_LETTERS_RUSSIAN)
+
+    @classmethod
+    def get_order(cls) -> tuple:
+        return 'HP', 'MP', 'SP', 'NM',

@@ -1,0 +1,6 @@
+{
+  "HP": ["Heavily Played", "(Hardly Played)|Poor|ХП"],
+  "MP": ["Moderately Played", "Played|F|Fine|МП"],
+  "NM": ["Near Mint", "Mint|Excellent|Great|M|(M/NM)|(NM/M)|НМ"],
+  "SP": ["Slightly Played", "VF|(Very Fine)|СП"]
+}

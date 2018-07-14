@@ -21,20 +21,8 @@ import core.language
 import core.network
 import tools.dict
 import tools.string
-from card.components import SetOracle
+from card.components import SetOracle, ConditionOracle
 from core.utils import ILogger, load_json_resource
-
-CONDITIONS_ORDER = ('HP', 'MP', 'SP', 'NM')
-_CONDITIONS_SOURCE = {
-    'HP': ('Heavily Played', 'Hardly Played', 'ХП',),
-    'MP': ('Moderately Played', 'Played', 'МП',),
-    'SP': ('Slightly Played', 'СП',),
-    'NM': ('Near Mint', 'M/NM', 'M', 'Mint', 'Excellent', 'great', 'НМ',),
-}
-_CONDITIONS = tools.dict.expandMapping(_CONDITIONS_SOURCE)
-_CONDITIONS_CASE_INSENSITIVE = {}
-for k, v in _CONDITIONS.items():
-    _CONDITIONS_CASE_INSENSITIVE[k.lower()] = v
 
 MTG_RU_SPECIFIC_SETS = {
     'AN': 'Arabian Nights',
@@ -52,11 +40,6 @@ MTG_RU_SPECIFIC_SETS = {
     'UG': 'Unglued',
 }
 
-
-def getConditionHumanReadableString(conditionString):
-    key = conditionString.lower()
-    if key in _CONDITIONS_CASE_INSENSITIVE:
-        return _CONDITIONS_SOURCE[_CONDITIONS_CASE_INSENSITIVE[key]][0]
 
 def makeLwLettersKey(value):
     return re.sub(r'\W', '', value.lower())
@@ -87,13 +70,11 @@ class CardSource(object):
         self.currentQuery = None
         self.logger = logger.get_child(self.getTitle())
         self.setOracle = SetOracle(self.logger, thorough=False)
+        self.conditionOracle = ConditionOracle(self.logger, thorough=False)
 
     def getTitle(self):
         location = urllib.parse.urlparse(self.url).netloc
         return re.sub(r'^www\.', '', location)
-
-    def getSetAbbrv(self, setId):
-        return self.setOracle.get_abbreviation(self.sourceSpecificSets.get(setId, setId))
 
     @staticmethod
     def extractToken(pattern, dataString):
@@ -137,8 +118,10 @@ class CardSource(object):
         cardInfo.setdefault('language', None)
         if isinstance(cardInfo['name'], str):
             cardInfo['name'] = self.packName(cardInfo['name'])
+        if cardInfo.get('condition') is not None:
+            cardInfo['condition'] = self.conditionOracle.get_abbreviation(cardInfo['condition'])
         if cardInfo.get('set') is not None:
-            cardInfo['set'] = self.getSetAbbrv(cardInfo['set'])
+            cardInfo['set'] = self.setOracle.get_abbreviation(self.sourceSpecificSets.get(cardInfo['set'], cardInfo['set']))
         if cardInfo.get('language') is not None:
             cardInfo['language'] = core.language.getAbbreviation(cardInfo['language'])
         if isinstance(cardInfo['source'], str):
@@ -253,7 +236,7 @@ class AngryBottleGnome(CardSource):
                     'name': cardName,
                     'set': cardSet,
                     'language': rawInfo['language'],
-                    'condition': _CONDITIONS[rawInfo['condition'].rstrip(',')],
+                    'condition': rawInfo['condition'].rstrip(','),
                     'foilness': bool(rawInfo['foilness']),
                     'count': int(rawInfo['count']),
                     'price': decimal.Decimal(rawInfo['price']),
@@ -418,7 +401,7 @@ class MtgSale(CardSource):
                 'name': resultsEntry.cssselect(nameSelector)[0].text,
                 'set': entrySet,
                 'language': language,
-                'condition': _CONDITIONS[resultsEntry.cssselect('p.sost span')[0].text],
+                'condition': resultsEntry.cssselect('p.sost span')[0].text,
                 'foilness': bool(resultsEntry.cssselect('p.foil')[0].text),
                 'count': count,
                 'price': price,
@@ -430,16 +413,6 @@ class MtgSale(CardSource):
 class CardPlace(CardSource):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://cardplace.ru', '/directory/new_search/{query}/singlemtg', queryEncoding='cp1251', setMap={'DCI Legends': 'Media Inserts'})
-        conditions = {
-            'NM': ['nm', 'nm/m', 'm'],
-            'SP': ['vf', 'very fine'],
-            'MP': ['f', 'fine'],
-            'HP': ['poor'],
-        }
-        self.conditions = {}
-        for key, values in conditions.items():
-            for valueString in values:
-                self.conditions[valueString] = key
 
     def _getPageCardsCount(self, html):
         return len(html.cssselect('#mtgksingles tbody tr'))
@@ -457,8 +430,6 @@ class CardPlace(CardSource):
             for anchor in dataCells[2].cssselect('a'):
                 if 'condition_guide' in anchor.attrib['href']:
                     conditionString = anchor.text
-            if conditionString is not None:
-                conditionString = _CONDITIONS[self.conditions[conditionString.lower()]]
 
             cardId = None
             cardSet = dataCells[1].cssselect('b')[0].text.strip("'")
@@ -650,11 +621,11 @@ class TopTrade(CardSource):
 
             foundConditions = set()
             for cluster in tools.string.splitByNonLetters(dataString):
-                lc = cluster.lower()
-                if lc in _CONDITIONS_CASE_INSENSITIVE:
-                    foundConditions.add(_CONDITIONS_CASE_INSENSITIVE[lc])
+                cnd = self.conditionOracle.get_abbreviation(cluster.lower(), quiet=True)
+                if cnd is not None:
+                    foundConditions.add(cnd)
             if len(foundConditions) > 0:
-                cardCondition = sorted(foundConditions, key=CONDITIONS_ORDER.index)[0]
+                cardCondition = sorted(foundConditions, key=ConditionOracle.get_order().index)[0]
 
             seller = entry['source']
             if seller != 'topdeck':
@@ -720,7 +691,7 @@ class EasyBoosters(CardSource):
                     'price': decimal.Decimal(re.match(r'(\d+)', offer.cssselect('.offer-price')[0].text.strip()).group(0)),
                     'currency': core.currency.RUR,
                     'count': int(re.search(r'(\d+)', offer.cssselect('.super-offer span strong')[0].text).group(0)),
-                    'condition': _CONDITIONS[condition],
+                    'condition': condition,
                     'source': anchor.attrib['href'],
                 })
 
@@ -783,7 +754,7 @@ class MtgTradeShop(CardSource):
                     condition = None
                     conditionBlocks = cardEntry.cssselect('.js-card-quality-tooltip')
                     if len(conditionBlocks) > 0:
-                        condition = _CONDITIONS[cardEntry.cssselect('.js-card-quality-tooltip')[0].text]
+                        condition = cardEntry.cssselect('.js-card-quality-tooltip')[0].text
 
                     cardSet = cardEntry.cssselect('.choose-set')[0].attrib['title']
                     if 'mtgo' in cardSet.lower():
@@ -917,7 +888,7 @@ class HexproofRu(CardSource):
                         'price': decimal.Decimal(cardData['price_max'] / 100),
                         'currency': core.currency.RUR,
                         'count': int(variant['inventory_quantity']),
-                        'condition': _CONDITIONS[rawCnd],
+                        'condition': rawCnd,
                         'source': product.cssselect('.productitem--title a')[0].attrib['href'],
                     })
 
@@ -1079,7 +1050,7 @@ class OfflineTestSource(CardSource):
                 'price': decimal.Decimal(random.randint(10, 1000)) if bool(random.randint(0, 1)) else None,
                 'currency': random.choice([core.currency.RUR, core.currency.USD, core.currency.EUR]),
                 'count': random.randint(1, 10),
-                'condition': _CONDITIONS[random.choice(list(_CONDITIONS.keys()))],
+                'condition': random.choice(['HP', 'NM', 'SP', 'MP']),
                 'source': '',
             })
 

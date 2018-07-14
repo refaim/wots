@@ -24,9 +24,9 @@ from PyQt5 import uic
 
 import card.utils
 import core.currency
-from card.components import SetOracle
+from card.components import SetOracle, ConditionOracle
 from card.fixer import CardsFixer
-from card.sources import getCardSourceClasses, CardSource, getConditionHumanReadableString, CONDITIONS_ORDER
+from card.sources import getCardSourceClasses, CardSource
 from core.utils import MultiprocessingLogger, load_json_resource, get_resource_path, ILogger
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
@@ -194,8 +194,9 @@ class MainWindow(QtWidgets.QMainWindow):
         cardsNamesSet = load_json_resource('completion_set.json')
 
         setOracle = SetOracle(self.logger, thorough=False)
+        conditionOracle = ConditionOracle(self.logger, thorough=False)
         cardsFixer = CardsFixer(cardsInfo, cardsNamesMap, setOracle, self.logger.get_child('fixer'))
-        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests, cardsFixer, setOracle)
+        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests, cardsFixer, setOracle, conditionOracle)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
@@ -402,7 +403,7 @@ def convertPrice(priceInfo):
 
 
 class CardsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests, cardsFixer: CardsFixer, setOracle: SetOracle):
+    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests, cardsFixer: CardsFixer, setOracle: SetOracle, conditionOracle: ConditionOracle):
         super().__init__()
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
@@ -411,6 +412,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         self.priceRequests = priceRequests
         self.cardsFixer = cardsFixer
         self.setOracle = setOracle
+        self.conditionOracle = conditionOracle
         self.dataTable = []
         self.cardCount = 0
 
@@ -458,7 +460,8 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                 if role == QtCore.Qt.DisplayRole:
                     return data['condition']
                 elif role == QtCore.Qt.ToolTipRole:
-                    return getConditionHumanReadableString(data['condition'])
+                    condition = data['condition']
+                    return self.conditionOracle.get_name(condition) if condition else None
             elif columnId == 'foilness':
                 if role == QtCore.Qt.DisplayRole:
                     return 'Foil' if data['foilness'] else None  # TODO image
@@ -541,7 +544,7 @@ class CardsSortProxy(QtCore.QSortFilterProxyModel):
     def __init__(self, columnsInfo):
         super().__init__()
         self.columnsInfo = columnsInfo
-        self.conditionsOrder = CONDITIONS_ORDER
+        self.conditionsOrder = ConditionOracle.get_order()
 
     def lessThan(self, aIndex, bIndex):
         model = self.sourceModel()
