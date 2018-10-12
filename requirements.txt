@@ -1,4 +1,4 @@
-altgraph==0.15
+altgraph==0.16.1
 certifi==2018.8.13
 chardet==3.0.4
 cssselect==1.0.3
