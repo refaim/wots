@@ -10,23 +10,6 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'app')))
 import card.utils
 
-
-def utf_8_encoder(unicode_csv_data):
-    for line in unicode_csv_data:
-        yield line.encode('utf-8')
-
-
-def unicode_csv_reader(unicode_csv_data, dialect=csv.excel, **kwargs):
-    csv_reader = csv.DictReader(utf_8_encoder(unicode_csv_data), dialect=dialect, **kwargs)
-    for row in csv_reader:
-        result = {}
-        for title, cell in row.iteritems():
-            if isinstance(cell, list) and len(cell) == 1:
-                cell = cell[0]
-            result[title] = unicode(cell, 'utf-8')
-        yield result
-
-
 def main(args):
     complSet = set()
     complMap = {}
@@ -34,7 +17,7 @@ def main(args):
 
     with codecs.open(args[0], encoding='utf_16_le') as fobj:
         fobj.readline()  # skip header
-        reader = unicode_csv_reader(fobj, dialect=csv.excel_tab, fieldnames=['set', 'name', 'original', 'lang', 'foil', 'number'])
+        reader = csv.DictReader(fobj, dialect=csv.excel_tab, fieldnames=['set', 'name', 'original', 'lang', 'foil', 'number'])
         for row in reader:
             row['name'] = card.utils.escape(card.utils.getPrimaryName(row['name']))
             if row['original'] is None:
@@ -67,7 +50,7 @@ def main(args):
             setInfo['foil'].add(row['foil'])
             setInfo['languages'].add(row['lang'])
 
-    for setId, entry in database.iteritems():
+    for setId, entry in database.items():
         entry['languages'] = list(entry['languages'])
         entry['foil'] = list(entry['foil'])
 
@@ -75,7 +58,7 @@ def main(args):
     complSet.discard('')
     for variable, filepath in ((sorted(list(complSet)), 'completion_set.json'), (complMap, 'completion_map.json'), (database, 'database.json')):
         with codecs.open(filepath, 'w', 'utf-8') as fobj:
-            fobj.write(json.dumps(variable, ensure_ascii=False, encoding='utf-8', sort_keys=True))
+            fobj.write(json.dumps(variable, ensure_ascii=False, sort_keys=True))
 
     return 0
 
