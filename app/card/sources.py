@@ -259,6 +259,7 @@ class Amberson(MtgRuShop):
 class ManaPoint(MtgRuShop):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://manapoint.mtg.ru', '2.html')
+        # TODO move to json
         self.promoSetsSubstrings = {
             ('release', 'launch',): 'Prerelease & Release Cards',
             ('gameday',): 'Magic Game Day Cards',
