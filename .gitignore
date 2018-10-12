@@ -5,4 +5,5 @@
 /.pytest_cache
 /build
 /dist
+/exe_version.txt
 __pycache__

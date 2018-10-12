@@ -24,6 +24,7 @@ from PyQt5 import uic
 
 import card.utils
 import core.currency
+import version
 from card.components import SetOracle, ConditionOracle, LanguageOracle
 from card.fixer import CardsFixer
 from card.sources import getCardSourceClasses, CardSource
@@ -149,6 +150,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
 
         uic.loadUi(get_resource_path('wizard.ui'), self)
+        self.setWindowTitle(self.windowTitle().format(version=version.VERSION))
 
         self.logger = logger
 

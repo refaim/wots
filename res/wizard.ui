@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Wizard of the Search</string>
+   <string>Wizard of the Search v{version}</string>
   </property>
   <property name="windowIcon">
    <iconset>
