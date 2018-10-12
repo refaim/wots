@@ -146,6 +146,8 @@ class TestSetOracle(OracleTest):
 
         self.e('DOM', ['Dominaria', 'Доминария'])
 
+        self.e('GRN', ['Guilds of Ravnica', 'Гильдии Равники'])
+
     def test_promo_sets(self):
         self.e('APA', ['APAC Lands', 'APAC'])
         self.e('EUL', ['European Lands'])
@@ -292,6 +294,7 @@ class TestSetOracle(OracleTest):
         self.e('CMA', ['Commander Anthology'])
         self.e('C17', ['Commander 2017', 'Commander 2017 Edition'])
         self.e('CM2', ['Commander Anthology Volume II', 'Commander Anthology Volume 2'])
+        self.e('C18', ['Commander 2018', 'Commander 2018 Edition'])
 
         self.e('DRB', ['From the Vault: Dragons', 'FTV: Dragons'])
         self.e('V09', ['From the Vault: Exiled', 'FTV: Exiled'])
@@ -345,6 +348,7 @@ class TestSetOracle(OracleTest):
         self.e('DDS', ['Duel Decks: Mind vs. Might', 'Mind vs. Might'])
         self.e('DDT', ['Duel Decks: Merfolk vs. Goblins', 'Merfolk vs. Goblins'])
         self.e('DDU', ['Duel Decks: Elves vs. Inventors', 'Elves vs. Inventors'])
+        self.e('GS1', ['Global Series: Jiang Yanggu & Mu Yanling'])
 
         self.e('BBD', ['Battlebond'])
 
