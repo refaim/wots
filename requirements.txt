@@ -1,5 +1,5 @@
 altgraph==0.15
-certifi==2018.4.16
+certifi==2018.8.13
 chardet==3.0.4
 cssselect==1.0.3
 future==0.16.0
