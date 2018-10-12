@@ -463,7 +463,7 @@ class MtgRu(CardSource):
             'mtgtrade.net',
             'myupkeep.ru',
         ]
-        super().__init__(logger, 'http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', SPECIFIC_SETS)
+        super().__init__(logger, 'http://mtg.ru', '/exchange/card.phtml?Title={query}&Amount=1', 'cp1251', 'cp1251', self.SPECIFIC_SETS)
 
     def escapeQueryText(self, queryText):
         return super().escapeQueryText(queryText)
