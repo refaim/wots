@@ -5,7 +5,7 @@ cssselect==1.0.3
 future==0.16.0
 idna==2.7
 lxml==4.2.5
-macholib==1.10
+macholib==1.11
 pefile==2018.8.8
 psutil==5.4.7
 pycrypto==2.6.1
