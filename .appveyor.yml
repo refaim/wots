@@ -16,6 +16,5 @@ build: off
 
 test_script:
   - pytest --cov app
-after_test:
   - coveralls
   - pyinstaller wizard.spec
