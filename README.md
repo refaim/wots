@@ -4,6 +4,7 @@
 ![Last Commit](https://img.shields.io/github/last-commit/refaim/wots.svg)
 [![Travis CI](https://travis-ci.org/refaim/wots.svg?branch=master)](https://travis-ci.org/refaim/wots)
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/ifvfy7vy8kru9if8?svg=true)](https://ci.appveyor.com/project/refaim/wots)
+[![Azure](https://dev.azure.com/rkharito/rkharito/_apis/build/status/azure.wots)](https://dev.azure.com/rkharito/rkharito/_build/latest?definitionId=1)
 ![Code Size](https://img.shields.io/github/languages/code-size/refaim/wots.svg)
 [![Coverage Status](https://coveralls.io/repos/github/refaim/wots/badge.svg)](https://coveralls.io/github/refaim/wots)
 
