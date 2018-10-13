@@ -2,7 +2,7 @@
 
 from OracleTest import OracleTest
 from card.components import ConditionOracle
-from core.utils import DummyLogger
+from tcomponents import DummyLogger
 
 
 class TestConditionOracle(OracleTest):

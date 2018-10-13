@@ -4,7 +4,7 @@ import unittest
 
 from OracleTest import OracleTest
 from card.components import SetOracle
-from core.utils import DummyLogger
+from tcomponents import DummyLogger
 
 
 class TestSetOracle(OracleTest):

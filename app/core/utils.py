@@ -55,26 +55,6 @@ class ILogger(ABC):
         raise NotImplementedError()
 
 
-class DummyLogger(ILogger):
-    def get_child(self, name: str) -> 'ILogger':
-        return self
-
-    def debug(self, message, *args, **kwargs):
-        pass
-
-    def info(self, message, *args, **kwargs):
-        pass
-
-    def warning(self, message, *args, **kwargs):
-        pass
-
-    def error(self, message, *args, **kwargs):
-        pass
-
-    def critical(self, message, *args, **kwargs):
-        pass
-
-
 class MultiprocessingLogger(ILogger):
     def __init__(self, name: str, queue: MpQueue):
         logging.basicConfig(stream=sys.stderr, level=logging.INFO, format='%(asctime)s [%(name)s] %(message)s')
