@@ -1,6 +1,5 @@
 import datetime
 import os
-import platform
 import sys
 
 import PyQt5
@@ -10,6 +9,7 @@ from PyInstaller.building.api import PYZ, EXE, COLLECT
 from PyInstaller.building.build_main import Analysis
 
 from app import version
+from core.utils import OsUtils
 
 RESOURCES_DIRECTORY = 'res'
 BINARY_RESOURCE_EXTENSIONS = {'.png'}
@@ -18,10 +18,10 @@ dotenv.load_dotenv('.env')
 
 extra_path = []
 version_file = None
-if platform.system() == 'Windows':
+if OsUtils.is_windows():
     extra_path.append(os.path.join(os.path.dirname(PyQt5.__file__), 'Qt', 'bin'))
     extra_path.append(os.path.dirname(sys.executable))
-    if platform.version().startswith('10.'):
+    if OsUtils.is_win10():
         for program_files_var in ['ProgramFiles', 'ProgramFiles(x86)']:
             for arch in ['x86', 'x64']:
                 dll_path = os.path.join(os.getenv(program_files_var), 'Windows Kits\\10\\Redist\\ucrt\\DLLs', arch)

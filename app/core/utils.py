@@ -1,7 +1,9 @@
 import codecs
+import enum
 import json
 import logging
 import os
+import platform
 import re
 import string
 import sys
@@ -104,9 +106,40 @@ class MultiprocessingLogger(ILogger):
         self.__log(self.__name, logging.CRITICAL, message, *args, **kwargs)
 
 
+class OsUtils(ABC):
+    @classmethod
+    def is_windows(cls):
+        return platform.system() == 'Windows'
+
+    @classmethod
+    def is_linux(cls):
+        return platform.system() == 'Linux'
+
+    @classmethod
+    def is_winxp_or_older(cls):
+        return cls.is_windows() and sys.getwindowsversion().major <= 5
+
+    @classmethod
+    def is_win10(cls):
+        return cls.is_windows() and sys.getwindowsversion().major == 10
+
+
+@enum.unique
+class Currency(enum.IntEnum):
+    RUR = enum.auto()
+    EUR = enum.auto()
+    USD = enum.auto()
+
+
 class StringUtils(ABC):
     LOWERCASE_LETTERS_RUSSIAN = set(u'абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
     LOWERCASE_LETTERS_ENGLISH = set(string.ascii_lowercase)
+
+    __CURRENCY_FORMATS = {
+        Currency.RUR: lambda: '{}р.' if OsUtils.is_winxp_or_older() else '{}₽',
+        Currency.EUR: lambda: '€{}',
+        Currency.USD: lambda: '${}',
+    }
 
     @classmethod
     def letters(cls, s: str) -> str:
@@ -118,3 +151,7 @@ class StringUtils(ABC):
         for match in re.finditer(r'([^\W\d_]+)', s, re.UNICODE):
             result.append(match.group(1))
         return result
+
+    @classmethod
+    def format_money(cls, amount, currency: Currency):
+        return cls.__CURRENCY_FORMATS[currency]().format(amount)

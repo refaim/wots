@@ -16,7 +16,6 @@ from typing import List
 import lxml.html
 
 import card.utils
-import core.currency
 import core.network
 from card.components import SetOracle, ConditionOracle, LanguageOracle
 from core.utils import ILogger, load_json_resource, StringUtils
@@ -210,7 +209,7 @@ class AngryBottleGnome(CardSource):
                     'foilness': bool(rawInfo['foilness']),
                     'count': int(rawInfo['count']),
                     'price': decimal.Decimal(rawInfo['price']),
-                    'currency': core.currency.RUR,
+                    'currency': core.utils.Currency.RUR,
                     'source': cardUrl,
                 })
 
@@ -246,7 +245,7 @@ class MtgRuShop(CardSource):
                 'foilness': bool(dataCells[3].text),
                 'count': int(re.match(r'(\d+)', dataCells[5].text).group(0)),
                 'price': decimal.Decimal(re.match(r'(\d+)', dataCells[6].text.replace('`', '')).group(0)),
-                'currency': core.currency.RUR,
+                'currency': core.utils.Currency.RUR,
                 'source': url,
             })
 
@@ -314,7 +313,7 @@ class ManaPoint(MtgRuShop):
                         'foilness': foil,
                         'count': int(re.match(r'(\d+)', dataCells[1].text).group(0)),
                         'price': decimal.Decimal(re.match(r'(\d+)', dataCells[2].text.replace('`', '')).group(0)),
-                        'currency': core.currency.RUR,
+                        'currency': core.utils.Currency.RUR,
                         'source': self.promoUrl,
                     }))
         return results
@@ -377,7 +376,7 @@ class MtgSale(CardSource):
                 'foilness': bool(resultsEntry.cssselect('p.foil')[0].text),
                 'count': count,
                 'price': price,
-                'currency': core.currency.RUR,
+                'currency': core.utils.Currency.RUR,
                 'source': url,
             })
 
@@ -437,7 +436,7 @@ class CardPlace(CardSource):
                 'language': language,
                 'condition': conditionString,
                 'price': decimal.Decimal(re.match(r'([\d.]+)', dataCells[6].text.strip()).group(0)),
-                'currency': core.currency.RUR,
+                'currency': core.utils.Currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
                 'source': anchorName.attrib['href'],
             })
@@ -530,7 +529,7 @@ class MtgRu(CardSource):
                         'set': setSource,
                         'language': language,
                         'price': price,
-                        'currency': core.currency.RUR,
+                        'currency': core.utils.Currency.RUR,
                         'count': int(cardInfo.cssselect('td.txt15 b')[0].text.split()[0]),
                         'source': self.packSource(cardSource, cardUrl),
                     })
@@ -629,7 +628,7 @@ class TopTrade(CardSource):
                 'set': cardSet,
                 'language': cardLanguage,
                 'price': decimal.Decimal(entry['cost']),
-                'currency': core.currency.RUR,
+                'currency': core.utils.Currency.RUR,
                 'count': entry['qty'],
                 'condition': cardCondition,
                 'source': self.packSource('topdeck.ru/' + seller, entry['url']),
@@ -679,7 +678,7 @@ class EasyBoosters(CardSource):
                     'set': cardPage.cssselect('.bx-breadcrumb-item a span')[-1].text,
                     'language': ''.join(language),
                     'price': decimal.Decimal(re.match(r'(\d+)', offer.cssselect('.offer-price')[0].text.strip()).group(0)),
-                    'currency': core.currency.RUR,
+                    'currency': core.utils.Currency.RUR,
                     'count': int(re.search(r'(\d+)', offer.cssselect('.super-offer span strong')[0].text).group(0)),
                     'condition': condition,
                     'source': anchor.attrib['href'],
@@ -757,7 +756,7 @@ class MtgTradeShop(CardSource):
                         'set': cardSet,
                         'language': ''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"') or None,
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price b')[0].text.split()).strip('" ')),
-                        'currency': core.currency.RUR,
+                        'currency': core.utils.Currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
                         'source': self.packSource(sourceCaption, anchor.attrib['href']), # TODO specify url to specific player + card
@@ -844,7 +843,7 @@ class AutumnsMagic(CardSource):
                 'foilness': foil or len([img for img in dscImages if 'foil' in img.attrib['src']]) > 0,
                 'count': int(re.match(r'^([\d]+).*', countTag.text.replace(' ', '')).group(1)),
                 'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', priceTag.text.strip()).group(1).replace(' ', '')),
-                'currency': core.currency.RUR,
+                'currency': core.utils.Currency.RUR,
                 'source': cardUrl,
             })
 
@@ -876,7 +875,7 @@ class HexproofRu(CardSource):
                         'set': cardSet,
                         'language': rawLng,
                         'price': decimal.Decimal(cardData['price_max'] / 100),
-                        'currency': core.currency.RUR,
+                        'currency': core.utils.Currency.RUR,
                         'count': int(variant['inventory_quantity']),
                         'condition': rawCnd,
                         'source': product.cssselect('.productitem--title a')[0].attrib['href'],
@@ -910,7 +909,7 @@ class MyMagic(CardSource):
                 'name': anchor.text,
                 'set': re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1),
                 'price': decimal.Decimal(re.match(r'(\d+)', priceBlock.cssselect('.price .current span')[0].text).group(1)),
-                'currency': core.currency.RUR,
+                'currency': core.utils.Currency.RUR,
                 'count': int(re.match(r'(\d+)', stocks[0].text.strip()).group(1)),
                 'source': anchor.attrib['href'],
             })
@@ -1014,7 +1013,7 @@ class GoodOrk(CardSource):
                 'set': cardSet,
                 'language': cardLanguage,
                 'price': decimal.Decimal(entry.cssselect('.price-number')[0].text.replace(' ', '')),
-                'currency': core.currency.RUR,
+                'currency': core.utils.Currency.RUR,
                 'count': True,
                 'source': anchor.attrib['href'] + '#?tab=tabOptions',
             })
@@ -1038,7 +1037,7 @@ class OfflineTestSource(CardSource):
                 'set': random.choice(self.setAbbreviations),
                 'language': random.choice(['RU', 'EN', 'FR', 'DE', 'ES']),
                 'price': decimal.Decimal(random.randint(10, 1000)) if bool(random.randint(0, 1)) else None,
-                'currency': random.choice([core.currency.RUR, core.currency.USD, core.currency.EUR]),
+                'currency': random.choice([core.utils.Currency.RUR, core.utils.Currency.USD, core.utils.Currency.EUR]),
                 'count': random.randint(1, 10),
                 'condition': random.choice(['HP', 'NM', 'SP', 'MP']),
                 'source': '',

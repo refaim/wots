@@ -1,7 +1,6 @@
 import logging
 import math
 import os
-import platform
 import sys
 from functools import partial
 from io import StringIO
@@ -12,7 +11,7 @@ from multiprocessing import freeze_support as mp_freeze_support, set_start_metho
 from queue import Queue as SpQueue
 from signal import SIGTERM
 from threading import Thread
-from typing import Callable
+from typing import Callable, ClassVar, Optional
 from webbrowser import open as open_browser
 
 import dotenv
@@ -23,12 +22,13 @@ from PyQt5 import QtWidgets
 from PyQt5 import uic
 
 import card.utils
-import core.currency
 import version
 from card.components import SetOracle, ConditionOracle, LanguageOracle
 from card.fixer import CardsFixer
 from card.sources import getCardSourceClasses, CardSource
-from core.utils import MultiprocessingLogger, load_json_resource, get_resource_path, ILogger
+from core.components.cbr import CentralBankApiClient
+from core.utils import Currency, ILogger, MultiprocessingLogger, OsUtils, StringUtils
+from core.utils import load_json_resource, get_project_root, get_resource_path
 
 SEARCH_RESULTS_TABLE_COLUMNS_INFO = [
     {
@@ -145,14 +145,35 @@ class HyperlinkItemDelegate(QtWidgets.QStyledItemDelegate):
         return False
 
 
+class Container(object):
+    def __init__(self):
+        self.__data = {}
+
+    def has(self, cls: ClassVar):
+        return cls in self.__data
+
+    def get(self, cls: ClassVar):
+        return self.__data[cls]
+
+    def put(self, value: object, cls: ClassVar = None) -> None:
+        if cls is None:
+            cls = value.__class__
+        self.__data[cls] = value
+
+
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, logger: ILogger):
         super().__init__()
 
+        self.logger = logger
+        self.container = Container()
+
+        cbr = Thread(target=setupCentralBank, args=(self.logger.get_child('cb'), gSentry, self.container))
+        cbr.daemon = True
+        cbr.start()
+
         uic.loadUi(get_resource_path('wizard.ui'), self)
         self.setWindowTitle(self.windowTitle().format(version=version.VERSION))
-
-        self.logger = logger
 
         self.foundCardsCount = 0
         self.wasSearchInProgress = False
@@ -195,11 +216,11 @@ class MainWindow(QtWidgets.QMainWindow):
         cardsNamesMap = load_json_resource('completion_map.json')
         cardsNamesSet = load_json_resource('completion_set.json')
 
-        langOracle = LanguageOracle(self.logger, thorough=False)
-        setOracle = SetOracle(self.logger, thorough=False)
-        conditionOracle = ConditionOracle(self.logger, thorough=False)
-        cardsFixer = CardsFixer(cardsInfo, cardsNamesMap, setOracle, langOracle, self.logger.get_child('fixer'))
-        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests, cardsFixer, langOracle, setOracle, conditionOracle)
+        self.container.put(LanguageOracle(self.logger, thorough=False))
+        self.container.put(SetOracle(self.logger, thorough=False))
+        self.container.put(ConditionOracle(self.logger, thorough=False))
+        self.container.put(CardsFixer(cardsInfo, cardsNamesMap, self.container.get(SetOracle), self.container.get(LanguageOracle), self.logger.get_child('fixer')))
+        self.searchResultsModel = CardsTableModel(SEARCH_RESULTS_TABLE_COLUMNS_INFO, self.searchResults, self.searchProgressQueue, self.priceRequests, self.container)
         self.searchResultsSortProxy = CardsSortProxy(SEARCH_RESULTS_TABLE_COLUMNS_INFO)
         self.searchResultsSortProxy.setSourceModel(self.searchResultsModel)
         self.searchResultsView.setModel(self.searchResultsSortProxy)
@@ -259,7 +280,7 @@ class MainWindow(QtWidgets.QMainWindow):
             row, column, priceInfo, searchVersion = self.obtainedPrices.get()
             if priceInfo and searchVersion == self.searchVersion:
                 batchLength += 1
-                self.searchResultsModel.updateCell(row, column, convertPrice(priceInfo))
+                self.searchResultsModel.updateCell(row, column, self.searchResultsModel.convertPrice(priceInfo))
         if batchLength > 0:
             self.searchResultsModel.endUpdateCells()
 
@@ -395,28 +416,25 @@ def queryPriceSource(priceSourceClass, sourceId, storagePath, resources, request
             resultsQueue.put((jobId, sourceId, priceInfo, cookie,))
 
 
-def convertPrice(priceInfo):
-    amount, currency = priceInfo['price'], priceInfo['currency']
-    original_amount, original_currency = amount, currency
-    if currency is not None and amount is not None and currency != core.currency.RUR:
-        roubles = gCurrencyConverter.convert(currency, core.currency.RUR, amount)
-        if roubles is not None:
-            amount, currency = roubles, core.currency.RUR
-    return {'amount': amount, 'currency': currency, 'original_amount': original_amount, 'original_currency': original_currency}
+def setupCentralBank(logger: ILogger, sentry: raven.Client, container: Container) -> None:
+    client = CentralBankApiClient(logger, sentry)
+    client.update_rates()
+    container.put(client)
 
 
 class CardsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests, cardsFixer: CardsFixer, langOracle: LanguageOracle, setOracle: SetOracle, conditionOracle: ConditionOracle):
+    def __init__(self, columnsInfo, dataQueue, statQueue, priceRequests, container: Container):
         super().__init__()
         self.columnsInfo = columnsInfo
         self.columnCount = len(columnsInfo)
         self.dataQueue = dataQueue
         self.statQueue = statQueue
         self.priceRequests = priceRequests
-        self.cardsFixer = cardsFixer
-        self.langOracle = langOracle
-        self.setOracle = setOracle
-        self.conditionOracle = conditionOracle
+        self.container = container
+        self.cardsFixer = self.container.get(CardsFixer)
+        self.langOracle = self.container.get(LanguageOracle)
+        self.setOracle = self.container.get(SetOracle)
+        self.conditionOracle = self.container.get(ConditionOracle)
         self.dataTable = []
         self.cardCount = 0
 
@@ -479,9 +497,9 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     return int(data['count']) or ''
             elif columnId.endswith('price') and data and data['amount'] is not None:
                 if role == QtCore.Qt.DisplayRole:
-                    return core.currency.formatPrice(core.currency.roundPrice(data['amount']), data['currency'])
+                    return StringUtils.format_money(int(data['amount']), data['currency'])
                 elif role == QtCore.Qt.ToolTipRole:
-                    return core.currency.formatPrice(data['original_amount'], data['original_currency']) if data['currency'] != data['original_currency'] else ''
+                    return StringUtils.format_money(data['original_amount'], data['original_currency']) if data['currency'] != data['original_currency'] else ''
             elif columnId == 'source':
                 if role == QtCore.Qt.DisplayRole:
                     return data['source']['caption']
@@ -523,7 +541,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     columnData[sourceId] = cardInfo.get(sourceId, None) or columnInfo['default_value']
 
                 if columnInfo['id'].endswith('price') and len(columnData) > 0:
-                    columnData = convertPrice(columnData)
+                    columnData = self.convertPrice(columnData)
 
                 rowData.append(columnData)
             self.dataTable.append(rowData)
@@ -545,6 +563,17 @@ class CardsTableModel(QtCore.QAbstractTableModel):
         # TODO Optimize
         for row, column in self.updatedCells:
             self.dataChanged.emit(self.index(row, column), self.index(row, column))
+
+    def convertPrice(self, priceInfo):
+        amount, currency = priceInfo['price'], priceInfo['currency']
+        original_amount, original_currency = amount, currency
+        if currency is not None and amount is not None and currency != Currency.RUR and self.container.has(CentralBankApiClient):
+            cbr: CentralBankApiClient = self.container.get(CentralBankApiClient)
+            roubles = cbr.exchange(amount, currency, Currency.RUR)
+            if roubles is not None:
+                amount, currency = roubles, Currency.RUR
+        return {'amount': amount, 'currency': currency, 'original_amount': original_amount, 'original_currency': original_currency}
+
 
 
 class CardsSortProxy(QtCore.QSortFilterProxyModel):
@@ -649,7 +678,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     mp_freeze_support()
-    dotenv.load_dotenv(os.path.join(core.utils.get_project_root(), '.env'))
+    dotenv.load_dotenv(os.path.join(get_project_root(), '.env'))
     gSentry = raven.Client(os.getenv('SENTRY_DSN'))
     sys.excepthook = partial(__catch_exceptions, sys.excepthook)
     try:
@@ -657,14 +686,11 @@ if __name__ == '__main__':
             sys.stdout = StringIO()
             sys.stderr = StringIO()
 
-        if platform.system() == 'Linux':
+        if OsUtils.is_linux():
             # workaround for creating instances of QApplication in the child processes created by multiprocessing on Linux
             mp_set_start_method('spawn')
 
         gRootLogger = setupLogging()
-        gCurrencyConverter = core.currency.Converter(gRootLogger.get_child('cb'))
-        gCurrencyConverter.update()
-
         gApplication = QtWidgets.QApplication(sys.argv)
         gWindow = MainWindow(gRootLogger)
         try:
