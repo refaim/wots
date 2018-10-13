@@ -404,10 +404,15 @@ class CardPlace(CardSource):
                 if 'condition_guide' in anchor.attrib['href']:
                     conditionString = anchor.text
 
-            cardId = None
-            cardSet = dataCells[1].cssselect('b')[0].text.strip("'")
             anchorName = dataCells[2].cssselect('a')[0]
             nameString = anchorName.text_content()
+            if any(s in nameString.lower() for s in ['чеклист', 'checklist']):
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
+            cardId = None
+            cardSet = re.sub(r'\(предзаказ\)', '', dataCells[1].cssselect('b')[0].text.strip("'"), 0, re.I)
             cardName = nameString
             isSpecialPromo = any(s in nameString for s in ['APAC', 'EURO', 'MPS'])
             if not isSpecialPromo:
@@ -921,7 +926,7 @@ class GoodOrk(CardSource):
             r'кау(т)?нтеры',
             r'(альбом(ов)?)|(лист(ов)?)|(журнал(ов)?)',
             r'(короб(оч)?ка)|(deck\s?box)',
-            r'набор|колода|deck|((двух|тр?х|четыр?х|пяти)цветн(ая|ый))|archenemy',
+            r'набор|колода|deck|((двух|тр?х|четыр?х|пяти)цветн(ая|ый))|archenemy|(from the vault)',
             r'дисплей|бустер',
             r'(^берсерк$)|(время героев)|(наследие классовых войн)',
         ]
