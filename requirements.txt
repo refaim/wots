@@ -15,4 +15,4 @@ python-dotenv==0.9.1
 raven==6.9.0
 requests==2.19.1
 sip==4.19.8
-urllib3==1.23
+urllib3==1.24
