@@ -914,9 +914,11 @@ class MyMagic(CardSource):
                 yield None
                 continue
             anchor = entry.cssselect('.name-column a')[0]
+            set = re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1)
+            set = re.match(r'^(?!Синглы «)?(.+)»?$', set, re.UNICODE).group(1)
             yield self.fillCardInfo({
                 'name': anchor.text,
-                'set': re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1),
+                'set': set,
                 'price': decimal.Decimal(re.match(r'(\d+)', priceBlock.cssselect('.price .current span')[0].text).group(1)),
                 'currency': core.utils.Currency.RUR,
                 'count': int(re.match(r'(\d+)', stocks[0].text.strip()).group(1)),
