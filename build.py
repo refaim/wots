@@ -9,7 +9,7 @@ from PyInstaller.building.api import PYZ, EXE, COLLECT
 from PyInstaller.building.build_main import Analysis
 
 from app import version
-from core.utils import OsUtils
+from app.core.utils import OsUtils
 
 RESOURCES_DIRECTORY = 'res'
 BINARY_RESOURCE_EXTENSIONS = {'.png'}

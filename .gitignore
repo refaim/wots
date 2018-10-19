@@ -1,8 +1,8 @@
 *.pyc
+.pytest_cache
 /.coverage
 /.env
 /.idea
-/.pytest_cache
 /build
 /dist
 /exe_version.txt
