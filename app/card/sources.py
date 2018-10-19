@@ -18,7 +18,8 @@ import lxml.html
 import card.utils
 import core.network
 from card.components import SetOracle, ConditionOracle, LanguageOracle
-from core.utils import ILogger, load_json_resource, StringUtils
+from card.utils import CardUtils
+from core.utils import ILogger, load_json_resource, StringUtils, LangUtils
 
 
 class CardSource(object):
@@ -71,7 +72,7 @@ class CardSource(object):
         return self.requestCache.get(url)
 
     def packName(self, caption, description=None):
-        return {'caption': card.utils.escape(card.utils.clean(caption.strip())), 'description': description}
+        return {'caption': caption.strip(), 'description': description}
 
     def makeAbsUrl(self, path):
         return urllib.parse.urljoin(self.url, path)
@@ -171,7 +172,7 @@ class CardSource(object):
 
     @staticmethod
     def _isCardUnwanted(cardName, queryText):
-        return LanguageOracle.guess_language(cardName) == LanguageOracle.guess_language(queryText) \
+        return LangUtils.guess_language(cardName) == LangUtils.guess_language(queryText) \
                and StringUtils.letters(queryText).lower() not in StringUtils.letters(cardName).lower()
 
 class AngryBottleGnome(CardSource):
@@ -281,7 +282,7 @@ class ManaPoint(MtgRuShop):
             if queryText.lower() in cardName.lower():
                 cardLang = self.langOracle.get_abbreviation(cardInfo['lang'] or '', quiet=True)
                 if cardLang is None:
-                    cardLang = LanguageOracle.guess_language(card.utils.getNameKey(cardName))
+                    cardLang = LangUtils.guess_language(CardUtils.make_key(cardName))
 
                 propStrings = []
                 supported = True # TODO support archenemy & planechase
@@ -824,7 +825,7 @@ class AutumnsMagic(CardSource):
             if len(lngTitles) > 0:
                 language = lngTitles[0]
             if not language:
-                language = LanguageOracle.guess_language(cardName)
+                language = LangUtils.guess_language(cardName)
             if self._isCardUnwanted(cardName, queryText):
                 self.estimatedCardsCount -= 1
                 yield None

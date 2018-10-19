@@ -7,8 +7,8 @@ import traceback
 import raven
 
 import card.sources
-import card.utils
 import core.utils
+from card.utils import CardUtils
 
 
 def main(args):
@@ -46,7 +46,7 @@ def main(args):
         for cardName in sample:
             if cardName not in queriedCards:
                 queriedCards[cardName] = True
-                stateString = '[{}] {} >= {}...'.format(setId, card.utils.escape(cardName), sourceId)
+                stateString = '[{}] {} >= {}...'.format(setId, CardUtils.utf2std(cardName), sourceId)
                 sys.stdout.write(stateString + ' ')
                 numFound = 0
                 # noinspection PyBroadException

@@ -9,7 +9,7 @@ import string
 import sys
 from abc import ABC, abstractmethod
 from multiprocessing import Queue as MpQueue
-from typing import List
+from typing import List, Optional
 
 
 def get_project_root() -> str:
@@ -112,7 +112,7 @@ class Currency(enum.IntEnum):
 
 
 class StringUtils(ABC):
-    LOWERCASE_LETTERS_RUSSIAN = set(u'абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
+    LOWERCASE_LETTERS_RUSSIAN = set('абвгдеёжзийклмнопрстуфхцчшщьыъэюя')
     LOWERCASE_LETTERS_ENGLISH = set(string.ascii_lowercase)
 
     __CURRENCY_FORMATS = {
@@ -135,3 +135,20 @@ class StringUtils(ABC):
     @classmethod
     def format_money(cls, amount, currency: Currency):
         return cls.__CURRENCY_FORMATS[currency]().format(amount)
+
+
+class LangUtils(ABC):
+    @classmethod
+    def guess_language(cls, s: str) -> Optional[str]:
+        result = None
+        for language, lang_letters in {'EN': StringUtils.LOWERCASE_LETTERS_ENGLISH, 'RU': StringUtils.LOWERCASE_LETTERS_RUSSIAN}.items():
+            if set(StringUtils.letters(s).lower()) <= lang_letters:
+                result = language
+                break
+        return result
+
+
+class DictUtils(ABC):
+    @classmethod
+    def flip(cls, d: dict) -> dict:
+        return {v: k for k, v in d.items()}

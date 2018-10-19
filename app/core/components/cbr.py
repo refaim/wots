@@ -7,7 +7,7 @@ import lxml.etree
 import raven
 
 import core.network
-from core.utils import Currency, ILogger
+from core.utils import Currency, ILogger, DictUtils
 
 
 class CentralBankApiClient(object):
@@ -20,7 +20,7 @@ class CentralBankApiClient(object):
     def __init__(self, logger: ILogger, sentry: raven.Client):
         self.__logger = logger
         self.__sentry = sentry
-        self.__currency_ids = {v: k for k, v in self.__CURRENCY_CODES.items()}
+        self.__currency_ids = DictUtils.flip(self.__CURRENCY_CODES)
         self.__rates: Dict[Currency, Tuple[Decimal, Decimal]] = None
 
     def exchange(self, amount: Decimal, src_currency: Currency, dst_currency: Currency) -> Optional[Decimal]:

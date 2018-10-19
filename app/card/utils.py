@@ -1,64 +1,69 @@
 # coding: utf-8
 
 import re
+from abc import ABC
+from typing import List
 
-from core.utils import StringUtils
-
-
-def _processCard(cardname, rules):
-    result = cardname
-    for key, value in rules.items():
-        result = result.replace(key, value)
-    return result
+from core.utils import LangUtils, StringUtils
 
 
-_STRINGS_TO_ESCAPE = {
-    u'Æ': u'AE',
-    u'\u2019': u"'",
-    u'“': u'',
-    u'”': u'',
-    u'«': u'',
-    u'»': u'',
-    u'"': u'',
-    u"'": u'',
-}
-_STRINGS_TO_UNESCAPE = {}
-for k, v in _STRINGS_TO_ESCAPE.items():
-    if len(v) > 0:
-        _STRINGS_TO_UNESCAPE[v] = k
+class CardUtils(ABC):
+    __UTF_TO_STD = {
+        'Æ': 'AE',
+        '│': '|',
+        '’': "'",
+        '“': '"',
+        '”': '"',
+        '«': '"',
+        '»': '"',
+    }
+    __STD_TO_UTF = {
+        "'": '’',
+        'AE': 'Æ',
+        '|': '│',
+        '/': '│',
+    }
+    __LANG_QUOTES = {
+        'EN': ('“', '”'),
+        'RU': ('«', '»'),
+    }
+    __DOUBLE_CARD_REGEXP = re.compile(r'\s*(\|+|\\+|/+|│+)\s*', re.UNICODE)
 
-_STRINGS_TO_CLEAN = {
-    u'//': u'/',
-}
+    @classmethod
+    def make_key(cls, card: str) -> str:
+        return StringUtils.letters(cls.utf2std(card)).lower()
 
-_CACHE_ESCAPE = {}
-_CACHE_UNESCAPE = {}
+    @classmethod
+    def utf2std(cls, card: str) -> str:
+        result = card
+        for k, v in cls.__UTF_TO_STD.items():
+            result = result.replace(k, v)
+        return result
 
-_LETTERS = StringUtils.LOWERCASE_LETTERS_ENGLISH | StringUtils.LOWERCASE_LETTERS_RUSSIAN
+    @classmethod
+    def std2utf(cls, card: str) -> str:
+        result = card
+        num_quotes = card.count('"')
+        assert num_quotes == 0 or num_quotes == 2
+        if num_quotes == 2:
+            for c in cls.__LANG_QUOTES[LangUtils.guess_language(card)]:
+                result = result.replace('"', c, 1)
+        for k, v in cls.__STD_TO_UTF.items():
+            result = result.replace(k, v)
+        return result
 
-_DOUBLE_FACED_CARD_RE = re.compile(r'\|+|\\+|/+')
+    @classmethod
+    def unquote(cls, card: str) -> str:
+        return card.replace('"', '')
 
+    @classmethod
+    def get_primary_name(cls, double_card: str) -> str:
+        return cls.split_name(double_card)[0]
 
-def escape(cardname):
-    if cardname not in _CACHE_ESCAPE:
-        _CACHE_ESCAPE[cardname] = _processCard(cardname, _STRINGS_TO_ESCAPE)
-    return _CACHE_ESCAPE[cardname]
-
-
-def unescape(cardname):
-    if cardname not in _CACHE_UNESCAPE:
-        _CACHE_UNESCAPE[cardname] = _processCard(cardname, _STRINGS_TO_UNESCAPE)
-    return _CACHE_UNESCAPE[cardname]
-
-
-def clean(cardname):
-    return _processCard(cardname, _STRINGS_TO_CLEAN)
-
-
-def getNameKey(cardname):
-    return u''.join(c for c in escape(cardname).lower() if c in _LETTERS)
-
-
-def getPrimaryName(cardname):
-    nameSeparator = u'\u2502'
-    return _DOUBLE_FACED_CARD_RE.split(cardname.replace(nameSeparator, u'|'))[0]
+    @classmethod
+    def split_name(cls, double_card: str) -> List[str]:
+        parts = cls.__DOUBLE_CARD_REGEXP.split(double_card)
+        result = []
+        for i in range(0, len(parts), 2):
+            result.append(parts[i])
+        return result

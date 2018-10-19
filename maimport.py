@@ -8,7 +8,7 @@ import re
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'app')))
-import card.utils
+from card.utils import CardUtils
 
 def main(args):
     complSet = set()
@@ -17,18 +17,17 @@ def main(args):
 
     with codecs.open(args[0], encoding='utf_16_le') as fobj:
         fobj.readline()  # skip header
-        reader = csv.DictReader(fobj, dialect=csv.excel_tab, fieldnames=['set', 'name', 'original', 'lang', 'foil', 'number'])
+        reader = csv.DictReader(fobj, dialect=csv.excel_tab, fieldnames=['set', 'eng_name', 'lng_name', 'lang', 'foil', 'number'])
         for row in reader:
-            row['name'] = card.utils.escape(card.utils.getPrimaryName(row['name']))
-            if row['original'] is None:
-                print(row)
-            row['original'] = card.utils.getPrimaryName(row['original'])
-            for key in (card.utils.getNameKey(cardName) for cardName in (row['name'], row['original']) if row['lang'] in ('RUS', 'ENG')):
-                complSet.add(card.utils.escape(row['original']))
-                completionString = card.utils.escape(row['name'])
-                values = complMap.setdefault(key, [])
-                if completionString not in values:
-                    values.append(completionString)
+            if row['lang'] in ('RUS', 'ENG'):
+                stdEngName = CardUtils.utf2std(row['eng_name'])
+                for fieldKey in ['eng_name', 'lng_name']:
+                    name = row[fieldKey]
+                    for part in CardUtils.split_name(name) + [name]:
+                        values = complMap.setdefault(CardUtils.make_key(part), [])
+                        if stdEngName not in values:
+                            values.append(stdEngName)
+                    complSet.add(CardUtils.unquote(CardUtils.utf2std(CardUtils.get_primary_name(name))))
 
             # workaround for some sort of csv parse bug
             if row['foil'] in ('POR', 'FRA'):
@@ -44,7 +43,7 @@ def main(args):
                 if match:
                     numberValue = int(match.group(1))
 
-            cardKey = card.utils.getNameKey(row['name'])
+            cardKey = CardUtils.make_key(row['eng_name'])
             setInfo = database.setdefault(row['set'], { 'cards': {}, 'foil': set(), 'languages': set() })
             setInfo['cards'][cardKey] = (numberValue, row['foil'])
             setInfo['foil'].add(row['foil'])

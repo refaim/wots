@@ -11,7 +11,7 @@ from multiprocessing import freeze_support as mp_freeze_support, set_start_metho
 from queue import Queue as SpQueue
 from signal import SIGTERM
 from threading import Thread
-from typing import Callable, ClassVar, Optional
+from typing import Callable, ClassVar
 from webbrowser import open as open_browser
 
 import dotenv
@@ -26,6 +26,7 @@ import version
 from card.components import SetOracle, ConditionOracle, LanguageOracle
 from card.fixer import CardsFixer
 from card.sources import getCardSourceClasses, CardSource
+from card.utils import CardUtils
 from core.components.cbr import CentralBankApiClient
 from core.utils import Currency, ILogger, MultiprocessingLogger, OsUtils, StringUtils
 from core.utils import load_json_resource, get_project_root, get_resource_path
@@ -347,7 +348,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         queryString = queryString.strip()
         self.searchField.setText(queryString)
-        queryString = card.utils.escape(queryString)
+        queryString = CardUtils.unquote(CardUtils.utf2std(queryString))
 
         while not self.priceRequests.empty():
             self.priceRequests.get_nowait()
@@ -480,7 +481,7 @@ class CardsTableModel(QtCore.QAbstractTableModel):
                     return self.langOracle.get_name(lang) if lang else None
             elif columnId == 'name':
                 if role == QtCore.Qt.DisplayRole:
-                    return card.utils.unescape(data['name']['caption'])
+                    return CardUtils.std2utf(data['name']['caption'])
             elif columnId == 'condition':
                 condition = data['condition']
                 if role == QtCore.Qt.DisplayRole:

@@ -1,7 +1,7 @@
 import copy
 
-import card.utils
 from card.components import SetOracle, LanguageOracle
+from card.utils import CardUtils
 from core.utils import ILogger
 
 
@@ -39,13 +39,13 @@ class CardsFixer(object):
 
     def fixCardInfo(self, cardInfo):
         cardInfo = copy.deepcopy(cardInfo)
-        cardInfo['name']['caption'] = card.utils.getPrimaryName(cardInfo['name']['caption'])
+        cardInfo['name']['caption'] = CardUtils.get_primary_name(cardInfo['name']['caption'])
 
-        cardKey = card.utils.getNameKey(cardInfo['name']['caption'])
+        cardKey = CardUtils.make_key(cardInfo['name']['caption'])
         if cardKey in self.cardsNames:
             newCardName = self.cardsNames[cardKey][0]
             cardInfo['name']['caption'] = newCardName
-            cardKey = card.utils.getNameKey(newCardName)
+            cardKey = CardUtils.make_key(newCardName)
 
         if 'description' not in cardInfo['name'] or cardInfo['name']['description'] is None:
             cardInfo['name']['description'] = ''

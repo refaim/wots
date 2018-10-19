@@ -71,13 +71,3 @@ class LanguageOracle(BaseOracle):
     def __init__(self, logger: ILogger, thorough: bool):
         super().__init__('language', 'languages.json', thorough, logger,
              StringUtils.LOWERCASE_LETTERS_ENGLISH | StringUtils.LOWERCASE_LETTERS_RUSSIAN | set('?'))
-
-    @classmethod
-    def guess_language(cls, s: str) -> Optional[str]:
-        result = None
-        for language, lang_letters in {'EN': StringUtils.LOWERCASE_LETTERS_ENGLISH, 'RU': StringUtils.LOWERCASE_LETTERS_RUSSIAN}.items():
-            letters = set(StringUtils.letters(s).lower())
-            if letters in lang_letters:
-                result = language
-                break
-        return result
