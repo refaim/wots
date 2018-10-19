@@ -670,12 +670,20 @@ class EasyBoosters(CardSource):
                 yield None
                 continue
 
-            cardName, foilString = re.match(r'^(.+?)(\s\(Foil\))?$', anchor.attrib['title']).groups()
+            isFoil = False
+            nameParts = []
+            for part in CardUtils.split_name(anchor.attrib['title']):
+                foilString, part = self.extractToken(r'(?P<token>\s\(Foil\))', part)
+                if foilString is not None:
+                    isFoil = True
+                nameParts.append(part)
+            cardName = nameParts[0] if len(nameParts) == 1 else CardUtils.join_name(nameParts[0], nameParts[1])
+
             for offer in offers:
                 condition, *language = offer.cssselect('.super-offer-name')[0].text.split()
                 yield self.fillCardInfo({
                     'name': cardName,
-                    'foilness': foilString is not None,
+                    'foilness': isFoil,
                     'set': cardPage.cssselect('.bx-breadcrumb-item a span')[-1].text,
                     'language': ''.join(language),
                     'price': decimal.Decimal(re.match(r'(\d+)', offer.cssselect('.offer-price')[0].text.strip()).group(0)),

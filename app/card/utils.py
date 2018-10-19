@@ -67,3 +67,7 @@ class CardUtils(ABC):
         for i in range(0, len(parts), 2):
             result.append(parts[i])
         return result
+
+    @classmethod
+    def join_name(cls, left: str, right: str) -> str:
+        return '{}/{}'.format(left, right)
