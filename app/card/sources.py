@@ -679,6 +679,11 @@ class EasyBoosters(CardSource):
                 nameParts.append(part)
             cardName = nameParts[0] if len(nameParts) == 1 else CardUtils.join_name(nameParts[0], nameParts[1])
 
+            if self._isCardUnwanted(cardName, queryText):
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
             for offer in offers:
                 condition, *language = offer.cssselect('.super-offer-name')[0].text.split()
                 yield self.fillCardInfo({

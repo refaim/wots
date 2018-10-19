@@ -28,7 +28,7 @@ CI:
 Баги:
  ✔ "Vraskas Contempt" -- теряется "’" при импорте из MA @done (18-10-16 01:02)
  ✔ Connive находит Сговориться (Foil) на easyboosters @done (18-10-20 01:08)
- ☐ Cast Down na easyboosters nahodit musor
+ ✔ Cast Down na easyboosters nahodit musor @done (18-10-20 09:45)
  ☐ Препоясаться для Битвы на goodork находит мусор всякий
  ☐ Sorcerous Spyglass на кардплейсе находится, но его в наличии нет
  ☐ Сортировка по цене должна None всегда ставить в конец
