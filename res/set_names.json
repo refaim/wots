@@ -67,7 +67,7 @@
   "DAE": ["Duel Decks Anthology: Elves vs. Goblins", "Duel Decks: Elves vs\\. Goblins \\(Anthology\\)"],
   "DAG": ["Duel Decks Anthology: Garruk vs. Liliana", "Duel Decks: Garruk vs\\. Liliana \\(Anthology\\)"],
   "DAJ": ["Duel Decks Anthology: Jace vs. Chandra", "Duel Decks: Jace vs\\. Chandra \\(Anthology\\)"],
-  "DD2": ["Duel Decks: Jace vs. Chandra", "(DD3_JVC)|(Jace vs. Chandra)"],
+  "DD2": ["Duel Decks: Jace vs. Chandra", "((DD3_)?JVC)|(Jace vs. Chandra)"],
   "DD3": ["Duel Decks: Anthology", null],
   "DDC": ["Duel Decks: Divine vs. Demonic", "((DD3_)?DVD)|(Divine vs\\. Demonic)"],
   "DDD": ["Duel Decks: Garruk vs. Liliana", "((DD3_)?GVL2?)|(Garruk vs\\. Liliana)"],
