@@ -429,6 +429,10 @@ class CardPlace(CardSource):
                     cardSet = 'Prerelease & Release Cards'
 
             nameImages = dataCells[2].cssselect('img')
+            count = int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0));
+            if count == 0:
+                yield None
+                continue
 
             yield {
                 'id': cardId,
@@ -439,7 +443,7 @@ class CardPlace(CardSource):
                 'condition': conditionString,
                 'price': decimal.Decimal(re.match(r'([\d.]+)', dataCells[6].text.strip()).group(0)),
                 'currency': core.utils.Currency.RUR,
-                'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
+                'count': count,
                 'source': anchorName.attrib['href'],
             }
 
