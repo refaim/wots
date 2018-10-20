@@ -21,7 +21,6 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import uic
 
-import card.utils
 import version
 from card.components import SetOracle, ConditionOracle, LanguageOracle
 from card.fixer import CardsFixer
@@ -296,9 +295,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchField.setEnabled(not searchInProgress)
         self.searchStartButton.setVisible(not searchInProgress)
         self.searchStopButton.setVisible(searchInProgress)
-        # if not searchInProgress and len(self.searchWorkers) > 0:
-        #     import pprint
-        #     pprint.pprint(self.searchProgressStats)
 
     def updateSearchProgress(self):
         currentProgress = self.searchProgress.value()
