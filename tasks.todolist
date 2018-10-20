@@ -29,6 +29,7 @@ CI:
  ☐ Починить CI на Azure
  ☐ Пробросить PYINSTALLER_CIPHER_KEY в сборщик на Azure
 Баги:
+ ☐ Починить прогрессбар на Liliana of the Veil
  ✔ "Vraskas Contempt" -- теряется "’" при импорте из MA @done (18-10-16 01:02)
  ✔ Connive находит Сговориться (Foil) на easyboosters @done (18-10-20 01:08)
  ✔ Cast Down na easyboosters nahodit musor @done (18-10-20 09:45)

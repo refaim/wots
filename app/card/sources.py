@@ -22,8 +22,6 @@ from core.utils import ILogger, load_json_resource, StringUtils, LangUtils
 
 
 class CardSource(object):
-    _dropUnrelated = False
-
     def __init__(self, logger: ILogger, url: str, queryUrlTemplate: str, queryEncoding: str = 'utf-8', responseEncoding: str = 'utf-8', setMap=None):
         self.url = url
         self.queryUrlTemplate = url + queryUrlTemplate
@@ -149,11 +147,10 @@ class CardSource(object):
                 if cardInfo is not None:
                     # noinspection PyTypeChecker
                     cardInfo = self.__fillCardInfo(cardInfo)
-                    if not self._dropUnrelated or not self._isCardUnrelated(cardInfo['name']['caption'], queryText):
-                        pageCards += 1
-                        yield cardInfo
-                    else:
-                        self.estimatedCardsCount -= 1
+                    pageCards += 1
+                    yield cardInfo
+                else:
+                    self.estimatedCardsCount -= 1
             if pageCards == 0:
                 self.estimatedCardsCount = self.foundCardsCount
                 yield None
@@ -353,7 +350,6 @@ class MtgSale(CardSource):
         for resultsEntry in html.cssselect('.tab_container div.ctclass'):
             count = int(re.match(r'(\d+)', resultsEntry.cssselect('p.colvo')[0].text).group(0))
             if count <= 0:
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
@@ -364,7 +360,6 @@ class MtgSale(CardSource):
 
             entrySet = resultsEntry.cssselect('p.nabor span')[0].attrib['title']
             if not (language or entrySet):
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
@@ -414,7 +409,6 @@ class CardPlace(CardSource):
             anchorName = dataCells[2].cssselect('a')[0]
             nameString = anchorName.text_content()
             if any(s in nameString.lower() for s in ['чеклист', 'checklist']):
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
@@ -489,7 +483,6 @@ class MtgRu(CardSource):
             nickname = userInfo.cssselect('tr th')[0].text
             exchangeUrl = userInfo.cssselect('tr td')[-1].cssselect('a')[0].attrib['href']
             if any(source in exchangeUrl.lower() for source in self.sourceSubstringsToExclude):
-                self.estimatedCardsCount -= 1
                 yield None
             else:
                 shopFound = not exchangeUrl.endswith('.html')
@@ -588,7 +581,6 @@ class TopTrade(CardSource):
 
             reserveString, dataString = self.extractToken(r'(?P<token>((за)?резерв(ирован(н)?(о|а|ы)?)?)|(reserv(e(d)?)?)|(отложен(н)?(о|а|ы)?))', dataString)
             if reserveString is not None:
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
@@ -675,7 +667,6 @@ class EasyBoosters(CardSource):
             cardName = nameParts[0] if len(nameParts) == 1 else CardUtils.join_name(nameParts[0], nameParts[1])
 
             if self._isCardUnrelated(cardName, queryText):
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
@@ -687,7 +678,6 @@ class EasyBoosters(CardSource):
                     tokenIndex = i
                     break
             if tokenIndex >= 0 and cardProps.cssselect('dd')[tokenIndex].text.strip() == 'Да':
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
@@ -752,7 +742,6 @@ class MtgTradeShop(CardSource):
                 if not sellerNickname:
                     sellerNickname = sellerBlock.cssselect('a')[0].text
                 if any(source in sellerNickname.lower() for source in self.sourceSubstringsToExclude):
-                    self.estimatedCardsCount -= 1
                     yield None
                     continue
 
@@ -768,7 +757,6 @@ class MtgTradeShop(CardSource):
 
                     cardSet = cardEntry.cssselect('.choose-set')[0].attrib['title']
                     if 'mtgo' in cardSet.lower():
-                        self.estimatedCardsCount -= 1
                         yield None
                         continue
                     yield {
@@ -810,8 +798,6 @@ class MagicCardMarket(MtgTradeShop):
 
 
 class AutumnsMagic(CardSource):
-    _dropUnrelated = True
-
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://autumnsmagic.com', '/catalog?search={query}&page={page}')
 
@@ -829,16 +815,17 @@ class AutumnsMagic(CardSource):
         for entry in html.cssselect('.product-wrapper'):
             cardUrl = entry.cssselect('a')[0].attrib['href']
             if any((c not in string.printable) for c in cardUrl):
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
             nameTags = entry.cssselect('.card-name')
             if len(nameTags) == 0:
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
             cardName = nameTags[0].cssselect('a')[0].text.strip()
+            if self._isCardUnrelated(cardName, queryText):
+                yield None
+                continue
 
             dscBlock = entry.cssselect('.product-description')[0]
             dscImages = dscBlock.cssselect('img')
@@ -921,7 +908,6 @@ class MyMagic(CardSource):
             priceBlock = entry.cssselect('.price-column')[0]
             stocks = priceBlock.cssselect('.stock .count')
             if len(stocks) == 0:
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
             anchor = entry.cssselect('.name-column a')[0]
@@ -978,7 +964,6 @@ class GoodOrk(CardSource):
 
             rawName = anchor.attrib['title']
             if len(entry.cssselect('a.btn-buy')) == 0 or any(regexp.search(rawName) for regexp in self.nonCardRegexps):
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
@@ -990,7 +975,6 @@ class GoodOrk(CardSource):
 
             cardName = self._parseDoubleName(nameString.strip())
             if self._isCardUnrelated(cardName, queryText):
-                self.estimatedCardsCount -= 1
                 yield None
                 continue
 
