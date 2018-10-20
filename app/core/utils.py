@@ -30,60 +30,55 @@ def load_json_resource(filename: str):
 
 
 class ILogger(ABC):
+    def __init__(self, name: str):
+        logging.basicConfig(stream=sys.stderr, level=logging.INFO, format='%(asctime)s [%(name)s] %(message)s')
+        self._name = name
+
     @abstractmethod
     def get_child(self, name: str) -> 'ILogger':
         raise NotImplementedError()
 
     @abstractmethod
-    def debug(self, message, *args, **kwargs):
+    def _log(self, name: str, level: int, message: str, *args, **kwargs) -> None:
         raise NotImplementedError()
 
-    @abstractmethod
-    def info(self, message, *args, **kwargs):
-        raise NotImplementedError()
+    def debug(self, message: str, *args, **kwargs) -> None:
+        self._log(self._name, logging.DEBUG, message, *args, **kwargs)
 
-    @abstractmethod
-    def warning(self, message, *args, **kwargs):
-        raise NotImplementedError()
+    def info(self, message: str, *args, **kwargs) -> None:
+        self._log(self._name, logging.INFO, message, *args, **kwargs)
 
-    @abstractmethod
-    def error(self, message, *args, **kwargs):
-        raise NotImplementedError()
+    def warning(self, message: str, *args, **kwargs) -> None:
+        self._log(self._name, logging.WARNING, message, *args, **kwargs)
 
-    @abstractmethod
-    def critical(self, message, *args, **kwargs):
-        raise NotImplementedError()
+    def error(self, message: str, *args, **kwargs) -> None:
+        self._log(self._name, logging.ERROR, message, *args, **kwargs)
+
+    def critical(self, message: str, *args, **kwargs) -> None:
+        self._log(self._name, logging.CRITICAL, message, *args, **kwargs)
+
+
+class StderrLogger(ILogger):
+    def get_child(self, name: str) -> 'ILogger':
+        return self
+
+    def _log(self, name: str, level: int, message: str, *args, **kwargs) -> None:
+        logging.getLogger(name).log(level, message, *args, *kwargs)
 
 
 class MultiprocessingLogger(ILogger):
     def __init__(self, name: str, queue: MpQueue):
-        logging.basicConfig(stream=sys.stderr, level=logging.INFO, format='%(asctime)s [%(name)s] %(message)s')
-        self.__name = name
+        super().__init__(name)
         self.__queue = queue
 
     def get_child(self, name: str) -> 'ILogger':
         child_name = name
-        if self.__name:
-            child_name = '{}.{}'.format(self.__name, child_name)
+        if self._name:
+            child_name = '{}.{}'.format(self._name, child_name)
         return MultiprocessingLogger(child_name, self.__queue)
 
-    def __log(self, name, level, message, *args, **kwargs):
+    def _log(self, name: str, level: int, message: str, *args, **kwargs) -> None:
         self.__queue.put((name, level, message, args, kwargs))
-
-    def debug(self, message, *args, **kwargs):
-        self.__log(self.__name, logging.DEBUG, message, *args, **kwargs)
-
-    def info(self, message, *args, **kwargs):
-        self.__log(self.__name, logging.INFO, message, *args, **kwargs)
-
-    def warning(self, message, *args, **kwargs):
-        self.__log(self.__name, logging.WARNING, message, *args, **kwargs)
-
-    def error(self, message, *args, **kwargs):
-        self.__log(self.__name, logging.ERROR, message, *args, **kwargs)
-
-    def critical(self, message, *args, **kwargs):
-        self.__log(self.__name, logging.CRITICAL, message, *args, **kwargs)
 
 
 class OsUtils(ABC):

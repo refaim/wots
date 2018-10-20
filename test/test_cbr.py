@@ -4,8 +4,7 @@ from decimal import Decimal
 import raven
 
 from core.components.cbr import CentralBankApiClient
-from core.utils import Currency
-from tcomponents import DummyLogger
+from core.utils import Currency, StderrLogger
 
 
 class TestCentralBankApiClient(unittest.TestCase):
@@ -13,7 +12,7 @@ class TestCentralBankApiClient(unittest.TestCase):
 
     @classmethod
     def get_client(cls) -> CentralBankApiClient:
-        return CentralBankApiClient(DummyLogger(), raven.Client())
+        return CentralBankApiClient(StderrLogger('cbr'), raven.Client())
 
     def test_empty_client(self):
         client = self.get_client()
@@ -22,7 +21,7 @@ class TestCentralBankApiClient(unittest.TestCase):
                 self.assertIsNone(client.exchange(Decimal(100), a, b))
 
     def test_exchange(self):
-        client = CentralBankApiClient(DummyLogger(), raven.Client())
+        client = self.get_client()
         self.assertTrue(client.update_rates())
         for a in self.CURRENCIES:
             for b in self.CURRENCIES:

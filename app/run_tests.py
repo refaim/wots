@@ -3,18 +3,19 @@ import subprocess
 
 import psutil
 
-import card.sources
+from card.sources import getCardSourceClasses
+from core.utils import StderrLogger
 
 
 def main():
     logsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'log'))
     processes = []
-    for classObject in card.sources.getCardSourceClasses():
-        source = classObject()
+    for classObject in getCardSourceClasses():
+        source = classObject(StderrLogger(classObject.__name__))
         sourceId = source.getTitle()
         print(sourceId)
         processes.append(subprocess.Popen([
-            'python3',
+            'python',
             'test_source.py',
             sourceId,
             os.path.join(logsPath, 'out_{}.log'.format(sourceId)),
@@ -23,6 +24,7 @@ def main():
     for p in processes:
         p.wait()
     return 0
+
 
 if __name__ == '__main__':
     # noinspection PyBroadException

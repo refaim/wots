@@ -7,8 +7,8 @@ import traceback
 import raven
 
 import card.sources
-import core.utils
 from card.utils import CardUtils
+from core.utils import load_json_resource, StderrLogger
 
 
 def main(args):
@@ -20,8 +20,8 @@ def main(args):
     sys.stdout = codecs.open(stdoutLog, 'a', 'utf-8')
     sys.stderr = codecs.open(stderrLog, 'a', 'utf-8')
 
-    cardsNamesMap = core.utils.load_json_resource('completion_map.json')
-    setsInfo = core.utils.load_json_resource('database.json')
+    cardsNamesMap = load_json_resource('completion_map.json')
+    setsInfo = load_json_resource('database.json')
 
     setsCards = {}
     for setId, setData in setsInfo.items():
@@ -33,7 +33,7 @@ def main(args):
     cardSourceClass = None
     cardSource = None
     for classObject in sorted(card.sources.getCardSourceClasses(), key=lambda x: x.__name__):
-        instance = classObject()
+        instance = classObject(StderrLogger(classObject.__name__))
         if instance.getTitle() == sourceId:
             cardSourceClass = classObject
             cardSource = instance

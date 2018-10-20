@@ -2,12 +2,12 @@
 
 from OracleTest import OracleTest
 from card.components import ConditionOracle
-from tcomponents import DummyLogger
+from core.utils import StderrLogger
 
 
 class TestConditionOracle(OracleTest):
     def get_oracle(self):
-        return ConditionOracle(DummyLogger(), thorough=True)
+        return ConditionOracle(StderrLogger('condition_oracle'), thorough=True)
 
     def test_match(self):
         self.e('HP', ['Heavily Played', 'Hardly Played', 'ХП', 'poor'])

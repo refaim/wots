@@ -2,12 +2,12 @@
 
 from OracleTest import OracleTest
 from card.components import LanguageOracle
-from tcomponents import DummyLogger
+from core.utils import StderrLogger
 
 
 class TestLanguageOracle(OracleTest):
     def get_oracle(self):
-        return LanguageOracle(DummyLogger(), thorough=True)
+        return LanguageOracle(StderrLogger('language_oracle'), thorough=True)
 
     def test_match(self):
         self.e('CN', ['китайский', 'кит', 'chinese', 'chi', 'kit'])

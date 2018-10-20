@@ -4,12 +4,12 @@ import unittest
 
 from OracleTest import OracleTest
 from card.components import SetOracle
-from tcomponents import DummyLogger
+from core.utils import StderrLogger
 
 
 class TestSetOracle(OracleTest):
     def get_oracle(self):
-        return SetOracle(DummyLogger(), thorough=True)
+        return SetOracle(StderrLogger('set_oracle'), thorough=True)
 
     def test_core_sets(self):
         self.e('LEA', ['Limited Edition Alpha', 'Alpha', 'Alpha Edition', 'A'])
