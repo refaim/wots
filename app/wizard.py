@@ -275,10 +275,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchResultsModel.fetchMore(None)
 
         batchLength = 0
-        self.searchResultsModel.beginUpdateCells()
         while not self.obtainedPrices.empty() and batchLength <= 10:
             row, column, priceInfo, searchVersion = self.obtainedPrices.get()
             if priceInfo and searchVersion == self.searchVersion:
+                if batchLength == 0:
+                    self.searchResultsModel.beginUpdateCells()
                 batchLength += 1
                 self.searchResultsModel.updateCell(row, column, self.searchResultsModel.convertPrice(priceInfo))
         if batchLength > 0:
