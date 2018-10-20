@@ -144,13 +144,18 @@ class CardSource(object):
 
             pageCards = 0
             for cardInfo in self._parseResponse(queryText, requestUrl, response):
-                if cardInfo is not None:
+                if isinstance(cardInfo, dict):
                     # noinspection PyTypeChecker
                     cardInfo = self.__fillCardInfo(cardInfo)
                     pageCards += 1
-                    yield cardInfo
-                else:
+                elif isinstance(cardInfo, int):
+                    self.estimatedCardsCount -= cardInfo
+                    cardInfo = None
+                elif cardInfo is None:
                     self.estimatedCardsCount -= 1
+                else:
+                    raise Exception('Unhandled card info type')
+                yield cardInfo
             if pageCards == 0:
                 self.estimatedCardsCount = self.foundCardsCount
                 yield None
@@ -732,8 +737,7 @@ class MtgTradeShop(CardSource):
                     break
 
             if not isSingle or isToken:
-                self.estimatedCardsCount -= len(resultsEntry.cssselect(self.cardSelector))
-                yield None
+                yield len(resultsEntry.cssselect(self.cardSelector))
                 continue
 
             for cardsGroup in resultsEntry.cssselect('table.search-card'):
@@ -745,15 +749,17 @@ class MtgTradeShop(CardSource):
                     sellerNickname = sellerNameBlocks[0].text.strip()
                 if not sellerNickname:
                     sellerNickname = sellerBlock.cssselect('a')[0].text
+
+                cardEntries = cardsGroup.cssselect('tbody tr')
                 if any(source in sellerNickname.lower() for source in self.sourceSubstringsToExclude):
-                    yield None
+                    yield len(cardEntries)
                     continue
 
                 sourceCaption = self.getTitle()
                 if sourceCaption != sellerNickname:
                     sourceCaption = '{}/{}'.format(sourceCaption, sellerNickname)
 
-                for cardEntry in cardsGroup.cssselect('tbody tr'):
+                for cardEntry in cardEntries:
                     condition = None
                     conditionBlocks = cardEntry.cssselect('.js-card-quality-tooltip')
                     if len(conditionBlocks) > 0:
@@ -878,8 +884,12 @@ class HexproofRu(CardSource):
             product = entry.cssselect('.productitem')[0]
             cardData = json.loads(entry.cssselect('.productitem-quickshop script')[0].text)['product']
             cardSet = re.match(r'^set_(.+)$', cardData['type']).group(1)
+            numFound = 0
             for variant in cardData['variants']:
                 if variant['available'] and variant['inventory_quantity'] > 0:
+                    numFound += 1
+                    if numFound > 1:
+                        self.estimatedCardsCount += 1
                     rawCnd, rawLng = variant['title'].split()
                     yield {
                         'name': cardData['title'],

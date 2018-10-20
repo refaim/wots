@@ -32,7 +32,7 @@ CI:
  ☐ Починить CI на Azure
  ☐ Пробросить PYINSTALLER_CIPHER_KEY в сборщик на Azure
 Баги:
- ☐ Починить прогрессбар на Liliana of the Veil
+ ✔ Починить прогрессбар на Liliana of the Veil @done (18-10-20 17:23)
  ✔ [shop.mymagic.ru] Unable to recognize set "Токены" @done (18-10-20 14:58)
  ✔ "Vraskas Contempt" -- теряется "’" при импорте из MA @done (18-10-16 01:02)
  ✔ Connive находит Сговориться (Foil) на easyboosters @done (18-10-20 01:08)
