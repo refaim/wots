@@ -298,12 +298,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchStopButton.setVisible(searchInProgress)
 
     def updateSearchProgress(self):
+        # TODO store in class field !!!!!!!!!!!!
         currentProgress = self.searchProgress.value()
         newEnabledState = currentProgress != 0 and currentProgress != 100
         if self.searchProgress.isEnabled() != newEnabledState:
             self.searchProgress.setEnabled(newEnabledState)
 
+        while not self.searchProgressQueue.empty():
+            engineId, foundCount, estimCount = self.searchProgressQueue.get()
+            self.searchProgressStats[engineId] = (foundCount, estimCount)
+
         searchInProgress = self.isSearchInProgress()
+        if self.wasSearchInProgress and not searchInProgress:
+            for engineId, worker in self.searchWorkers.items():
+                if engineId in self.searchProgressStats:
+                    foundCount, estimCount = self.searchProgressStats[engineId]
+                    if foundCount != estimCount:
+                        engineClass, *_ = self.__parseEngineId(engineId)
+                        self.logger.warning('[%s] %s: expected %d, found %d', engineClass, self.searchField.text(), estimCount, foundCount)
+                        self.searchProgressStats[engineId] = (estimCount, estimCount)
+
         message = None
         if self.searchResultsModel.cardCount == 0:
             message = 'Searching...'
@@ -312,36 +326,27 @@ class MainWindow(QtWidgets.QMainWindow):
             if searchInProgress:
                 message = '{} Searching for more...'.format(message)
             self.foundCardsCount = self.searchResultsModel.cardCount
-            self.wasSearchInProgress = searchInProgress
+        # TODO update only if changed !!!!!!!!!!!
         if message is not None:
             self.statusBar.showMessage(message)
 
-        if len(self.searchWorkers) == 0 or currentProgress == 100:
-            return
-
-        while not self.searchProgressQueue.empty():
-            engineId, foundCount, estimCount = self.searchProgressQueue.get()
-            self.searchProgressStats[engineId] = (foundCount, estimCount)
-
-        weightMultiplier = 1.0 / len(self.searchWorkers)
-        newProgress = 0
-        for engineId, worker in self.searchWorkers.items():
-            engineProgress = 0
-            if engineId in self.searchProgressStats:
-                foundCount, estimCount = self.searchProgressStats[engineId]
-                if estimCount == foundCount:
+        if len(self.searchWorkers) > 0 and currentProgress < 100:
+            weightMultiplier = 1.0 / len(self.searchWorkers)
+            newProgress = 0
+            for engineId, worker in self.searchWorkers.items():
+                engineProgress = 0
+                if engineId in self.searchProgressStats:
+                    foundCount, estimCount = self.searchProgressStats[engineId]
+                    engineProgress = min(100, foundCount / estimCount * 100) if estimCount > 0 else 100
+                elif not worker.is_alive():
                     engineProgress = 100
-                elif estimCount > 0:
-                    engineProgress = foundCount / estimCount * 100
-            elif not worker.is_alive():
-                engineProgress = 100
+                if engineProgress > 0:
+                    newProgress += min(100, engineProgress) * weightMultiplier
+            newProgress = math.ceil(newProgress)
+            if newProgress > currentProgress:
+                self.searchProgress.setValue(newProgress)
 
-            if engineProgress > 0:
-                newProgress += min(100, engineProgress) * weightMultiplier
-
-        newProgress = math.ceil(newProgress)
-        if newProgress > currentProgress:
-            self.searchProgress.setValue(newProgress)
+        self.wasSearchInProgress = searchInProgress
 
     def searchCards(self):
         queryString = self.searchField.text()
@@ -372,7 +377,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # sourceClasses = [card.sources.OfflineTestSource] * 10
 
         for i, sourceClass in enumerate(sourceClasses):
-            engineId = ';'.join((str(sourceClass), str(i + 1), str(self.searchVersion)))
+            engineId = self.__buildEngineId(sourceClass, i + 1)
             process = MpProcess(name=str(sourceClass), target=partial(mpEntryPoint, queryCardSource),
                 args=(engineId, sourceClass, queryString, self.searchResults, self.logger, self.searchStopEvent, self.searchVersion))
             process.daemon = True
@@ -382,6 +387,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.searchStopButton.setEnabled(True)
         self.updateSearchControlsStatus()
 
+    def __buildEngineId(self, engineClass: object, index: int) -> str:
+        return ';'.join((str(engineClass.__name__), str(index), str(self.searchVersion)))
+
+    def __parseEngineId(self, engineId: str) -> tuple:
+        return tuple(engineId.split(';'))
 
 def mpEntryPoint(original: Callable, *args, **kwargs) -> None:
     sentry = raven.Client(os.getenv('SENTRY_DSN'))
