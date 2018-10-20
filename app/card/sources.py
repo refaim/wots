@@ -15,7 +15,6 @@ from typing import List
 
 import lxml.html
 
-import card.utils
 import core.network
 from card.components import SetOracle, ConditionOracle, LanguageOracle
 from card.utils import CardUtils
@@ -23,6 +22,8 @@ from core.utils import ILogger, load_json_resource, StringUtils, LangUtils
 
 
 class CardSource(object):
+    _dropUnrelated = False
+
     def __init__(self, logger: ILogger, url: str, queryUrlTemplate: str, queryEncoding: str = 'utf-8', responseEncoding: str = 'utf-8', setMap=None):
         self.url = url
         self.queryUrlTemplate = url + queryUrlTemplate
@@ -83,7 +84,7 @@ class CardSource(object):
         result = {'caption': caption, 'url': cardUrl or caption}
         return result
 
-    def fillCardInfo(self, cardInfo):
+    def __fillCardInfo(self, cardInfo: dict) -> dict:
         cardInfo.setdefault('language', None)
         if isinstance(cardInfo['name'], str):
             cardInfo['name'] = self.packName(cardInfo['name'])
@@ -145,8 +146,14 @@ class CardSource(object):
 
             pageCards = 0
             for cardInfo in self._parseResponse(queryText, requestUrl, response):
-                pageCards += int(cardInfo is not None)
-                yield cardInfo
+                if cardInfo is not None:
+                    # noinspection PyTypeChecker
+                    cardInfo = self.__fillCardInfo(cardInfo)
+                    if not self._dropUnrelated or not self._isCardUnrelated(cardInfo['name']['caption'], queryText):
+                        pageCards += 1
+                        yield cardInfo
+                    else:
+                        self.estimatedCardsCount -= 1
             if pageCards == 0:
                 self.estimatedCardsCount = self.foundCardsCount
                 yield None
@@ -171,7 +178,7 @@ class CardSource(object):
         return []
 
     @staticmethod
-    def _isCardUnwanted(cardName, queryText):
+    def _isCardUnrelated(cardName: str, queryText: str) -> bool:
         return LangUtils.guess_language(cardName) == LangUtils.guess_language(queryText) \
                and StringUtils.letters(queryText).lower() not in StringUtils.letters(cardName).lower()
 
@@ -202,7 +209,7 @@ class AngryBottleGnome(CardSource):
                 self.estimatedCardsCount += len(cardVersions) - 1  # одну карту уже учли выше
             for cardVersion in cardVersions:
                 rawInfo = self.cardInfoRegexp.match(cardVersion.text).groupdict()
-                yield self.fillCardInfo({
+                yield {
                     'name': cardName,
                     'set': cardSet,
                     'language': rawInfo['language'],
@@ -212,7 +219,7 @@ class AngryBottleGnome(CardSource):
                     'price': decimal.Decimal(rawInfo['price']),
                     'currency': core.utils.Currency.RUR,
                     'source': cardUrl,
-                })
+                }
 
 
 class MtgRuShop(CardSource):
@@ -239,7 +246,7 @@ class MtgRuShop(CardSource):
             langImage = os.path.basename(urllib.parse.urlparse(dataCells[1].cssselect('img')[0].attrib['src']).path)
             language = self.langOracle.get_abbreviation(os.path.splitext(langImage)[0])
             nameSelector = 'span.CardName' if language == 'EN' else 'span.Zebra'
-            yield self.fillCardInfo({
+            yield {
                 'name': dataCells[2].cssselect(nameSelector)[0].text,
                 'set': dataCells[0].cssselect('img')[0].attrib['alt'],
                 'language': language,
@@ -248,7 +255,7 @@ class MtgRuShop(CardSource):
                 'price': decimal.Decimal(re.match(r'(\d+)', dataCells[6].text.replace('`', '')).group(0)),
                 'currency': core.utils.Currency.RUR,
                 'source': url,
-            })
+            }
 
 
 class Amberson(MtgRuShop):
@@ -307,7 +314,7 @@ class ManaPoint(MtgRuShop):
                     if setString is None:
                         print('Unable to detect set', propStrings)
 
-                    results.append(self.fillCardInfo({
+                    results.append({
                         'name': cardName,
                         'set': setString,
                         'language': cardLang,
@@ -316,7 +323,7 @@ class ManaPoint(MtgRuShop):
                         'price': decimal.Decimal(re.match(r'(\d+)', dataCells[2].text.replace('`', '')).group(0)),
                         'currency': core.utils.Currency.RUR,
                         'source': self.promoUrl,
-                    }))
+                    })
         return results
 
 class MtgSale(CardSource):
@@ -369,7 +376,7 @@ class MtgSale(CardSource):
             if priceString and not priceString.isspace():
                 price = decimal.Decimal(re.match(r'(\d+)', priceString.strip()).group(0))
 
-            yield self.fillCardInfo({
+            yield {
                 'name': resultsEntry.cssselect(nameSelector)[0].text,
                 'set': entrySet,
                 'language': language,
@@ -379,7 +386,7 @@ class MtgSale(CardSource):
                 'price': price,
                 'currency': core.utils.Currency.RUR,
                 'source': url,
-            })
+            }
 
 
 class CardPlace(CardSource):
@@ -429,7 +436,7 @@ class CardPlace(CardSource):
 
             nameImages = dataCells[2].cssselect('img')
 
-            yield self.fillCardInfo({
+            yield {
                 'id': cardId,
                 'name': cardName,
                 'foilness': len(nameImages) > 0 and nameImages[0].attrib['title'].lower() == 'foil',
@@ -440,7 +447,7 @@ class CardPlace(CardSource):
                 'currency': core.utils.Currency.RUR,
                 'count': int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0)),
                 'source': anchorName.attrib['href'],
-            })
+            }
 
 
 class MtgRu(CardSource):
@@ -523,7 +530,7 @@ class MtgRu(CardSource):
 
                     setSource = cardInfo.cssselect('#table0 td img')[0].attrib['alt']
 
-                    yield self.fillCardInfo({
+                    yield {
                         'id': cardId,
                         'name': cardName,
                         'foilness': foilness,
@@ -533,7 +540,7 @@ class MtgRu(CardSource):
                         'currency': core.utils.Currency.RUR,
                         'count': int(cardInfo.cssselect('td.txt15 b')[0].text.split()[0]),
                         'source': self.packSource(cardSource, cardUrl),
-                    })
+                    }
 
 
 class TopTrade(CardSource):
@@ -623,7 +630,7 @@ class TopTrade(CardSource):
             else:
                 seller = entry['seller']['name']
 
-            yield self.fillCardInfo({
+            yield {
                 'name': self.packName(entry['name'], rawDataString),
                 'foilness': cardFoil,
                 'set': cardSet,
@@ -633,10 +640,12 @@ class TopTrade(CardSource):
                 'count': entry['qty'],
                 'condition': cardCondition,
                 'source': self.packSource('topdeck.ru/' + seller, entry['url']),
-            })
+            }
 
 
 class EasyBoosters(CardSource):
+    _dropUnrelated = True
+
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'https://easyboosters.com', '/search/?q={query}&how=r&PAGEN_3={page}')
 
@@ -679,14 +688,9 @@ class EasyBoosters(CardSource):
                 nameParts.append(part)
             cardName = nameParts[0] if len(nameParts) == 1 else CardUtils.join_name(nameParts[0], nameParts[1])
 
-            if self._isCardUnwanted(cardName, queryText):
-                self.estimatedCardsCount -= 1
-                yield None
-                continue
-
             for offer in offers:
                 condition, *language = offer.cssselect('.super-offer-name')[0].text.split()
-                yield self.fillCardInfo({
+                yield {
                     'name': cardName,
                     'foilness': isFoil,
                     'set': cardPage.cssselect('.bx-breadcrumb-item a span')[-1].text,
@@ -696,7 +700,7 @@ class EasyBoosters(CardSource):
                     'count': int(re.search(r'(\d+)', offer.cssselect('.super-offer span strong')[0].text).group(0)),
                     'condition': condition,
                     'source': anchor.attrib['href'],
-                })
+                }
 
 
 class MtgTradeShop(CardSource):
@@ -764,7 +768,7 @@ class MtgTradeShop(CardSource):
                         self.estimatedCardsCount -= 1
                         yield None
                         continue
-                    yield self.fillCardInfo({
+                    yield {
                         'name': ' '.join(anchor.text_content().split()),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': cardSet,
@@ -774,7 +778,7 @@ class MtgTradeShop(CardSource):
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
                         'source': self.packSource(sourceCaption, anchor.attrib['href']), # TODO specify url to specific player + card
-                    })
+                    }
 
 
 class MtgTrade(MtgTradeShop):
@@ -801,7 +805,10 @@ class MagicCardMarket(MtgTradeShop):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://magiccardmarket.ru', [])
 
+
 class AutumnsMagic(CardSource):
+    _dropUnrelated = True
+
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://autumnsmagic.com', '/catalog?search={query}&page={page}')
 
@@ -839,10 +846,6 @@ class AutumnsMagic(CardSource):
                 language = lngTitles[0]
             if not language:
                 language = LangUtils.guess_language(cardName)
-            if self._isCardUnwanted(cardName, queryText):
-                self.estimatedCardsCount -= 1
-                yield None
-                continue
 
             foilString, cardName = self.extractToken(r'(?P<token>\s?\(фойловая\))', cardName)
             foil = foilString is not None
@@ -850,7 +853,7 @@ class AutumnsMagic(CardSource):
             countTag = [tag for tag in dscBlock.cssselect('span') if 'шт' in tag.text][0]
             priceTag = entry.cssselect('.product-footer .product-price .product-default-price')[0]
 
-            yield self.fillCardInfo({
+            yield {
                 'name': cardName,
                 'set': dscBlock.cssselect('i')[0].attrib['class'].split()[1][len('ss-'):],
                 'language': language,
@@ -859,7 +862,7 @@ class AutumnsMagic(CardSource):
                 'price': decimal.Decimal(re.match(r'.*?([\d ]+).*', priceTag.text.strip()).group(1).replace(' ', '')),
                 'currency': core.utils.Currency.RUR,
                 'source': cardUrl,
-            })
+            }
 
 
 class HexproofRu(CardSource):
@@ -884,7 +887,7 @@ class HexproofRu(CardSource):
             for variant in cardData['variants']:
                 if variant['available'] and variant['inventory_quantity'] > 0:
                     rawCnd, rawLng = variant['title'].split()
-                    yield self.fillCardInfo({
+                    yield {
                         'name': cardData['title'],
                         'set': cardSet,
                         'language': rawLng,
@@ -893,7 +896,7 @@ class HexproofRu(CardSource):
                         'count': int(variant['inventory_quantity']),
                         'condition': rawCnd,
                         'source': product.cssselect('.productitem--title a')[0].attrib['href'],
-                    })
+                    }
 
 
 class MyMagic(CardSource):
@@ -921,17 +924,19 @@ class MyMagic(CardSource):
             anchor = entry.cssselect('.name-column a')[0]
             set = re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1)
             set = re.match(r'^(?!Синглы «)?(.+)»?$', set, re.UNICODE).group(1)
-            yield self.fillCardInfo({
+            yield {
                 'name': anchor.text,
                 'set': set,
                 'price': decimal.Decimal(re.match(r'(\d+)', priceBlock.cssselect('.price .current span')[0].text).group(1)),
                 'currency': core.utils.Currency.RUR,
                 'count': int(re.match(r'(\d+)', stocks[0].text.strip()).group(1)),
                 'source': anchor.attrib['href'],
-            })
+            }
 
 
 class GoodOrk(CardSource):
+    _dropUnrelated = True
+
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'https://goodork.ru', '/search?categoryId=6317&q={query}&page={page}')
         nonCardRegexpStrings = [
@@ -981,12 +986,7 @@ class GoodOrk(CardSource):
             isPromo, nameString = self.extractToken(r'(?P<token>\(?(пре)?релиз\)?)', nameString)
             idString, nameString = self.extractToken(r'\(?#?(?P<token>\d+)(/\d+)?\)?(\s+L)?', nameString)
             _, nameString = self.extractToken(r'(?P<token>полноформатн\w+)', nameString)
-
             cardName = self._parseDoubleName(nameString.strip())
-            if self._isCardUnwanted(cardName, queryText):
-                self.estimatedCardsCount -= 1
-                yield None
-                continue
 
             cardId = None
             if idString is not None:
@@ -1022,7 +1022,7 @@ class GoodOrk(CardSource):
                     if match:
                         cardSet = match.group(1)
 
-            yield self.fillCardInfo({
+            yield {
                 'id': cardId,
                 'name': cardName,
                 'foilness': cardFoil,
@@ -1032,7 +1032,7 @@ class GoodOrk(CardSource):
                 'currency': core.utils.Currency.RUR,
                 'count': True,
                 'source': anchor.attrib['href'] + '#?tab=tabOptions',
-            })
+            }
 
 
 class OfflineTestSource(CardSource):
@@ -1046,7 +1046,7 @@ class OfflineTestSource(CardSource):
             if bool(random.randint(0, 1)):
                 time.sleep(random.randint(0, 1))
             # noinspection PyProtectedMember
-            yield self.fillCardInfo({
+            yield {
                 'id': random.randint(1, 300),
                 'name': random.choice(string.ascii_letters) * random.randint(10, 25),
                 'foilness': bool(random.randint(0, 1)),
@@ -1057,7 +1057,7 @@ class OfflineTestSource(CardSource):
                 'count': random.randint(1, 10),
                 'condition': random.choice(['HP', 'NM', 'SP', 'MP']),
                 'source': '',
-            })
+            }
 
 
 def getCardSourceClasses():
