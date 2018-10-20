@@ -966,7 +966,7 @@ class GoodOrk(CardSource):
 
     @staticmethod
     def _parseDoubleName(nameString):
-        rusName, engName = re.match(r'^([^(]+?)\s?(?:\(([^)]+)\))?$', nameString).groups()
+        rusName, engName = re.match(r'^([^(]+?)\s?(?:\(([^)]+)\))?(?:\s\(\))?$', nameString).groups()
         if engName is None:
             engName = rusName
         return engName.strip()
