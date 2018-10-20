@@ -323,7 +323,7 @@ class TestSetOracle(OracleTest):
         self.e('A25', ['Masters 25'])
 
         self.e('EVG', ['Duel Decks: Elves vs. Goblins', 'EVG2', 'Elves vs. Goblins', 'DD3_EVG'])
-        self.e('DD2', ['Duel Decks: Jace vs. Chandra', 'Jace vs. Chandra', 'DD3_JVC'])
+        self.e('DD2', ['Duel Decks: Jace vs. Chandra', 'Jace vs. Chandra', 'JVC', 'DD3_JVC'])
         self.e('DDC', ['Duel Decks: Divine vs. Demonic', 'Divine vs. Demonic', 'DVD', 'DD3_DVD'])
         self.e('DDD', ['Duel Decks: Garruk vs. Liliana', 'Garruk vs. Liliana', 'GVL', 'GVL2', 'DD3_GVL'])
         self.e('DDE', ['Duel Decks: Phyrexia vs. the Coalition', 'Phyrexia vs. the Coalition'])
