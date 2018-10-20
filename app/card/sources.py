@@ -110,7 +110,7 @@ class CardSource(object):
         self.estimatedCardsCount = len(preloadedCards)
         for cardInfo in preloadedCards:
             if cardInfo is not None:
-                yield cardInfo
+                yield self.__fillCardInfo(cardInfo)
 
         loopIndex = 0
         pageIndex = 0
