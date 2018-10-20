@@ -293,7 +293,7 @@ class TestSetOracle(OracleTest):
         self.e('C16', ['Commander 2016', 'Commander 2016 Edition'])
         self.e('CMA', ['Commander Anthology'])
         self.e('C17', ['Commander 2017', 'Commander 2017 Edition'])
-        self.e('CM2', ['Commander Anthology Volume II', 'Commander Anthology Volume 2'])
+        self.e('CM2', ['Commander Anthology Volume II', 'Commander Anthology Volume 2', 'Commander Anthology 2018'])
         self.e('C18', ['Commander 2018', 'Commander 2018 Edition'])
 
         self.e('DRB', ['From the Vault: Dragons', 'FTV: Dragons'])

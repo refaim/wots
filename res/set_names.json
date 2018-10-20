@@ -51,7 +51,7 @@
   "CHP": ["Champ & Tournament Promos", "(Champ|Tournament)s?( Promos?)?"],
   "CHR": ["Chronicles", null],
   "CM1": ["Commander's Arsenal", "Commander's Aresnal"],
-  "CM2": ["Commander Anthology Volume II", "Commander Anthology Volume 2"],
+  "CM2": ["Commander Anthology Volume II", "Commander Anthology ((Volume 2)|2018)"],
   "CMA": ["Commander Anthology", null],
   "CMD": ["Commander", "(Magic: The Gathering )?Commander( 2011)?"],
   "CN2": ["Conspiracy: Take the Crown", null],
