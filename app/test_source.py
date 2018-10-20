@@ -68,7 +68,7 @@ def main(args):
                     traceback.print_exc(file=sys.stderr)
                     sys.stderr.write(('=' * 100) + '\n')
                     del cardSource
-                    cardSource = cardSourceClass()
+                    cardSource = cardSourceClass(StderrLogger(cardSourceClass.__name__))
                 finally:
                     sys.stdout.flush()
                     sys.stderr.flush()
