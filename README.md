@@ -21,6 +21,7 @@
 - [angrybottlegnome.ru](http://angrybottlegnome.ru/)
 - [autumnsmagic.com](https://autumnsmagic.com/)
 - [bigmagic.ru](http://bigmagic.ru/)
+- [buymagic.com.ua](http://www.buymagic.com.ua/)
 - [cardplace.ru](https://www.cardplace.ru/)
 - [easyboosters.com](https://easyboosters.com/)
 - [goodork.ru](https://goodork.ru/)

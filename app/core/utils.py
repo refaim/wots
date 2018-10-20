@@ -106,8 +106,9 @@ class OsUtils(ABC):
 
 @enum.unique
 class Currency(enum.IntEnum):
-    RUR = enum.auto()
     EUR = enum.auto()
+    RUR = enum.auto()
+    UAH = enum.auto()
     USD = enum.auto()
 
 
@@ -116,8 +117,9 @@ class StringUtils(ABC):
     LOWERCASE_LETTERS_ENGLISH = set(string.ascii_lowercase)
 
     __CURRENCY_FORMATS = {
-        Currency.RUR: lambda: '{}р.' if OsUtils.is_winxp_or_older() else '{}₽',
         Currency.EUR: lambda: '€{}',
+        Currency.RUR: lambda: '{}р.' if OsUtils.is_winxp_or_older() else '{}₽',
+        Currency.UAH: lambda: '{} грн.' if OsUtils.is_winxp_or_older() else '{}₴',
         Currency.USD: lambda: '${}',
     }
 

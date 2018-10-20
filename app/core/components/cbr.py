@@ -14,6 +14,7 @@ class CentralBankApiClient(object):
     __CURRENCY_CODES = {
         Currency.EUR: 'EUR',
         Currency.RUR: 'RUR',
+        Currency.UAH: 'UAH',
         Currency.USD: 'USD',
     }
 

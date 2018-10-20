@@ -32,6 +32,8 @@ CI:
  ☐ Починить CI на Azure
  ☐ Пробросить PYINSTALLER_CIPHER_KEY в сборщик на Azure
 Баги:
+ ☐ [BuyMagic] fire: expected 171, found 177
+ ☐ Liliana's Shade прогресс 95%, а логи пустые
  ✔ Починить прогрессбар на Liliana of the Veil @done (18-10-20 17:23)
  ✔ [shop.mymagic.ru] Unable to recognize set "Токены" @done (18-10-20 14:58)
  ✔ "Vraskas Contempt" -- теряется "’" при импорте из MA @done (18-10-16 01:02)
@@ -57,7 +59,7 @@ CI:
  ✔ Обрезать лишнее в сетах на shop.mymagic.ru (см. "Синглы «Доминария»") @done (18-10-20 01:13)
  ☐ В обменниках мтгру русские названия искать НЕ НАДО НИКОГДА
  ☐ На топтрейде надо уметь определять сет по строке с описанием
- ☐ Реализовать поддержку http://www.buymagic.com.ua
+ ✔ Реализовать поддержку http://www.buymagic.com.ua @done (18-10-20 19:20)
  ☐ Токены, эмблемы, conspiracy, схемы, планы
  ☐ Переписать CardPlace на http://www.cardplace.ru/advancedsearch/mtg/
  ☐ Написать короткие автоматические тесты для каждого источника карт
@@ -67,6 +69,7 @@ CI:
    ☐ Amberson
    ☐ AngryBottleGnome
    ☐ AutumnsMagic
+   ☐ BuyMagic
    ☐ GoodOrk
    ☐ ManaPoint
    ☐ MtgRu

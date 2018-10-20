@@ -11,7 +11,7 @@ import time
 import urllib
 import urllib.error
 import urllib.parse
-from typing import List
+from typing import List, Optional, Tuple
 
 import lxml.html
 
@@ -60,14 +60,8 @@ class CardSource(object):
     def getHtml(self, url: str):
         url = self.makeAbsUrl(url)
         if url not in self.requestCache:
-            try:
-                byteString = core.network.getUrl(url, self.logger, None, False, self.verifySsl)
-                self.requestCache[url] = lxml.html.document_fromstring(byteString.decode(self.responseEncoding))
-            except Exception as ex:
-                message = str(ex)
-                if len(message) == 0 or message.isspace():
-                    raise
-                self.logger.warning(message)
+            byteString = core.network.getUrl(url, self.logger, None, False, self.verifySsl)
+            self.requestCache[url] = lxml.html.document_fromstring(byteString.decode(self.responseEncoding))
         return self.requestCache.get(url)
 
     def packName(self, caption, description=None):
@@ -1043,6 +1037,77 @@ class GoodOrk(CardSource):
                 'source': anchor.attrib['href'] + '#?tab=tabOptions',
             }
 
+class BuyMagic(CardSource):
+    __PRODUCT_SELECTOR = 'input[value="Купить"]'
+
+    def __init__(self, logger: ILogger):
+        super().__init__(logger, 'http://www.buymagic.com.ua', '/edition/?color=-1&type=-1&rare=-1&id=-1&name={query}&page={page}&submit=%s' % urllib.parse.quote('Искать'))
+
+    def _getPageCount(self, html):
+        result = 1
+        anchors = html.cssselect('div.c2 div table div a')
+        if len(anchors) > 0:
+            result = int(anchors[-1].text)
+        return result
+
+    def _getPageCardsCount(self, html):
+        return len(html.cssselect(self.__PRODUCT_SELECTOR))
+
+    def _parseDoubleName(self, nameString: str) -> Tuple[str, Optional[str], Optional[str]]:
+        n1, n2 = re.match(r'^([^\(]+)?(?:\((.+)\))?', nameString).groups()
+        name = n1
+        lang = None
+        comment = None
+        if n2 is not None:
+            lang = self.langOracle.get_abbreviation('RU' if 'рус' in n2.lower() else n2, quiet=True)
+            if lang is None:
+                if LangUtils.guess_language(n2) != 'EN':
+                    comment = n2
+                else:
+                    name = n2
+        return name.strip(), lang, comment
+
+    def _parseResponse(self, queryText, url, html):
+        blocks = {}
+        for image in html.cssselect('a.single_image'):
+            block = list(image.iterancestors())[0]
+            blocks[id(block)] = block
+        for block in blocks.values():
+            numProducts = len(block.cssselect(self.__PRODUCT_SELECTOR))
+            if 'Тип карты' not in block.text_content():
+                yield numProducts
+                continue
+            anchor = block.cssselect('a.link_card_name')[0]
+            cardName, blockSet = [s for s in anchor.text_content().split('\t') if s.strip()]
+            if any(s in cardName.lower() for s in ['token', 'emblem']):
+                yield numProducts
+                continue
+            cardName, langFromName, comment = self._parseDoubleName(cardName)
+            setIsRus, blockSet = self.extractToken(r'(?P<token>\sРУС)', blockSet)
+            blockSet = re.match(r'^\[(.+?)\]$', blockSet).group(1)
+            for entry in block.cssselect('table tr'):
+                text = entry.text_content()
+                cardSet = blockSet
+                langFromSet = self.langOracle.get_abbreviation(cardSet, quiet=True)
+                if langFromSet is not None:
+                    cardSet = None
+                language = langFromName
+                if language is None:
+                    language = self.langOracle.get_abbreviation(re.search(r'Язык: (\w+)', text).group(1))
+                    if language == 'RU' and setIsRus is None:
+                        language = 'EN'
+                    elif langFromSet is not None:
+                        language = langFromSet
+                yield {
+                    'name': self.packName(cardName, comment),
+                    'foilness': re.search(r'Тип: FOIL', text) is not None,
+                    'set': cardSet,
+                    'language': language,
+                    'price': decimal.Decimal(re.search(r'([\d\.]+) грн\.', text).group(1)),
+                    'currency': core.utils.Currency.UAH,
+                    'count': int(entry.cssselect('select[name="card_count"] option')[-1].text),
+                    'source': anchor.attrib['href'],
+                }
 
 class OfflineTestSource(CardSource):
     def __init__(self, logger: ILogger):
@@ -1075,6 +1140,7 @@ def getCardSourceClasses():
         AngryBottleGnome,
         AutumnsMagic,
         BigMagic,
+        BuyMagic,
         CardPlace,
         EasyBoosters,
         GoodOrk,
