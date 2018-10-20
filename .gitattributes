@@ -1,3 +1,4 @@
 * text eol=lf
-*.ui text eol=crlf
+*.cmd text eol=crlf
 *.png binary
+*.ui text eol=crlf

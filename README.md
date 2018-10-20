@@ -12,8 +12,6 @@
 
 Программа для поиска карт ККИ Magic the Gathering на русскоязычных торговых интернет-площадках.
 
-Написана с использованием Python 3.6 и PyQt5.
-
 Работает на Windows, Linux и OS X.
 
 ## Список поддерживаемых ресурсов
@@ -38,3 +36,18 @@
 
 ## Пример интерфейса программы
 ![Пример интерфейса](screenshot01.png)
+
+## Сборка проекта из исходного кода
+### Linux и Mac OS X
+Требования: Python 3.6.
+```
+pip install -r requirements.txt
+pip install -r requirements.test.txt
+make test
+make build
+```
+### Windows
+Требования: Python 3.6, Microsoft Visual Studio 14.0
+```
+setup_windows.cmd
+```

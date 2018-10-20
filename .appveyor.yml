@@ -8,8 +8,7 @@ environment:
 install:
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%
   - SET PYTHONPATH=%PYTHONPATH%;%APPVEYOR_BUILD_FOLDER%\\app
-  - SET CL=-FI"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\INCLUDE\stdint.h" # pycrypto build workaround
-  - python -m pip install -r requirements.windows.txt
+  - install_requirements.cmd
   - python -m pip install -r requirements.test.txt
 
 build: off
