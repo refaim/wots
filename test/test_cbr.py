@@ -11,9 +11,19 @@ from tcomponents import DummyLogger
 class TestCentralBankApiClient(unittest.TestCase):
     CURRENCIES = [Currency.EUR, Currency.RUR, Currency.USD]
 
+    @classmethod
+    def get_client(cls) -> CentralBankApiClient:
+        return CentralBankApiClient(DummyLogger(), raven.Client())
+
+    def test_empty_client(self):
+        client = self.get_client()
+        for a in self.CURRENCIES:
+            for b in self.CURRENCIES:
+                self.assertIsNone(client.exchange(Decimal(100), a, b))
+
     def test_exchange(self):
         client = CentralBankApiClient(DummyLogger(), raven.Client())
-        client.update_rates()
+        self.assertTrue(client.update_rates())
         for a in self.CURRENCIES:
             for b in self.CURRENCIES:
                 self.assertGreater(client.exchange(Decimal(100), a, b), 0)

@@ -30,7 +30,7 @@ class CentralBankApiClient(object):
         dst_nominal, dst_in_roubles = self.__rates[dst_currency]
         return amount / src_nominal * src_in_roubles / dst_in_roubles * dst_nominal
 
-    def update_rates(self) -> None:
+    def update_rates(self) -> bool:
         self.__rates = {}
         try:
             tree = lxml.etree.fromstring(core.network.getUrl('http://www.cbr.ru/scripts/XML_daily.asp', self.__logger))
@@ -45,6 +45,8 @@ class CentralBankApiClient(object):
         except Exception:
             self.__sentry.captureException()
             self.__rates = None
+            return False
+        return True
 
     @classmethod
     def __tag_text(cls, dom, key: str) -> str:
