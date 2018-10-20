@@ -935,8 +935,6 @@ class MyMagic(CardSource):
 
 
 class GoodOrk(CardSource):
-    _dropUnrelated = True
-
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'https://goodork.ru', '/search?brand=54&categoryId=6317&q={query}&page={page}')
         nonCardRegexpStrings = [
@@ -986,7 +984,12 @@ class GoodOrk(CardSource):
             isPromo, nameString = self.extractToken(r'(?P<token>\(?(пре)?релиз\)?)', nameString)
             idString, nameString = self.extractToken(r'\(?#?(?P<token>\d+)(/\d+)?\)?(\s+L)?', nameString)
             _, nameString = self.extractToken(r'(?P<token>полноформатн\w+)', nameString)
+
             cardName = self._parseDoubleName(nameString.strip())
+            if self._isCardUnrelated(cardName, queryText):
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
 
             cardId = None
             if idString is not None:
