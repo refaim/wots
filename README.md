@@ -7,6 +7,8 @@
 [![Azure](https://dev.azure.com/rkharito/rkharito/_apis/build/status/azure.wots)](https://dev.azure.com/rkharito/rkharito/_build/latest?definitionId=1)
 ![Code Size](https://img.shields.io/github/languages/code-size/refaim/wots.svg)
 [![Coverage Status](https://coveralls.io/repos/github/refaim/wots/badge.svg)](https://coveralls.io/github/refaim/wots)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/refaim/wots.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/refaim/wots/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/refaim/wots.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/refaim/wots/context:python)
 
 Программа для поиска карт ККИ Magic the Gathering на русскоязычных торговых интернет-площадках.
 
