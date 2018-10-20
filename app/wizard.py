@@ -307,12 +307,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchProgress.setEnabled(newEnabledState)
 
         searchInProgress = self.isSearchInProgress()
-        if self.searchResultsModel.cardCount > 0 and (self.foundCardsCount != self.searchResultsModel.cardCount or searchInProgress != self.wasSearchInProgress):
+        message = None
+        if self.searchResultsModel.cardCount == 0:
+            message = 'Searching...'
+        elif self.foundCardsCount != self.searchResultsModel.cardCount or searchInProgress != self.wasSearchInProgress:
             message = '{} entries found.'.format(self.searchResultsModel.cardCount)
             if searchInProgress:
                 message = '{} Searching for more...'.format(message)
             self.foundCardsCount = self.searchResultsModel.cardCount
             self.wasSearchInProgress = searchInProgress
+        if message is not None:
             self.statusBar.showMessage(message)
 
         if len(self.searchWorkers) == 0 or currentProgress == 100:
