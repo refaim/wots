@@ -644,8 +644,6 @@ class TopTrade(CardSource):
 
 
 class EasyBoosters(CardSource):
-    _dropUnrelated = True
-
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'https://easyboosters.com', '/search/?q={query}&how=r&PAGEN_3={page}')
 
@@ -666,8 +664,22 @@ class EasyBoosters(CardSource):
                 continue
 
             anchor = entry.cssselect('.product-item-title a')[0]
-            cardPage = self.getHtml(anchor.attrib['href'])
 
+            isFoil = False
+            nameParts = []
+            for part in CardUtils.split_name(anchor.attrib['title']):
+                foilString, part = self.extractToken(r'(?P<token>\s\(Foil\))', part)
+                if foilString is not None:
+                    isFoil = True
+                nameParts.append(part)
+            cardName = nameParts[0] if len(nameParts) == 1 else CardUtils.join_name(nameParts[0], nameParts[1])
+
+            if self._isCardUnrelated(cardName, queryText):
+                self.estimatedCardsCount -= 1
+                yield None
+                continue
+
+            cardPage = self.getHtml(anchor.attrib['href'])
             cardProps = cardPage.cssselect('.product-item-detail-properties')[0]
             tokenIndex = -1
             for i, dt in enumerate(cardProps.cssselect('dt')):
@@ -678,15 +690,6 @@ class EasyBoosters(CardSource):
                 self.estimatedCardsCount -= 1
                 yield None
                 continue
-
-            isFoil = False
-            nameParts = []
-            for part in CardUtils.split_name(anchor.attrib['title']):
-                foilString, part = self.extractToken(r'(?P<token>\s\(Foil\))', part)
-                if foilString is not None:
-                    isFoil = True
-                nameParts.append(part)
-            cardName = nameParts[0] if len(nameParts) == 1 else CardUtils.join_name(nameParts[0], nameParts[1])
 
             for offer in offers:
                 condition, *language = offer.cssselect('.super-offer-name')[0].text.split()
