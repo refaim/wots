@@ -938,7 +938,7 @@ class GoodOrk(CardSource):
     _dropUnrelated = True
 
     def __init__(self, logger: ILogger):
-        super().__init__(logger, 'https://goodork.ru', '/search?categoryId=6317&q={query}&page={page}')
+        super().__init__(logger, 'https://goodork.ru', '/search?brand=54&categoryId=6317&q={query}&page={page}')
         nonCardRegexpStrings = [
             r'(токен|token)',
             r'((и?гровое поле)|плеймат|коврик)',
