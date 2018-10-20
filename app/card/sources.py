@@ -910,9 +910,14 @@ class MyMagic(CardSource):
             if len(stocks) == 0:
                 yield None
                 continue
-            anchor = entry.cssselect('.name-column a')[0]
+
             set = re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1)
             set = re.match(r'^(?:Синглы «)?(.+?)»?$', set, re.UNICODE).group(1)
+            if 'токен' in set.lower():
+                yield None
+                continue
+
+            anchor = entry.cssselect('.name-column a')[0]
             yield {
                 'name': anchor.text,
                 'set': set,
