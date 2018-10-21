@@ -22,7 +22,7 @@
  ☐ Эвристика определения нужного цвета в зависимости от состояния карты
 CI:
  ✔ Перенести SET CL из конфига appveyour в build.py (заодно и существование файла проверить можно) @done (18-10-20 20:36)
- ☐ Убрать PYINSTALLER_CIPHER_KEY из .env при сборке
+ ☐ Убрать PYINSTALLER_CIPHER_KEY из .env при сборке (а лучше вообще .env в питоновский исходник перенести)
  ☐ Заменить Sentry DSN в .env на новый локально и во всех CI
  ✔ Запилить версионирование @done (18-10-13 02:08)
  ☐ Добавить в Travis деплой на гитхаб
@@ -32,9 +32,11 @@ CI:
  ✔ Починить CI на Azure, настроить сборку на каждый коммит @done (18-10-20 01:23)
  ☐ Починить CI на Azure
  ☐ Пробросить PYINSTALLER_CIPHER_KEY в сборщик на Azure
+ ☐ Добавить в сборку постройку msi-установщика через http://wixtoolset.org/
 Баги:
  ☐ [BuyMagic] fire: expected 171, found 177
  ☐ Liliana's Shade прогресс 95%, а логи пустые
+ ☐ Banefire прогресс 95%, а логи пустые
  ✔ Починить прогрессбар на Liliana of the Veil @done (18-10-20 17:23)
  ✔ [shop.mymagic.ru] Unable to recognize set "Токены" @done (18-10-20 14:58)
  ✔ "Vraskas Contempt" -- теряется "’" при импорте из MA @done (18-10-16 01:02)

@@ -90,7 +90,7 @@ class TestSetOracle(OracleTest):
         self.e('ALL', ['Alliances', 'AL', 'Союзничества'])
         self.e('CSP', ['Coldsnap', 'CS', 'Стужа'])
 
-        self.e('TST', ['Time Spiral Timeshifted', 'TSTS', 'Timeshifted', 'Time Shifted'])
+        self.e('TST', ['Time Spiral Timeshifted', 'TSTS', 'Timeshifted', 'Time Shifted', 'TSB'])
         self.e('TSP', ['Time Spiral', 'TS', 'Спираль времени'])
         self.e('PLC', ['Planar Chaos', 'PC', 'PCH', 'Вселенский хаос'])
         self.e('FUT', ['Future Sight', 'FS', 'Взгляд в будущее'])
@@ -98,7 +98,7 @@ class TestSetOracle(OracleTest):
         self.e('LRW', ['Lorwyn', 'LW', 'LOR', 'Лорвин'])
         self.e('MOR', ['Morningtide', 'MT', 'Рассвет'])
 
-        self.e('SHM', ['Shadowmoor', 'SM', 'Шэдоумур'])
+        self.e('SHM', ['Shadowmoor', 'SM', 'Шэдоумур', 'Шедоумур'])
         self.e('EVE', ['Eventide', 'ET', 'Сумерки'])
 
         self.e('ALA', ['Shards of Alara', 'SA', 'Осколки Алары'])
@@ -172,9 +172,11 @@ class TestSetOracle(OracleTest):
             'Stores Promos',
             'Unique and Miscellaneous Promos',
             'WotC Online Store',
+            'Промо за покупку продукции'
         ])
         self.e('PRL', [
             'Launch Party',
+            'Launch Promos',
             'Magic: The Gathering Launch Parties',
             'pLPA',
             'pPRE',
@@ -188,13 +190,16 @@ class TestSetOracle(OracleTest):
             'Release & Prerelease cards',
             'Release Events',
             'Release',
+            'Релиз промо',
+            'Предрелиз промо',
+            'Пререлиз промо',
         ])
         self.e('RED', ['Redemption Program Cards'])
         self.e('MPH', ['Magic Premiere Shop'])
         self.e('MPR', ['Magic Player Rewards', 'Reward cards', 'Textless Player Rewards', 'Player Rewards', 'pMPR'])
         self.e('MGD', ['Magic Game Day Cards', 'Magic Game Day', 'Game Day', 'Game Day Promos', 'pMGD', 'Game Day'])
         self.e('JSS', ['Junior Super Series', 'Junior Series Promos', 'Junior Super Series (JSS)', 'Super Series'])
-        self.e('JRW', ['Judge Rewards', 'Judge Gift Cards', 'Judge Gift Program', 'Judge Promo Cards', 'pJGP'])
+        self.e('JRW', ['Judge Rewards', 'Judge Gift Cards', 'Judge Gift Program', 'Judge Promo Cards', 'pJGP', 'Judge Promos'])
         self.e('INP', ['Intro Pack Promos'])
         self.e('HGB', ['Holiday Gift Box Promos'])
         self.e('HJP', ['Hobby Japan Commemorative Cards'])
@@ -207,7 +212,7 @@ class TestSetOracle(OracleTest):
         self.e('PRO', ['Pro Tour Promos', 'Pro Tour'])
         self.e('GPX', ['Grand Prix Promos', 'Grand Prix Promo', 'Grand Prix'])
         self.e('WLD', ['Championships Prizes'])
-        self.e('ARL', ['Arena League', 'Arena', 'Arena/Colosseo Leagues Promos', 'Arena Promo'])
+        self.e('ARL', ['Arena League', 'Arena', 'Arena/Colosseo Leagues Promos', 'Arena Promo', 'League Promos'])
         self.e('LND', ['Alternate Art Lands'])
         self.e('UGF', ["Ugin's Fate Promos", "Ugin's Fate", 'FRF_UGIN', "Ugin's Fate ugin"])
         self.e('HPP', ["Hero's Path Promos"])
@@ -246,8 +251,8 @@ class TestSetOracle(OracleTest):
         self.e('S11', ['Salvat 2011'])
 
         self.e('H09', ['Premium Deck Series: Slivers', 'Premium Deck: Slivers', 'PD: Slivers'])
-        self.e('PD2', ['Premium Deck Series: Fire and Lightning', 'Premium Deck Series: Fire & Lightning', 'Premium Deck: Fire and Lightning', 'Premium Deck: Fire & Lightning', 'PD: Fire and Lightning', 'PD: Fire & Lightning'])
-        self.e('PD3', ['Premium Deck Series: Graveborn', 'Premium Deck: Graveborn', 'PD: Graveborn'])
+        self.e('PD2', ['Premium Deck Series: Fire and Lightning', 'Premium Deck Series: Fire & Lightning', 'Premium Deck: Fire and Lightning', 'Premium Deck: Fire & Lightning', 'PD: Fire and Lightning', 'PD: Fire & Lightning', 'Fire and Lightning', 'Fire & Lightning'])
+        self.e('PD3', ['Premium Deck Series: Graveborn', 'Premium Deck: Graveborn', 'PD: Graveborn', 'Graveborn'])
 
         self.e('CD1', ['Challenge Deck: Face the Hydra'])
         self.e('CD2', ['Challenge Deck: Battle the Horde'])
@@ -285,16 +290,16 @@ class TestSetOracle(OracleTest):
         self.e('E01', ['Archenemy: Nicol Bolas'])
 
         self.e('OVS', ['Oversized Cards', 'Oversize Cards'])
-        self.e('CMD', ['Commander', 'Magic: The Gathering Commander', 'Commander 2011'])
+        self.e('CMD', ['Commander', 'Magic: The Gathering Commander', 'Commander 2011', 'Commander 2011 Edition', 'Commander (2011 Edition)'])
         self.e('CM1', ["Commander's Arsenal", "Commander's Aresnal"])
-        self.e('C13', ['Commander 2013', 'Commander 2013 Edition'])
-        self.e('C14', ['Commander 2014', 'Commander 2014 Edition'])
-        self.e('C15', ['Commander 2015', 'Commander 2015 Edition'])
-        self.e('C16', ['Commander 2016', 'Commander 2016 Edition'])
+        self.e('C13', ['Commander 2013', 'Commander 2013 Edition', 'Commander (2013 Edition)'])
+        self.e('C14', ['Commander 2014', 'Commander 2014 Edition', 'Commander (2014 Edition)'])
+        self.e('C15', ['Commander 2015', 'Commander 2015 Edition', 'Commander (2015 Edition)'])
+        self.e('C16', ['Commander 2016', 'Commander 2016 Edition', 'Commander (2016 Edition)'])
         self.e('CMA', ['Commander Anthology'])
-        self.e('C17', ['Commander 2017', 'Commander 2017 Edition'])
+        self.e('C17', ['Commander 2017', 'Commander 2017 Edition', 'Commander (2017 Edition)'])
         self.e('CM2', ['Commander Anthology Volume II', 'Commander Anthology Volume 2', 'Commander Anthology 2018'])
-        self.e('C18', ['Commander 2018', 'Commander 2018 Edition'])
+        self.e('C18', ['Commander 2018', 'Commander 2018 Edition', 'Commander (2018 Edition)'])
 
         self.e('DRB', ['From the Vault: Dragons', 'FTV: Dragons'])
         self.e('V09', ['From the Vault: Exiled', 'FTV: Exiled'])
@@ -348,9 +353,9 @@ class TestSetOracle(OracleTest):
         self.e('DDS', ['Duel Decks: Mind vs. Might', 'Mind vs. Might'])
         self.e('DDT', ['Duel Decks: Merfolk vs. Goblins', 'Merfolk vs. Goblins'])
         self.e('DDU', ['Duel Decks: Elves vs. Inventors', 'Elves vs. Inventors'])
-        self.e('GS1', ['Global Series: Jiang Yanggu & Mu Yanling'])
 
         self.e('BBD', ['Battlebond'])
+        self.e('GS1', ['Global Series: Jiang Yanggu & Mu Yanling', 'GLOBAL SERIES: JIANGG YANGGU & MU YANLING'])
 
 
 if __name__ == '__main__':
