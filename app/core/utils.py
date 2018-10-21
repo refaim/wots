@@ -98,6 +98,28 @@ class OsUtils(ABC):
     def is_win10(cls):
         return cls.is_windows() and sys.getwindowsversion().major == 10
 
+    @classmethod
+    def is_x64(cls):
+        return sys.maxsize > 2**32
+
+
+class PathUtils(ABC):
+    @classmethod
+    def get_folder_size(cls, path: string) -> int:
+        result = 0
+        for root, dirs, files in os.walk(path):
+            for filename in files:
+                result += os.path.getsize(os.path.join(root, filename))
+        return result
+
+    @classmethod
+    def quote(cls, path: string) -> string:
+        if not OsUtils.is_windows():
+            raise NotImplementedError
+        path = path.strip('"')
+        if ' ' in path:
+            path = '"{}"'.format(path)
+        return path
 
 @enum.unique
 class Currency(enum.IntEnum):

@@ -17,3 +17,4 @@ test_script:
   - pytest --cov app
   - coveralls
   - pyinstaller wizard.spec
+  - build_installer.cmd
