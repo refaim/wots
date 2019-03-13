@@ -9,5 +9,5 @@ pluggy==0.8.0
 py==1.7.0
 pytest-cov==2.6.0
 pytest==3.9.2
-PyYAML==3.13
+PyYAML==5.1
 six==1.11.0
