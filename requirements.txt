@@ -2,7 +2,7 @@ altgraph==0.16.1
 certifi==2018.10.15
 chardet==3.0.4
 cssselect==1.0.3
-future==0.16.0
+future==0.18.0
 idna==2.7
 lxml==4.2.5
 macholib==1.11
