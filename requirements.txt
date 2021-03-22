@@ -4,7 +4,7 @@ chardet==3.0.4
 cssselect==1.0.3
 future==0.16.0
 idna==2.7
-lxml==4.2.5
+lxml==4.6.3
 macholib==1.11
 pefile==2018.8.8
 psutil==5.4.7
