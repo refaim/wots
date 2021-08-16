@@ -178,6 +178,7 @@ class CardSource(object):
         return LangUtils.guess_language(cardName) == LangUtils.guess_language(queryText) \
                and StringUtils.letters(queryText).lower() not in StringUtils.letters(cardName).lower()
 
+
 class AngryBottleGnome(CardSource):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://angrybottlegnome.ru', '/shop/search/{query}/filter/instock', setMap={'Promo - Special': 'Media Inserts'})
@@ -252,11 +253,6 @@ class MtgRuShop(CardSource):
                 'currency': core.utils.Currency.RUR,
                 'source': url,
             }
-
-
-class Amberson(MtgRuShop):
-    def __init__(self, logger: ILogger):
-        super().__init__(logger, 'http://amberson.mtg.ru', '3.html')
 
 
 class ManaPoint(MtgRuShop):
@@ -796,11 +792,6 @@ class MtgShopRu(MtgTradeShop):
         super().__init__(logger, 'http://mtgshop.ru', [])
 
 
-class MagicCardMarket(MtgTradeShop):
-    def __init__(self, logger: ILogger):
-        super().__init__(logger, 'http://magiccardmarket.ru', [])
-
-
 class AutumnsMagic(CardSource):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://autumnsmagic.com', '/catalog?search={query}&page={page}')
@@ -858,184 +849,6 @@ class AutumnsMagic(CardSource):
                 'source': cardUrl,
             }
 
-
-class HexproofRu(CardSource):
-    def __init__(self, logger: ILogger):
-        super().__init__(logger, 'https://hexproof.ru', '/search?type=product&q={query}')
-
-    def _getPageCount(self, html):
-        return 1
-
-    @staticmethod
-    def _listEntries(html):
-        return html.cssselect('.productgrid--items')[0].cssselect('.productgrid--item')
-
-    def _getPageCardsCount(self, html):
-        return len(self._listEntries(html))
-
-    def _parseResponse(self, queryText, url, html):
-        for entry in self._listEntries(html):
-            product = entry.cssselect('.productitem')[0]
-            cardData = json.loads(entry.cssselect('.productitem-quickshop script')[0].text)['product']
-            cardSet = re.match(r'^set_(.+)$', cardData['type']).group(1)
-            numFound = 0
-            for variant in cardData['variants']:
-                if variant['available'] and variant['inventory_quantity'] > 0:
-                    numFound += 1
-                    if numFound > 1:
-                        self.estimatedCardsCount += 1
-                    rawCnd, rawLng = variant['title'].split()
-                    yield {
-                        'name': cardData['title'],
-                        'set': cardSet,
-                        'language': rawLng,
-                        'price': decimal.Decimal(cardData['price_max'] / 100),
-                        'currency': core.utils.Currency.RUR,
-                        'count': int(variant['inventory_quantity']),
-                        'condition': rawCnd,
-                        'source': product.cssselect('.productitem--title a')[0].attrib['href'],
-                    }
-
-
-class MyMagic(CardSource):
-    def __init__(self, logger: ILogger):
-        super().__init__(logger, 'https://shop.mymagic.ru', '/collection/card-search?q={query}&page={page}')
-
-    def _getPageCount(self, html):
-        result = 1
-        buttons = html.cssselect('a.PageButton')
-        if len(buttons) > 0:
-            result = int(buttons[-1].text)
-        return result
-
-    def _getPageCardsCount(self, html):
-        return len(html.cssselect('.SingleListItem'))
-
-    def _parseResponse(self, queryText, url, html):
-        for entry in html.cssselect('.SingleListItem'):
-            priceBlock = entry.cssselect('.price-column')[0]
-            stocks = priceBlock.cssselect('.stock .count')
-            if len(stocks) == 0:
-                yield None
-                continue
-
-            set = re.match(r'^(.+?)(\s\(.+\))?$', entry.cssselect('.set-column')[0].text).group(1)
-            set = re.match(r'^(?:Синглы «)?(.+?)»?$', set, re.UNICODE).group(1)
-            if 'токен' in set.lower():
-                yield None
-                continue
-
-            anchor = entry.cssselect('.name-column a')[0]
-            yield {
-                'name': anchor.text,
-                'set': set,
-                'price': decimal.Decimal(re.match(r'(\d+)', priceBlock.cssselect('.price .current span')[0].text).group(1)),
-                'currency': core.utils.Currency.RUR,
-                'count': int(re.match(r'(\d+)', stocks[0].text.strip()).group(1)),
-                'source': anchor.attrib['href'],
-            }
-
-
-class GoodOrk(CardSource):
-    def __init__(self, logger: ILogger):
-        super().__init__(logger, 'https://goodork.ru', '/search?brand=54&categoryId=6317&q={query}&page={page}')
-        nonCardRegexpStrings = [
-            r'(токен|token)',
-            r'((и?гровое поле)|плеймат|коврик)',
-            r'(протекторы|разделители|toploaders|sleeves)',
-            r'кау(т)?нтеры',
-            r'(альбом(ов)?)|(лист(ов)?)|(журнал(ов)?)',
-            r'(короб(оч)?ка)|(deck\s?box)',
-            r'набор|колода|deck|((двух|тр?х|четыр?х|пяти)цветн(ая|ый))|archenemy|(from the vault)|антология',
-            r'дисплей|бустер',
-            r'(^берсерк$)|(время героев)|(наследие классовых войн)',
-        ]
-        self.nonCardRegexps = []
-        for pattern in nonCardRegexpStrings:
-            self.nonCardRegexps.append(re.compile(pattern, re.IGNORECASE | re.UNICODE))
-
-    def _getPageCount(self, html):
-        result = 1
-        anchors = html.cssselect('.pagenumberer-item-link')
-        if len(anchors) > 0:
-            result = int(anchors[-1].text)
-        return result
-
-    def _getPageCardsCount(self, html):
-        return len(html.cssselect('.products-view-item'))
-
-    @staticmethod
-    def _parseDoubleName(nameString):
-        rusName, engName = re.match(r'^([^(]+?)\s?(?:\(([^)]+)\))?(?:\s\(\))?$', nameString).groups()
-        if engName is None:
-            engName = rusName
-        return engName.strip()
-
-    def _parseResponse(self, queryText, url, html):
-        for entry in html.cssselect('.products-view-item'):
-            anchor = entry.cssselect('.products-view-name a')[0]
-
-            rawName = anchor.attrib['title']
-            if len(entry.cssselect('a.btn-buy')) == 0 or any(regexp.search(rawName) for regexp in self.nonCardRegexps):
-                yield None
-                continue
-
-            foilString, nameString = self.extractToken(r'(?P<token>foil)', rawName)
-            langString, nameString = self.extractToken(r'(?P<token>\w+\.)', nameString)
-            isPromo, nameString = self.extractToken(r'(?P<token>\(?(пре)?релиз\)?)', nameString)
-            idString, nameString = self.extractToken(r'\(?#?(?P<token>\d+)(/\d+)?\)?(\s+L)?', nameString)
-            _, nameString = self.extractToken(r'(?P<token>полноформатн\w+)', nameString)
-
-            cardName = self._parseDoubleName(nameString.strip())
-            if self._isCardUnrelated(cardName, queryText):
-                yield None
-                continue
-
-            cardId = None
-            if idString is not None:
-                cardId = int(idString)
-
-            cardLanguage = None
-            if langString is not None:
-                cardLanguage = self.langOracle.get_abbreviation(langString.rstrip('.'))
-            cardFoil = foilString is not None
-
-            cardPage = self.getHtml(anchor.attrib['href'])
-            cardSet = None
-            propValues = cardPage.cssselect('ul.properties .properties-item-value span')
-            for i, prop in enumerate(cardPage.cssselect('ul.properties .properties-item-name')):
-                name = prop.text.strip()
-                value = propValues[i].text.strip()
-                if name == 'Издание':
-                    cardSet = self._parseDoubleName(value)
-                elif name == 'Foil':
-                    cardFoil = value == 'Да'
-                elif name == 'Язык':
-                    cardLanguage = value
-            if isPromo:
-                cardSet = 'Prerelease & Release Cards'
-
-            if cardSet is None:
-                vendorCode = None
-                for block in cardPage.cssselect('.details-sku .details-param-value'):
-                    if block.attrib['data-ng-bind'] == 'product.offerSelected.ArtNo':
-                        vendorCode = block.text.strip()
-                if vendorCode is not None:
-                    match = re.match(r'^M([a-z0-9]+)_?.+$', vendorCode, re.IGNORECASE)
-                    if match:
-                        cardSet = match.group(1)
-
-            yield {
-                'id': cardId,
-                'name': cardName,
-                'foilness': cardFoil,
-                'set': cardSet,
-                'language': cardLanguage,
-                'price': decimal.Decimal(entry.cssselect('.price-number')[0].text.replace(' ', '')),
-                'currency': core.utils.Currency.RUR,
-                'count': True,
-                'source': anchor.attrib['href'] + '#?tab=tabOptions',
-            }
 
 class BuyMagic(CardSource):
     __PRODUCT_SELECTOR = 'input[value="Купить"]'
@@ -1136,21 +949,16 @@ class OfflineTestSource(CardSource):
 
 def getCardSourceClasses():
     classes = [
-        Amberson,
         AngryBottleGnome,
         AutumnsMagic,
         BigMagic,
         BuyMagic,
         CardPlace,
         EasyBoosters,
-        GoodOrk,
-        HexproofRu,
-        MagicCardMarket,
         ManaPoint,
         MtgRu,
         MtgSale,
         MtgTrade,
-        MyMagic,
         MyUpKeep,
         MtgShopRu,
         TopTrade,
