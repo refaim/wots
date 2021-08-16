@@ -458,10 +458,8 @@ class MtgRu(CardSource):
 
     def __init__(self, logger: ILogger):
         self.sourceSubstringsToExclude = [
-            'amberson.mtg.ru',
             'autumnsmagic.com',
             'cardplace.ru',
-            'easyboosters.com',
             'manapoint.mtg.ru',
             'mtgsale.ru',
             'mtgshop.ru',
