@@ -634,67 +634,6 @@ class TopTrade(CardSource):
             }
 
 
-class EasyBoosters(CardSource):
-    def __init__(self, logger: ILogger):
-        super().__init__(logger, 'https://easyboosters.com', '/search/?q={query}&how=r&PAGEN_3={page}')
-
-    def _getPageCount(self, html):
-        pagesCount = 1
-        pagesLinks = html.cssselect('.bx-pagination li a')
-        if len(pagesLinks) > 0:
-            pagesCount = int(re.match(r'.+PAGEN_3=(\d+).*', pagesLinks[-1].attrib['href']).group(1))
-        return pagesCount
-
-    def _getPageCardsCount(self, html):
-        return len(html.cssselect('.super-offer'))
-
-    def _parseResponse(self, queryText, url, html):
-        for entry in html.cssselect('.product-item'):
-            offers = entry.cssselect('.super-offer')
-            if len(offers) == 0:
-                continue
-
-            anchor = entry.cssselect('.product-item-title a')[0]
-
-            isFoil = False
-            nameParts = []
-            for part in CardUtils.split_name(anchor.attrib['title']):
-                foilString, part = self.extractToken(r'(?P<token>\s\(Foil\))', part)
-                if foilString is not None:
-                    isFoil = True
-                nameParts.append(part)
-            cardName = nameParts[0] if len(nameParts) == 1 else CardUtils.join_name(nameParts[0], nameParts[1])
-
-            if self._isCardUnrelated(cardName, queryText):
-                yield None
-                continue
-
-            cardPage = self.getHtml(anchor.attrib['href'])
-            cardProps = cardPage.cssselect('.product-item-detail-properties')[0]
-            tokenIndex = -1
-            for i, dt in enumerate(cardProps.cssselect('dt')):
-                if dt.text == 'Токен':
-                    tokenIndex = i
-                    break
-            if tokenIndex >= 0 and cardProps.cssselect('dd')[tokenIndex].text.strip() == 'Да':
-                yield None
-                continue
-
-            for offer in offers:
-                condition, *language = offer.cssselect('.super-offer-name')[0].text.split()
-                yield {
-                    'name': cardName,
-                    'foilness': isFoil,
-                    'set': cardPage.cssselect('.bx-breadcrumb-item a span')[-1].text,
-                    'language': ''.join(language),
-                    'price': decimal.Decimal(re.match(r'(\d+)', offer.cssselect('.offer-price')[0].text.strip()).group(0)),
-                    'currency': core.utils.Currency.RUR,
-                    'count': int(re.search(r'(\d+)', offer.cssselect('.super-offer span strong')[0].text).group(0)),
-                    'condition': condition,
-                    'source': anchor.attrib['href'],
-                }
-
-
 class MtgTradeShop(CardSource):
     def __init__(self, logger: ILogger, shopUrl: str, sourceSubstringsToExclude: List[str]):
         super().__init__(logger, shopUrl, '/search/?query={query}')
@@ -954,7 +893,6 @@ def getCardSourceClasses():
         BigMagic,
         BuyMagic,
         CardPlace,
-        EasyBoosters,
         ManaPoint,
         MtgRu,
         MtgSale,
