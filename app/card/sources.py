@@ -485,7 +485,7 @@ class MtgRu(CardSource):
                 shopFound = not exchangeUrl.endswith('.html')
                 if shopFound:
                     cardSource = exchangeUrl
-                    self.logger.warning('Found new shop: {}', exchangeUrl)
+                    self.logger.warning('Found new shop: %s', exchangeUrl)
                 else:
                     cardSource = self.getTitle() + '/' + nickname
 
@@ -615,7 +615,7 @@ class TopTrade(CardSource):
 
             seller = entry['source']
             if seller != 'topdeck':
-                self.logger.warning('Found new shop: {}', seller)
+                self.logger.warning('Found new shop: %s', seller)
             else:
                 seller = entry['seller']['name']
 
