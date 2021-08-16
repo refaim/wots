@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MagicAlbum CompactMode="1">
+	<InventoryBars CompactMode="1" Schema="38">
+		<Layout Visible="0">
+			<DockState Version="38" ScreenSize="1920, 1080" Count="2">
+				<BarInfo0 BarId="141" MRUWidth="32767"/>
+				<BarInfo1 BarId="128" MRUWidth="32767" PointPos="520, 0" MRUDockPos="128, 0, 256, 110"/>
+			</DockState>
+			<DockBars>
+				<DockBar0 Count="4" Id1="128" Id2="141"/>
+			</DockBars>
+		</Layout>
+	</InventoryBars>
+	<CommandBars CompactMode="1" Schema="38">
+		<Layout Visible="0">
+			<DockState Version="38" ScreenSize="1920, 1080" Count="1">
+				<BarInfo0 BarId="1" MRUWidth="32767" MRUDockPos="2, 0, 1282, 23"/>
+			</DockState>
+			<DockBars>
+				<DockBar0 Count="3" Id1="1"/>
+			</DockBars>
+		</Layout>
+	</CommandBars>
+	<Inventory CompactMode="1" Schema="38" FreezeColumnsCount="2" ShowIconView="0">
+		<Columns>
+			<Column ItemIndex="1" InternalName="1000" StaticWidth="146" AutoWidth="146" OldVisibleIndex="0" Expanded="0"/>
+			<Column ItemIndex="0" InternalName="2015" StaticWidth="49" AutoWidth="49" OldVisibleIndex="0" Expanded="0"/>
+			<Column ItemIndex="4" InternalName="2014" StaticWidth="57" AutoWidth="57" OldVisibleIndex="0" Expanded="0"/>
+			<Column ItemIndex="2" InternalName="2000" StaticWidth="193" AutoWidth="193" OldVisibleIndex="0" Expanded="0"/>
+			<Column ItemIndex="3" InternalName="2002" Visible="0" StaticWidth="43" AutoWidth="43" OldVisibleIndex="0" Expanded="0"/>
+			<Column ItemIndex="5" InternalName="3000" StaticWidth="43" AutoWidth="43" Expanded="0"/>
+			<Column ItemIndex="24" InternalName="2012" SortIncreasing="0" StaticWidth="53" AutoWidth="53" OldVisibleIndex="6" Expanded="0"/>
+			<Column ItemIndex="6" InternalName="3001" StaticWidth="42" AutoWidth="42" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="7" InternalName="3002" Visible="0" StaticWidth="50" AutoWidth="50" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="9" InternalName="2008" Visible="0" StaticWidth="50" AutoWidth="50" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="10" InternalName="1001" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="25" InternalName="2013" Visible="0" StaticWidth="57" AutoWidth="57" OldVisibleIndex="7" Expanded="0"/>
+			<Column ItemIndex="11" InternalName="1002" StaticWidth="94" AutoWidth="94" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="12" InternalName="1005" Visible="0" StaticWidth="30" AutoWidth="30" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="13" InternalName="2005" Visible="0" StaticWidth="100" AutoWidth="100" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="14" InternalName="2011" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="15" InternalName="2006" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="16" InternalName="2001" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="17" InternalName="2003" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="18" InternalName="3003" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="19" InternalName="3004" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="22" InternalName="3005" Visible="0" StaticWidth="60" AutoWidth="60" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="23" InternalName="3006" Visible="0" StaticWidth="60" AutoWidth="60" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="26" InternalName="3007" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="27" InternalName="3008" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="28" InternalName="1003" StaticWidth="206" AutoWidth="206" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="29" InternalName="1004" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="30" InternalName="1006" StaticWidth="76" AutoWidth="76" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="8" InternalName="2010" Visible="0" StaticWidth="36" AutoWidth="36" OldVisibleIndex="9" Expanded="0"/>
+			<Column ItemIndex="20" InternalName="3010" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="21" InternalName="3011" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="31" InternalName="1008" Visible="0" StaticWidth="70" AutoWidth="70" OldVisibleIndex="10" Expanded="0"/>
+			<SortOrder Count="1" Column0="1" InternalName0="1000"/>
+		</Columns>
+		<Header AllowColumnRemove="0" AutoColumnSizing="0" ShowItemsInGroups="0"/>
+	</Inventory>
+	<CardBase2 CompactMode="1" Schema="36" ShowIconView="0">
+		<Columns>
+			<Column ItemIndex="0" InternalName="1" StaticWidth="130" AutoWidth="130" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="1" InternalName="5" StaticWidth="35" AutoWidth="35" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="2" InternalName="6" StaticWidth="75" AutoWidth="75" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="3" InternalName="7" StaticWidth="30" AutoWidth="30" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="4" InternalName="8" StaticWidth="150" AutoWidth="150" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="5" InternalName="9" StaticWidth="150" AutoWidth="150" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="6" InternalName="11" StaticWidth="65" AutoWidth="65" NextVisualBlock="-842150451" Expanded="0"/>
+			<SortOrder Count="1" InternalName0="1"/>
+		</Columns>
+		<Header AllowColumnRemove="0" AutoColumnSizing="0" ShowItemsInGroups="0"/>
+	</CardBase2>
+	<Inventory2 CompactMode="1" Schema="36" ShowIconView="0">
+		<Columns>
+			<Column ItemIndex="0" InternalName="1" StaticWidth="227" AutoWidth="227" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="1" InternalName="26" SortIncreasing="0" StaticWidth="42" AutoWidth="42" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="2" InternalName="10" StaticWidth="35" AutoWidth="35" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="3" InternalName="11" SortIncreasing="0" StaticWidth="75" AutoWidth="75" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="4" InternalName="12" StaticWidth="30" AutoWidth="30" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="5" InternalName="28" StaticWidth="150" AutoWidth="150" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="6" InternalName="27" StaticWidth="497" AutoWidth="497" NextVisualBlock="-842150451" Expanded="0"/>
+			<Column ItemIndex="7" InternalName="29" StaticWidth="60" AutoWidth="60" NextVisualBlock="-842150451" Expanded="0"/>
+			<SortOrder Count="1" Column0="1" InternalName0="26"/>
+		</Columns>
+		<Header AllowColumnRemove="0" AutoColumnSizing="0" ShowItemsInGroups="0"/>
+	</Inventory2>
+	<DeckEditorBars CompactMode="1" Schema="38">
+		<Layout Visible="0">
+			<DockState Version="38" ScreenSize="1920, 1080" Count="2">
+				<BarInfo0 BarId="147" MRUWidth="32767"/>
+				<BarInfo1 BarId="128" MRUWidth="32767" PointPos="0, 76" MRUDockPos="128, 0, 256, 76"/>
+			</DockState>
+			<DockBars>
+				<DockBar0 Count="4" Id1="128" Id2="147"/>
+			</DockBars>
+		</Layout>
+	</DeckEditorBars>
+	<Panes CompactMode="1">
+		<Summary Panes="49" TopContainer="15" Client="17"/>
+		<Pane-1 Type="0" DockingCX="200" DockingCY="200" Title="Database — 186118/186118 cards, 1855/1855 tokens, 544/544 nontraditional, 2553/2553 inserts, 1053/1053 replicas\n\n" ID="32960" Options="2" DockingHolder="25" FloatingHolder="11" LastHolder="25"/>
+		<Pane-2 Type="0" DockingCX="200" DockingCY="200" Title="Primary Inventory — main.mai — 5961/5961 cards, 23/23 tokens, 0/0 nontraditional, 0/0 inserts, 0/0 replicas\n\n" ID="32961" Options="2" DockingHolder="31" FloatingHolder="37" LastHolder="31"/>
+		<Pane-3 Type="0" DockingCX="200" DockingCY="200" Title="Deck — New.mad — 0/0 — $0.00\n\n" ID="32962" Options="2" DockingHolder="27" FloatingHolder="14" LastHolder="27"/>
+		<Pane-4 Type="0" DockingCX="200" DockingCY="200" Title="Scanned Picture\n\n" ID="32964" DockingHolder="23" FloatingHolder="43" LastHolder="23"/>
+		<Pane-5 Type="0" DockingCX="200" DockingCY="200" Title="Rendered Picture\n\n" ID="32963" DockingHolder="34" FloatingHolder="40" LastHolder="34"/>
+		<Pane-6 Type="0" DockingCX="100" DockingCY="100" Title="Oracle Text\n\n" ID="32965" DockingHolder="24" FloatingHolder="46" LastHolder="24"/>
+		<Pane-7 Type="0" DockingCX="100" DockingCY="100" Title="Original Text\n\n" ID="32966" DockingHolder="34" FloatingHolder="40" LastHolder="34"/>
+		<Pane-8 Type="0" DockingCX="100" DockingCY="100" Title="Secondary Inventory — [To] Ermilova, Yulia.mai — 9/9 cards, 0/0 tokens, 0/0 nontraditional, 0/0 inserts, 0/0 replicas\n\n" ID="32959" DockingHolder="32" FloatingHolder="49" LastHolder="32"/>
+		<Pane-9 Type="3" WindowRectTopPos="47" WindowRectBottomPos="247" WindowRectLeftPos="732" WindowRectRightPos="932" TopContaner="10"/>
+		<Pane-10 Type="2" DockingCX="990" DockingCY="200" Horiz="1" Panes="1" Pane-1="11"/>
+		<Pane-11 Type="1" DockingCX="990" DockingCY="200" Panes="0"/>
+		<Pane-12 Type="3" WindowRectTopPos="85" WindowRectBottomPos="285" WindowRectLeftPos="1077" WindowRectRightPos="1277" TopContaner="13"/>
+		<Pane-13 Type="2" DockingCX="200" DockingCY="200" Horiz="1" Panes="1" Pane-1="14"/>
+		<Pane-14 Type="1" DockingCX="200" DockingCY="200" Panes="0"/>
+		<Pane-15 Type="2" DockingCY="954" Horiz="1" Panes="1" Pane-1="16"/>
+		<Pane-16 Type="2" DockingCY="638" Horiz="1" Panes="2" Pane-1="17" Pane-2="18"/>
+		<Pane-17 Type="4"/>
+		<Pane-18 Type="2" DockingCX="200" DockingCY="954" Panes="1" Pane-1="19"/>
+		<Pane-19 Type="2" DockingCX="1920" DockingCY="524" Horiz="1" Panes="2" Pane-1="20" Pane-2="26"/>
+		<Pane-20 Type="2" DockingCX="1099" DockingCY="200" Panes="1" Pane-1="21"/>
+		<Pane-21 Type="2" DockingCX="1920" DockingCY="431" Horiz="1" Panes="2" Pane-1="22" Pane-2="25"/>
+		<Pane-22 Type="2" DockingCX="292" DockingCY="572" Panes="2" Pane-1="23" Pane-2="24"/>
+		<Pane-23 Type="1" DockingCX="283" DockingCY="572" Panes="1" Selected="4" Pane-1="4"/>
+		<Pane-24 Type="1" DockingCX="100" DockingCY="480" Panes="1" Selected="6" Pane-1="6"/>
+		<Pane-25 Type="1" DockingCX="1624" DockingCY="431" Panes="1" Selected="1" Pane-1="1"/>
+		<Pane-26 Type="2" DockingCX="817" DockingCY="952" Panes="2" Pane-1="27" Pane-2="28"/>
+		<Pane-27 Type="1" DockingCX="470" DockingCY="478" Panes="0"/>
+		<Pane-28 Type="2" DockingCX="283" DockingCY="470" Horiz="1" Panes="1" Pane-1="29"/>
+		<Pane-29 Type="2" DockingCX="914" DockingCY="427" Horiz="1" Panes="2" Pane-1="30" Pane-2="33"/>
+		<Pane-30 Type="2" DockingCX="914" DockingCY="427" Panes="2" Pane-1="31" Pane-2="32"/>
+		<Pane-31 Type="1" DockingCX="914" DockingCY="427" Panes="0"/>
+		<Pane-32 Type="1" DockingCX="100" DockingCY="266" Panes="0"/>
+		<Pane-33 Type="2" DockingCX="283" DockingCY="1003" Panes="1" Pane-1="34"/>
+		<Pane-34 Type="1" DockingCX="283" DockingCY="519" Panes="0"/>
+		<Pane-35 Type="3" WindowRectTopPos="80" WindowRectBottomPos="615" WindowRectLeftPos="728" WindowRectRightPos="2009" TopContaner="36"/>
+		<Pane-36 Type="2" DockingCX="914" DockingCY="248" Horiz="1" Panes="1" Pane-1="37"/>
+		<Pane-37 Type="1" DockingCX="914" DockingCY="248" Panes="0"/>
+		<Pane-38 Type="3" WindowRectTopPos="326" WindowRectBottomPos="526" WindowRectLeftPos="1270" WindowRectRightPos="1470" TopContaner="39"/>
+		<Pane-39 Type="2" DockingCX="283" DockingCY="572" Horiz="1" Panes="1" Pane-1="40"/>
+		<Pane-40 Type="1" DockingCX="283" DockingCY="572" Panes="0"/>
+		<Pane-41 Type="3" WindowRectTopPos="205" WindowRectBottomPos="740" WindowRectLeftPos="-459" WindowRectRightPos="822" TopContaner="42"/>
+		<Pane-42 Type="2" DockingCX="283" DockingCY="572" Horiz="1" Panes="1" Pane-1="43"/>
+		<Pane-43 Type="1" DockingCX="283" DockingCY="572" Panes="0"/>
+		<Pane-44 Type="3" WindowRectTopPos="984" WindowRectBottomPos="1184" WindowRectLeftPos="-82" WindowRectRightPos="118" TopContaner="45"/>
+		<Pane-45 Type="2" DockingCX="100" DockingCY="480" Horiz="1" Panes="1" Pane-1="46"/>
+		<Pane-46 Type="1" DockingCX="100" DockingCY="480" Panes="0"/>
+		<Pane-47 Type="3" WindowRectTopPos="1008" WindowRectBottomPos="1108" WindowRectLeftPos="1631" WindowRectRightPos="1731" TopContaner="48"/>
+		<Pane-48 Type="2" DockingCX="100" DockingCY="266" Horiz="1" Panes="1" Pane-1="49"/>
+		<Pane-49 Type="1" DockingCX="100" DockingCY="266" Panes="0"/>
+	</Panes>
+	<CardBase CompactMode="1" Schema="38" ShowIconView="0">
+		<Columns>
+			<Column ItemIndex="0" InternalName="2015" StaticWidth="206" AutoWidth="206" OldVisibleIndex="0" Expanded="0"/>
+			<Column ItemIndex="1" InternalName="1000" StaticWidth="203" AutoWidth="203" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="18" InternalName="2000" StaticWidth="178" AutoWidth="178" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="2" InternalName="2002" Visible="0" StaticWidth="43" AutoWidth="43" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="3" InternalName="2014" StaticWidth="85" AutoWidth="85" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="4" InternalName="2010" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="5" InternalName="1001" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="6" InternalName="1002" Visible="0" StaticWidth="75" AutoWidth="75" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="7" InternalName="1005" Visible="0" StaticWidth="30" AutoWidth="30" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="8" InternalName="1003" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="9" InternalName="1004" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="12" InternalName="2005" Visible="0" StaticWidth="100" AutoWidth="100" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="13" InternalName="2004" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="14" InternalName="2009" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="10" InternalName="2008" StaticWidth="50" AutoWidth="50" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="15" InternalName="2011" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="16" InternalName="2006" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="17" InternalName="2007" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="19" InternalName="2001" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="20" InternalName="2003" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="21" InternalName="2012" Visible="0" StaticWidth="77" AutoWidth="77" OldVisibleIndex="4" Expanded="0"/>
+			<Column ItemIndex="22" InternalName="2013" Visible="0" StaticWidth="87" AutoWidth="87" OldVisibleIndex="5" Expanded="0"/>
+			<Column ItemIndex="11" InternalName="1006" Visible="0" StaticWidth="77" AutoWidth="77" OldVisibleIndex="4" Expanded="0"/>
+			<Column ItemIndex="23" InternalName="1008" Visible="0" StaticWidth="70" AutoWidth="70" OldVisibleIndex="4" Expanded="0"/>
+			<SortOrder Count="3" Column0="1" InternalName0="1000" InternalName1="2015" Column2="3" InternalName2="2014"/>
+		</Columns>
+		<Header AllowColumnRemove="0" AutoColumnSizing="0" ShowItemsInGroups="0"/>
+	</CardBase>
+	<InventorySecBars CompactMode="1" Schema="38">
+		<Layout Visible="0">
+			<DockState Version="38" ScreenSize="1920, 1080" Count="2">
+				<BarInfo0 BarId="141" MRUWidth="32767"/>
+				<BarInfo1 BarId="128" MRUWidth="32767" PointPos="520, 0" MRUDockPos="320, -8, 1865, 18"/>
+			</DockState>
+			<DockBars>
+				<DockBar0 Count="4" Id1="128" Id2="141"/>
+			</DockBars>
+		</Layout>
+	</InventorySecBars>
+	<CardBaseBars CompactMode="1" Schema="38">
+		<Layout Visible="0">
+			<DockState Version="38" ScreenSize="1920, 1080" Count="2">
+				<BarInfo0 BarId="139" MRUWidth="32767"/>
+				<BarInfo1 BarId="128" MRUWidth="32767" PointPos="338, 0" MRUDockPos="278, 6, 1302, 32"/>
+			</DockState>
+			<DockBars>
+				<DockBar0 Count="4" Id1="128" Id2="139"/>
+			</DockBars>
+		</Layout>
+	</CardBaseBars>
+	<DeckEditor CompactMode="1" Schema="38" ShowIconView="0">
+		<Columns>
+			<Column ItemIndex="0" InternalName="5000" StaticWidth="40" AutoWidth="40" Expanded="0"/>
+			<Column ItemIndex="1" InternalName="1000" StaticWidth="130" AutoWidth="130" Expanded="0"/>
+			<Column ItemIndex="2" InternalName="1001" StaticWidth="35" AutoWidth="35" Expanded="0"/>
+			<Column ItemIndex="3" InternalName="1002" StaticWidth="75" AutoWidth="75" Expanded="0"/>
+			<Column ItemIndex="4" InternalName="1005" StaticWidth="30" AutoWidth="30" Expanded="0"/>
+			<Column ItemIndex="5" InternalName="1003" StaticWidth="150" AutoWidth="150" Expanded="0"/>
+			<Column ItemIndex="6" InternalName="1004" StaticWidth="150" AutoWidth="150" Expanded="0"/>
+			<Column ItemIndex="7" InternalName="1006" StaticWidth="60" AutoWidth="60" Expanded="0"/>
+			<Column ItemIndex="8" InternalName="5002" StaticWidth="35" AutoWidth="35" Expanded="0"/>
+			<Column ItemIndex="9" InternalName="5001" StaticWidth="40" AutoWidth="40" Expanded="0"/>
+			<Column ItemIndex="10" InternalName="5003" StaticWidth="40" AutoWidth="40" Expanded="0"/>
+		</Columns>
+		<Header AllowColumnRemove="0" AutoColumnSizing="0" ShowItemsInGroups="0"/>
+	</DeckEditor>
+	<CommandBarsOptions CompactMode="1" Schema="38" AlwaysShowFullMenus="1" ShowFullAfterDelay="1" ToolBarScreenTips="1" ToolBarAccelTips="0" LargeIcons="0" Animation="0" SyncFloatingBars="1" ShowExpandButtonAlways="1" IconsSize="0, 0" LargeIconsSize="0, 0" IconsWithShadow="0" UseDisabledIcons="1" UseFadedIcons="0" DblClickFloat="0" ShowTextBelowIcons="0" AltDragCustomization="1" AutoHideUnusedPopups="1" PopupIconsSize="0, 0" KeyboardCuesUse="1" KeyboardCuesShow="2"/>
+	<InventorySec CompactMode="1" Schema="38" ShowIconView="0">
+		<Columns>
+			<Column ItemIndex="0" InternalName="2015" StaticWidth="40" AutoWidth="40" OldVisibleIndex="0" Expanded="0"/>
+			<Column ItemIndex="1" InternalName="1000" StaticWidth="130" AutoWidth="130" Expanded="0"/>
+			<Column ItemIndex="2" InternalName="2000" Visible="0" StaticWidth="130" AutoWidth="130" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="3" InternalName="2002" Visible="0" StaticWidth="43" AutoWidth="43" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="4" InternalName="2014" StaticWidth="63" AutoWidth="63" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="5" InternalName="3000" StaticWidth="43" AutoWidth="43" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="7" InternalName="3002" Visible="0" StaticWidth="50" AutoWidth="50" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="8" InternalName="2010" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="9" InternalName="2008" Visible="0" StaticWidth="50" AutoWidth="50" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="10" InternalName="1001" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="11" InternalName="1002" Visible="0" StaticWidth="75" AutoWidth="75" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="12" InternalName="1005" Visible="0" StaticWidth="30" AutoWidth="30" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="13" InternalName="2005" Visible="0" StaticWidth="100" AutoWidth="100" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="14" InternalName="2011" Visible="0" StaticWidth="35" AutoWidth="35" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="15" InternalName="2006" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="16" InternalName="2001" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="17" InternalName="2003" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="18" InternalName="3003" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="19" InternalName="3004" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="20" InternalName="3010" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="21" InternalName="3011" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="22" InternalName="3005" Visible="0" StaticWidth="60" AutoWidth="60" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="23" InternalName="3006" Visible="0" StaticWidth="60" AutoWidth="60" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="24" InternalName="2012" SortIncreasing="0" StaticWidth="50" AutoWidth="50" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="26" InternalName="3007" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="27" InternalName="3008" Visible="0" StaticWidth="40" AutoWidth="40" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="28" InternalName="1003" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="29" InternalName="1004" Visible="0" StaticWidth="150" AutoWidth="150" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="6" InternalName="3001" SortIncreasing="0" StaticWidth="69" AutoWidth="69" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="25" InternalName="2013" StaticWidth="49" AutoWidth="49" OldVisibleIndex="3" Expanded="0"/>
+			<Column ItemIndex="30" InternalName="1006" StaticWidth="90" AutoWidth="90" OldVisibleIndex="1" Expanded="0"/>
+			<Column ItemIndex="31" InternalName="1008" Visible="0" StaticWidth="70" AutoWidth="70" OldVisibleIndex="8" Expanded="0"/>
+			<SortOrder Count="1" Column0="24" InternalName0="2012"/>
+		</Columns>
+		<Header AllowColumnRemove="0" AutoColumnSizing="0" ShowItemsInGroups="0"/>
+	</InventorySec>
+	<General CompactMode="1" InvMode="0" InvSecMode="0" DBMode="0" DeckHave="0"/>
+</MagicAlbum>
