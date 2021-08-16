@@ -696,11 +696,12 @@ class MtgTradeShop(CardSource):
                     if 'mtgo' in cardSet.lower():
                         yield None
                         continue
+
                     yield {
                         'name': ' '.join(anchor.text_content().split()),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': cardSet,
-                        'language': ''.join(cardEntry.cssselect('td .card-properties')[0].text.split()).strip('|"') or None,
+                        'language': cardEntry.cssselect('.lang-item-info')[0].attrib['title'],
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price b')[0].text.split()).strip('" ')),
                         'currency': core.utils.Currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
