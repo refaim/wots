@@ -692,7 +692,12 @@ class MtgTradeShop(CardSource):
                     condition = None
                     conditionBlocks = cardEntry.cssselect('.js-card-quality-tooltip')
                     if len(conditionBlocks) > 0:
-                        condition = cardEntry.cssselect('.js-card-quality-tooltip')[0].text
+                        condition = conditionBlocks[0].text
+
+                    language = None
+                    languageBlocks = cardEntry.cssselect('.lang-item-info')
+                    if len(languageBlocks) > 0:
+                        language = languageBlocks[0].attrib['title']
 
                     cardSet = cardEntry.cssselect('.choose-set')[0].attrib['title']
                     if 'mtgo' in cardSet.lower():
@@ -703,7 +708,7 @@ class MtgTradeShop(CardSource):
                         'name': ' '.join(anchor.text_content().split()),
                         'foilness': len(cardEntry.cssselect('img.foil')) > 0,
                         'set': cardSet,
-                        'language': cardEntry.cssselect('.lang-item-info')[0].attrib['title'],
+                        'language': language,
                         'price': decimal.Decimal(''.join(cardEntry.cssselect('.catalog-rate-price b')[0].text.split()).strip('" ')),
                         'currency': core.utils.Currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
