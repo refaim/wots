@@ -390,58 +390,45 @@ class CardPlace(CardSource):
 
     def _parseResponse(self, queryText, url, html):
         for resultsEntry in html.cssselect('#mtgksingles tbody tr'):
-            dataCells = resultsEntry.cssselect('td')
 
-            language = None
-            langImages = dataCells[3].cssselect('img')
-            if len(langImages) > 0:
-                imageFile = os.path.basename(urllib.parse.urlparse(self.url + langImages[0].attrib['src']).path)
-                language = self.langOracle.get_abbreviation(os.path.splitext(imageFile)[0])
+            cardCount = 0
+            countBlocks = resultsEntry.cssselect('td.t_s_count ul.count_cart_list li')
+            if len(countBlocks) > 0:
+                cardCount = int(countBlocks[-1].text)
 
-            conditionString = None
-            for anchor in dataCells[2].cssselect('a'):
-                if 'condition_guide' in anchor.attrib['href']:
-                    conditionString = anchor.text
-
-            anchorName = dataCells[2].cssselect('a')[0]
-            nameString = anchorName.text_content()
-            if any(s in nameString.lower() for s in ['чеклист', 'checklist']):
+            if cardCount == 0:
                 yield None
                 continue
 
-            cardId = None
-            cardSet = re.sub(r'\(предзаказ\)', '', dataCells[1].cssselect('b')[0].text.strip("'"), 0, re.I)
-            cardName = nameString
-            isSpecialPromo = any(s in nameString for s in ['APAC', 'EURO', 'MPS'])
-            if not isSpecialPromo:
-                cardId, nameString = self.extractToken(r'\s?\(?\#(?P<token>\d+)\)?', nameString)
-                promoString, nameString = self.extractToken(r'\s?\((?P<token>(pre)?release)\)', nameString)
-                if promoString is not None:
-                    cardSet = promoString
-                secondaryNameString, primaryNameString = self.extractToken(r'\s?\((?P<token>[^\)]+)\)', nameString)
-                cardName = primaryNameString
-                if (not language or language != 'EN') and secondaryNameString is not None:
-                    cardName = secondaryNameString
-                if '(PR)' in cardSet:
-                    cardSet = 'Prerelease & Release Cards'
+            cardLanguage = None
+            languageBlocks = resultsEntry.cssselect('td.t_s_flag img')
+            if len(languageBlocks) > 0:
+                cardLanguage = languageBlocks[0].attrib['title']
 
-            nameImages = dataCells[2].cssselect('img')
-            count = int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0))
-            if count == 0:
-                yield None
-                continue
+            cardNameAnchors = resultsEntry.cssselect('td.t_s_name a')
+            secondaryNameString, primaryNameString = self.extractToken(r'\s?\((?P<token>[^\)]+)\)', cardNameAnchors[0].text)
+            cardName = primaryNameString
+            if cardLanguage != 'Английский' and secondaryNameString is not None:
+                cardName = secondaryNameString
+
+            cardCondition = 'NM'
+            if len(cardNameAnchors) > 1:
+                conditionAnchor = cardNameAnchors[1]
+                if 'condition_guide' in conditionAnchor.attrib['href']:
+                    cardCondition = conditionAnchor.text
+
+            cardNameImages = resultsEntry.cssselect('td.t_s_name img')
 
             yield {
-                'id': cardId,
                 'name': cardName,
-                'foilness': len(nameImages) > 0 and nameImages[0].attrib['title'].lower() == 'foil',
-                'set': cardSet,
-                'language': language,
-                'condition': conditionString,
-                'price': decimal.Decimal(re.match(r'([\d.]+)', dataCells[6].text.strip()).group(0)),
+                'foilness': len(cardNameImages) > 0 and cardNameImages[0].attrib['title'].lower() == 'foil',
+                'set': resultsEntry.cssselect('td.t_s_edition')[0].text_content(),
+                'language': cardLanguage,
+                'condition': cardCondition,
+                'price': decimal.Decimal(resultsEntry.cssselect('td.t_s_price input')[0].attrib['value']),
                 'currency': core.utils.Currency.RUR,
-                'count': count,
-                'source': anchorName.attrib['href'],
+                'count': cardCount,
+                'source': cardNameAnchors[0].attrib['href'],
             }
 
 
