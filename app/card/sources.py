@@ -64,7 +64,8 @@ class CardSource(object):
             self.requestCache[url] = lxml.html.document_fromstring(byteString.decode(self.responseEncoding))
         return self.requestCache.get(url)
 
-    def packName(self, caption, description=None):
+    @staticmethod
+    def packName(caption, description=None):
         return {'caption': caption.strip(), 'description': description}
 
     def makeAbsUrl(self, path):
@@ -275,7 +276,7 @@ class ManaPoint(MtgRuShop):
             dataCells = resultsEntry.cssselect('td')
             cardString = dataCells[0].text
 
-            cardInfo = re.match(r'^(\[.+?\])?(?P<name>[^\[(]+)\s*(\((?P<lang>[^)]+)\))?.+$', cardString).groupdict()
+            cardInfo = re.match(r'^(\[.+?])?(?P<name>[^\[(]+)\s*(\((?P<lang>[^)]+)\))?.+$', cardString).groupdict()
             cardName = cardInfo['name'].split('/')[0].strip()
 
             if queryText.lower() in cardName.lower():
@@ -284,10 +285,10 @@ class ManaPoint(MtgRuShop):
                     cardLang = LangUtils.guess_language(CardUtils.make_key(cardName))
 
                 propStrings = []
-                supported = True # TODO support archenemy & planechase
+                supported = True  # TODO support archenemy & planechase
                 foil = False
                 setString = None
-                for match in re.finditer(r'\[([^\]]+)\]', cardString):
+                for match in re.finditer(r'\[([^]]+)]', cardString):
                     propString = match.group(1).lower()
                     if any(s in propString for s in ['archenemy', 'planechase']):
                         supported = False
@@ -317,6 +318,7 @@ class ManaPoint(MtgRuShop):
                         'source': self.promoUrl,
                     })
         return results
+
 
 class MtgSale(CardSource):
     def __init__(self, logger: ILogger):
@@ -424,7 +426,7 @@ class CardPlace(CardSource):
                     cardSet = 'Prerelease & Release Cards'
 
             nameImages = dataCells[2].cssselect('img')
-            count = int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0));
+            count = int(re.match(r'(\d+)', dataCells[7].text.strip()).group(0))
             if count == 0:
                 yield None
                 continue
@@ -706,7 +708,7 @@ class MtgTradeShop(CardSource):
                         'currency': core.utils.Currency.RUR,
                         'count': int(cardEntry.cssselect('td .sale-count')[0].text.strip()),
                         'condition': condition,
-                        'source': self.packSource(sourceCaption, anchor.attrib['href']), # TODO specify url to specific player + card
+                        'source': self.packSource(sourceCaption, anchor.attrib['href']),  # TODO specify url to specific player + card
                     }
 
 
@@ -805,7 +807,7 @@ class BuyMagic(CardSource):
         return len(html.cssselect(self.__PRODUCT_SELECTOR))
 
     def _parseDoubleName(self, nameString: str) -> Tuple[str, Optional[str], Optional[str]]:
-        n1, n2 = re.match(r'^([^\(]+)?(?:\((.+)\))?', nameString).groups()
+        n1, n2 = re.match(r'^([^(]+)?(?:\((.+)\))?', nameString).groups()
         name = n1
         lang = None
         comment = None
@@ -835,7 +837,7 @@ class BuyMagic(CardSource):
                 continue
             cardName, langFromName, comment = self._parseDoubleName(cardName)
             setIsRus, blockSet = self.extractToken(r'(?P<token>\sРУС)', blockSet)
-            blockSet = re.match(r'^\[(.+?)\]$', blockSet).group(1)
+            blockSet = re.match(r'^\[(.+?)]$', blockSet).group(1)
             for entry in block.cssselect('table tr'):
                 text = entry.text_content()
                 cardSet = blockSet
@@ -854,11 +856,12 @@ class BuyMagic(CardSource):
                     'foilness': re.search(r'Тип: FOIL', text) is not None,
                     'set': cardSet,
                     'language': language,
-                    'price': decimal.Decimal(re.search(r'([\d\.]+) грн\.', text).group(1)),
+                    'price': decimal.Decimal(re.search(r'([\d.]+) грн\.', text).group(1)),
                     'currency': core.utils.Currency.UAH,
                     'count': int(entry.cssselect('select[name="card_count"] option')[-1].text),
                     'source': anchor.attrib['href'],
                 }
+
 
 class OfflineTestSource(CardSource):
     def __init__(self, logger: ILogger):
