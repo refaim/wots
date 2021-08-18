@@ -525,13 +525,16 @@ class MtgRu(CardSource):
 class TopTrade(CardSource):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'https://topdeck.ru', '/apps/toptrade/singles/search?q={query}')
-        self.excludedSellers = [
+        self.excludedSellers = {
             'angrybottlegnome',
+            'autumnsmagic.com',
             'bigmagic',
+            'cardplace.ru',
+            'manapoint',
             'mtgsale',
             'mymagic.ru',
             'myupkeep',
-        ]
+        }
         self.searchResults = None
 
     def query(self, queryText):
@@ -541,14 +544,15 @@ class TopTrade(CardSource):
     def _extractResults(self, html):
         if self.searchResults is None:
             result = []
-            for script in html.cssselect('script'):
-                match = re.search(r'var singles = JSON.parse\((.+)\);', script.text_content())
-                if match:
-                    jsonString = match.group(1).strip("'")
-                    jsonString = re.sub(r'\\x([a-zA-Z0-9]{2})', lambda m: chr(int('0x{}'.format(m.group(1)), 16)), jsonString)
-                    for card in json.loads(jsonString):
-                        if card['source'] not in self.excludedSellers:
-                            result.append(card)
+            script = html.cssselect('script')[-1]
+            match = re.search(r'JSON.parse\("(.+)"\)', script.text_content())
+            if match:
+                jsonString = match.group(1)
+                # Get rid of \u-sequences
+                jsonString = jsonString.encode('latin1').decode('unicode_escape')
+                for card in json.loads(jsonString):
+                    if card['source'].lower() not in self.excludedSellers:
+                        result.append(card)
             self.searchResults = result
         return self.searchResults
 
@@ -608,6 +612,8 @@ class TopTrade(CardSource):
             else:
                 seller = entry['seller']['name']
 
+            url = urllib.parse.unquote(entry['url']).replace('\\/', '/')
+
             yield {
                 'name': self.packName(entry['name'], rawDataString),
                 'foilness': cardFoil,
@@ -617,7 +623,7 @@ class TopTrade(CardSource):
                 'currency': core.utils.Currency.RUR,
                 'count': entry['qty'],
                 'condition': cardCondition,
-                'source': self.packSource('topdeck.ru/' + seller, entry['url']),
+                'source': self.packSource('topdeck.ru/' + seller, url),
             }
 
 
