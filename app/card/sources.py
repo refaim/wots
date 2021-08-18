@@ -861,6 +861,43 @@ class BuyMagic(CardSource):
                 }
 
 
+class MyMagic(CardSource):
+    def __init__(self, logger: ILogger):
+        super().__init__(logger, 'http://mymagic.ru', '/collection/card-search/filter/clear/apply/?qr={query}&PAGEN_2={page}')
+
+    def _getPageCount(self, html):
+        result = 1
+        anchors = html.cssselect('a.PageButton')
+        if len(anchors) > 0:
+            result = int(anchors[-1].text)
+        return result
+
+    def _getPageCardsCount(self, html):
+        return len(html.cssselect('.SingleListItem'))
+
+    def _parseResponse(self, queryText, url, html):
+        for entry in html.cssselect('.SingleListItem'):
+            priceBlock = entry.cssselect('.price-column')[0]
+            stocks = priceBlock.cssselect('.stock .count')
+            if len(stocks) == 0:
+                yield None
+                continue
+
+            anchor = entry.cssselect('.name-column a')[0]
+            foilnessString, cardName = self.extractToken(r'\s*(?P<token>Foil)', anchor.text)
+
+            yield {
+                'name': cardName,
+                'foilness': foilnessString is not None,
+                'set': entry.cssselect('.set-column')[0].text,
+                'language': LangUtils.guess_language(cardName),
+                'price': decimal.Decimal(re.sub(r'\D+', '', priceBlock.cssselect('.price .current span')[0].text_content())),
+                'currency': core.utils.Currency.RUR,
+                'count': int(re.match(r'(\d+)', stocks[0].text.strip()).group(1)),
+                'source': anchor.attrib['href'],
+            }
+
+
 class OfflineTestSource(CardSource):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://offline.shop', '?query={query}')
@@ -897,6 +934,7 @@ def getCardSourceClasses():
         MtgRu,
         MtgSale,
         MtgTrade,
+        MyMagic,
         MyUpKeep,
         MtgShopRu,
         TopTrade,
