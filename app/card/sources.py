@@ -451,7 +451,7 @@ class MtgRu(CardSource):
             'cardplace.ru',
             'manapoint.mtg.ru',
             'mtgsale.ru',
-            'mtgshop.ru',
+            'mtgshop',
             'mtgtrade.net',
             'myupkeep.ru',
         ]
