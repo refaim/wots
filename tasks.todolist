@@ -6,6 +6,7 @@
  ☐ Поиск двусторонних карт по обеим половинками на обоих языках
 Данные:
  ☐ Обучить CardsFixer определять язык для сетов (данные брать из Magic Album)
+ ☐ Написать тесты на добавленные сеты
 Интерфейс:
  ☐ Разделить колонки source и seller
  ☐ Подсветка бэкграунда строки с гиперссылкой
@@ -51,7 +52,7 @@ CI и сборка:
  ☐ league.org.ru
  ☐ cardz.ru
  ☐ sargona.ru
- ☐ mtgsingles.ru
+ ✔ mtgsingles.ru
  ☐ spellmarket.ru
  ☐ https://ehobby.ru/ru/shops/single
  ☐ http://gorod-mtg.ru/11
@@ -77,7 +78,7 @@ CI и сборка:
    ☐ league.org.ru
    ☐ cardz.ru
    ☐ sargona.ru
-   ☐ mtgsingles.ru
+   ✔ mtgsingles.ru
    ☐ spellmarket.ru
    ☐ https://ehobby.ru/ru/shops/single
    ☐ http://gorod-mtg.ru/11

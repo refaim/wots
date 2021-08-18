@@ -1,6 +1,6 @@
 {
   "2ED": ["Unlimited Edition", "(2ED?)|(Unlimited( Edition)?)"],
-  "2XM": ["Double Masters", null],
+  "2XM": ["Double Masters", "Double Masters( - Variants)?"],
   "3ED": ["Revised Edition", "(3ED?)|(Revised( Edition)?)"],
   "3FB": ["Revised Edition (FBB)", "(3rd|Revised)( Edition)? \\(FBB\\)"],
   "3WB": ["Revised Edition (FWB)", "(3rd|Revised)( Edition)? \\(FWB\\)"],

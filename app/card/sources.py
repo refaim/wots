@@ -898,6 +898,58 @@ class MyMagic(CardSource):
             }
 
 
+class MtgSingles(CardSource):
+    def __init__(self, logger: ILogger):
+        super().__init__(logger, 'https://mtgsingles.ru', '/search/?search={query}&category_id=59')
+
+    def _getPageCount(self, html):
+        result = 1
+        anchors = html.cssselect('ul.pagination li a')
+        if len(anchors) > 0:
+            result = int(re.search(r'/page-(\d+)', anchors[-1].attrib['href']).group(1))
+        return result
+
+    def _getPageCardsCount(self, html):
+        return len(html.cssselect('div.products div.product-grid'))
+
+    def _parseResponse(self, queryText, url, html):
+        for entry in html.cssselect('div.products div.product-grid'):
+            cardNameAnchor = entry.cssselect('div.caption a')[0]
+            cardUrl = cardNameAnchor.attrib['href']
+
+            cardPage = self.getHtml(cardUrl)
+            cardSet = None
+            cardLanguage = None
+            for propertyRow in cardPage.cssselect('#tab-specification table tr'):
+                cells = propertyRow.cssselect('td')
+                if len(cells) > 0:
+                    if cells[0].text == 'Язык':
+                        cardLanguage = cells[1].text
+                    elif cells[0].text == 'Выпуск':
+                        cardSet = cells[1].text.replace(' (Foil)', '')
+
+            cardCount = None
+            for div in cardPage.cssselect('.product-points div'):
+                if 'stock' in div.attrib['class']:
+                    cardCountCandidate = div.cssselect('span')[-1].text.split()[-1]
+                    if cardCountCandidate.isdigit():
+                        cardCount = int(cardCountCandidate)
+            if cardCount is None:
+                yield None
+                continue
+
+            yield {
+                'name': cardNameAnchor.text,
+                'foilness': 'foil' in cardUrl,
+                'set': cardSet,
+                'language': cardLanguage,
+                'price': decimal.Decimal(re.sub(r'[^\d.]+', '', entry.cssselect('span.price')[0].text).rstrip('.')),
+                'currency': core.utils.Currency.RUR,
+                'count': cardCount,
+                'source': cardUrl,
+            }
+
+
 class OfflineTestSource(CardSource):
     def __init__(self, logger: ILogger):
         super().__init__(logger, 'http://offline.shop', '?query={query}')
@@ -933,6 +985,7 @@ def getCardSourceClasses():
         ManaPoint,
         MtgRu,
         MtgSale,
+        MtgSingles,
         MtgTrade,
         MyMagic,
         MyUpKeep,
