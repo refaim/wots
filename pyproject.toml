@@ -7,7 +7,7 @@ authors = ["Roman Kharitonov <rkharito@yandex.ru>"]
 [tool.poetry.dependencies]
 python = "^3.6"
 PyQt5 = "5.10.1"
-lxml = "^4.6.3"
+lxml = "^4.6.5"
 psutil = "^5.8.0"
 python-dotenv = "^0.19.0"
 requests = "^2.26.0"
